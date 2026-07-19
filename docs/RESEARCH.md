@@ -1,0 +1,149 @@
+# Исследование: Рутокен ЭЦП 3.0 на ОС Аврора
+
+Дата: 2026-07-19. Статус: этап 0 (исследование) завершён. Выводы этого документа легли в основу [PLAN.md](../PLAN.md).
+
+## Цель проекта
+
+Тестовое приложение для ОС Аврора, работающее с токенами **Рутокен ЭЦП 3.0** по двум интерфейсам:
+
+- **USB** (контактный);
+- **NFC** (бесконтактный, для моделей Рутокен ЭЦП 3.0 NFC).
+
+Ориентировочный функционал (уточняется в PLAN.md): обнаружение токена, информация о нём, ввод PIN, просмотр объектов, генерация ключевой пары ГОСТ, подпись и проверка тестовых данных.
+
+## 1. Где лежат исходники примеров для Авроры
+
+«Открытая мобильная платформа» (ОМП, разработчик ОС Аврора) перенесла свои open-source-проекты на московскую платформу **Мос.Хаб** — https://hub.mos.ru (это и есть «МосХаб»; GitLab-совместимая платформа). Подтверждение: [новость ОМП](https://www.omp.ru/news1/tpost/9psx1zl3m1-open-source-proekti-dlya-os-avrora-stali), [новость mos.ru](https://www.mos.ru/news/item/161601073/).
+
+Головная группа: **https://hub.mos.ru/auroraos** (владелец — ООО «Открытая мобильная платформа», group id 208720).
+
+Подгруппы группы `auroraos`:
+
+| Подгруппа | Путь | Что внутри |
+|---|---|---|
+| Demos | `auroraos/demos` | Небольшие демо отдельных технологий (~48 проектов) |
+| Examples | `auroraos/examples` | Полнофункциональные приложения — «лучшие практики» |
+| Examples Extra | `auroraos/examples-extra` | Примеры с тяжёлыми зависимостями (LLM Runner, TTS/STT и др.) |
+| Flutter | `auroraos/flutter` | Flutter SDK для Авроры + плагины сообщества |
+| Qt | `auroraos/qt` | Qt5/Qt6-библиотеки, инструменты кросс-сборки |
+| Образование | `auroraos/edu` | Курсы: «Прикладная разработка на Qt», «Разработка плагинов Flutter» |
+| Kotlin Multiplatform | `auroraos/kotlin-multiplatform` | Compose Multiplatform для Авроры |
+| Applications | `auroraos/apps` | Портированные приложения (TgChat/tdesktop и др.) |
+
+Каталог примеров с описаниями: https://developer.auroraos.ru/demos и https://developer.auroraos.ru/doc/software_development/examples
+
+Клонирование: `git clone https://hub.mos.ru/auroraos/demos/NfcUseCases.git`
+
+### Ключевые для нас репозитории
+
+| Репозиторий | URL | Зачем нам |
+|---|---|---|
+| **Application Template** | https://hub.mos.ru/auroraos/demos/ApplicationTemplate | Эталонная структура нативного приложения: qmake `.pro`, `rpm/*.spec`, `.desktop`, `src/`, `qml/` (страницы, cover, иконки). BSD-3-Clause |
+| **NFC Use Cases** | https://hub.mos.ru/auroraos/demos/NfcUseCases | **Главный референс.** Работа с NFC двумя путями: (1) **pcsc-lite** — обнаружение NFC-меток/карт как PC/SC-ридера; (2) **nfcd через D-Bus** с QML-обвязкой. qmake, BSD-3-Clause |
+| **USB Use Cases** | https://hub.mos.ru/auroraos/demos/UsbUseCases | USB API Авроры, сборка и использование libusb (для диагностики; сам токен идёт через pcscd/CCID) |
+| Key Store | https://hub.mos.ru/auroraos/demos/KeyStore | QCA Keystore API (общие подходы к крипто-UI) |
+| Cryptographic QCA | https://hub.mos.ru/auroraos/demos/CryptographicQca | Криптография через QCA API |
+| UI Component Gallery | https://hub.mos.ru/auroraos/demos/UIComponentGallery | Галерея UI-компонентов Авроры, лучшие практики |
+| Flutter SDK | https://hub.mos.ru/auroraos/flutter/flutter | Flutter для Авроры (оценивали как альтернативу) |
+| nfc_manager (Flutter) | https://hub.mos.ru/auroraos/flutter/flutter-community-plugins/nfc_manager | NFC-плагин Flutter для Авроры (PC/SC-уровня не даёт) |
+
+Примечания к примерам:
+
+- **ApplicationTemplate**: qmake-проект `ru.auroraos.ApplicationTemplate.pro`; структура `src/` (C++, `main.cpp`), `qml/` (pages, cover, icons), `icons/`, `rpm/*.spec`, `.desktop`; RPM-пакетирование; в актуальных версиях — QML-компоненты Авроры (не `Sailfish.Silica`).
+- **NfcUseCases**: qmake-проект `ru.auroraos.NfcUseCases.pro`; модуль на pcsc-lite «обнаруживает подключение NFC-меток и выводит базовую информацию о них»; модуль nfcd — D-Bus-интерфейсы демона `nfcd` с QML-обёртками. Это подтверждает: **бесконтактные карты на Авроре доступны через PC/SC**, тем же интерфейсом, что и USB-токены.
+
+## 2. Как Рутокен работает на ОС Аврора
+
+Подтверждено источниками (список в конце):
+
+- Рутокен ЭЦП 3.0 (включая NFC-модели) **официально поддерживает ОС Аврора** (версии 4 и выше). В каталоге приложений Авроры есть приложение «Рутокен» от компании «Актив»: https://auroraos.ru/applications/rutoken — подпись формируется «на борту» токена, ключ не покидает устройство.
+- Библиотека PKCS#11 **rtPKCS11ECP** имеет **официальные сборки для Авроры: RPM ARM32 и ARM64**, текущая версия **2.19.0.0** (17.04.2026). Поддержка Авроры появилась в **2.17.1.0** (заявлены Аврора 4 и 5; архитектуры x86_64, ARM64, ARMv7). Скачивание: https://www.rutoken.ru/support/download/pkcs/ (файлы отдаются с download.rutoken.ru).
+- Устройства семейства Рутокен ЭЦП — **CCID-совместимые**: на Linux (и Авроре) USB-подключение обслуживает стандартный стек **pcsc-lite**: демон `pcscd` + CCID ifd-handler, отдельные драйверы не нужны.
+- **NFC**: NFC-стеком Авроры управляет демон **`nfcd`** (наследие Sailfish OS). Бесконтактная карта предоставляется приложениям **через тот же PC/SC** — NFC-ридер выглядит как ещё один ридер pcscd (NFC-handler играет ту же роль, что CCID ifd-handler для USB). Демо NfcUseCases это подтверждает (обнаружение NFC-меток через pcsc-lite).
+
+Итоговая схема стека:
+
+```
+QML UI (компоненты Авроры)
+        │
+C++/Qt слой приложения
+        │  вызовы C_* (PKCS#11)
+librtpkcs11ecp.so  (PKCS#11 v2.20 + российский профиль; ГОСТ и RSA)
+        │
+libpcsclite ──► pcscd (PC/SC-демон)
+        │                     │
+  CCID ifd-handler      NFC-handler (стек nfcd)
+        │                     │
+Рутокен ЭЦП 3.0 (USB)   Рутокен ЭЦП 3.0 NFC
+```
+
+Криптография выполняется на борту токена: ГОСТ Р 34.10-2012, ГОСТ Р 34.11-2012, ГОСТ 28147-89, ГОСТ Р 34.12/34.13-2015(2018), а также RSA. Ключи неизвлекаемые.
+
+Полезные факты:
+
+- PIN-коды по умолчанию: пользователь `12345678`, администратор `87654321` (менять при первом использовании).
+- Рутокен ЭЦП **Bluetooth** на Авроре **не поддерживается** (нет драйвера) — подтверждено на форуме Рутокен (topic 3779). Актуальный бесконтактный путь — NFC.
+- КриптоПро CSP на Авроре **не** умеет работать поверх rtpkcs11ecp (PKCS#11-провайдер) — для нас неважно: работаем с PKCS#11 напрямую, без CSP.
+
+## 3. Rutoken SDK и документация
+
+- Комплект разработчика: https://www.rutoken.ru/developers/sdk/ — PKCS#11-библиотека, примеры кода (включая мобильные под Android/iOS/Аврору/Astra), демо-сервисы подписи, утилиты `pkcs11-tool` (управление токеном из консоли) и `pkcs11-spy` (отладка вызовов PKCS#11).
+- Центр загрузки PKCS#11: https://www.rutoken.ru/support/download/pkcs/ — RPM для Авроры ARM32/ARM64; прямые ссылки вида `https://download.rutoken.ru/Rutoken/PKCS11Lib/<версия>/...`.
+- Портал документации: https://dev.rutoken.ru
+  - [Использование библиотек rtPKCS11 и rtPKCS11ECP](https://dev.rutoken.ru/pages/viewpage.action?pageId=3178509)
+  - [Встраивание устройств Рутокен через PKCS#11](https://dev.rutoken.ru/pages/viewpage.action?pageId=13795364)
+  - [Отладка приложений, использующих PKCS#11](https://dev.rutoken.ru/pages/viewpage.action?pageId=19496963)
+  - [Начало работы со смарт-картой Рутокен ЭЦП 3.0 NFC](https://dev.rutoken.ru/pages/viewpage.action?pageId=78479413)
+- Форум техподдержки (отвечают разработчики Актива): https://forum.rutoken.ru
+
+## 4. Выбор фреймворка: нативный Qt vs Flutter
+
+**Решение: нативный Qt/C++ + QML.**
+
+| Критерий | Qt (нативный) | Flutter |
+|---|---|---|
+| Доступ к PKCS#11 (C API) | Напрямую: `dlopen("librtpkcs11ecp.so")` + `C_GetFunctionList` | Нужен собственный мост (FFI/platform channel) под Аврору |
+| Доступ к PC/SC и nfcd | Есть официальный пример NfcUseCases на C++ | Готового плагина нет; `nfc_manager` не даёт PC/SC-уровень |
+| Примеры Рутокен SDK | C/C++ | Под Аврору отсутствуют |
+| Каркас приложения | ApplicationTemplate готов | Есть шаблоны, но крипто-мост всё равно писать на C++ |
+| Кроссплатформенность | Не требуется (целевая ОС одна) | Преимущество не востребовано |
+
+Flutter не отвергается навсегда: если позже понадобится Flutter-UI, мост к librtpkcs11ecp всё равно пишется на C++, и эта работа переиспользуема. Но для тестового приложения нативный Qt — кратчайший и проверенный официальными примерами путь.
+
+## 5. Эскиз функциональности тестового приложения
+
+1. Список PC/SC-ридеров и PKCS#11-слотов (USB- и NFC-ридеры различимы по именам слотов).
+2. Информация о токене: `C_GetSlotInfo` / `C_GetTokenInfo` (модель, серийный номер, память).
+3. Отслеживание подключения/отключения токена: `C_WaitForSlotEvent` (в отдельном потоке) или опрос.
+4. Логин по PIN: `C_Login` / `C_Logout`; индикация оставшихся попыток.
+5. Список объектов (сертификаты, ключи): `C_FindObjectsInit` / `C_FindObjects`.
+6. Генерация ключевой пары ГОСТ Р 34.10-2012: `C_GenerateKeyPair`.
+7. Подпись тестовых данных (ГОСТ Р 34.11-2012 + ГОСТ Р 34.10-2012): `C_SignInit` / `C_Sign` — и проверка.
+
+## 6. Открытые вопросы (проверять на следующих этапах)
+
+1. Входят ли `pcscd` и NFC-handler в стандартную поставку Авроры, или ставятся отдельными пакетами (например, вместе с приложением «Рутокен»)? Доступен ли pcscd стороннему приложению из песочницы?
+2. Какие разрешения (Permissions) нужны приложению для USB/NFC/смарт-карт на Аврора 5 и как их декларировать (.desktop/манифест).
+3. Как поставлять `librtpkcs11ecp.so`: зависимость RPM (`Requires:`), вложение `.so` в пакет приложения или требование предустановки.
+4. Целевая версия Авроры (4.0.2+ / 5.x) и тестовые устройства; наличие физического Рутокен ЭЦП 3.0 NFC.
+5. Работоспособность в эмуляторе Аврора SDK (x86_64): поддерживается ли библиотека и как пробрасывать USB-токен.
+6. Доступность hub.mos.ru и download.rutoken.ru из среды сборки агентов/CI.
+
+## 7. Источники
+
+- https://hub.mos.ru/auroraos — группа ОМП на Мос.Хабе (подгруппы demos/examples/flutter/edu)
+- https://developer.auroraos.ru/demos — каталог демо и примеров
+- https://developer.auroraos.ru/doc/software_development/examples — документация по примерам
+- https://www.omp.ru/news1/tpost/9psx1zl3m1-open-source-proekti-dlya-os-avrora-stali — новость о переносе на Mos.Hub
+- https://www.mos.ru/news/item/161601073/ — новость mos.ru
+- https://hub.mos.ru/auroraos/demos/NfcUseCases — NFC-демо (pcsc-lite + nfcd)
+- https://hub.mos.ru/auroraos/demos/ApplicationTemplate — шаблон приложения
+- https://hub.mos.ru/auroraos/demos/UsbUseCases — USB-демо
+- https://www.rutoken.ru/products/all/rutoken-ecp-3/ — Рутокен ЭЦП 3.0
+- https://www.rutoken.ru/support/download/pkcs/ — загрузки PKCS#11 (RPM для Авроры ARM32/ARM64, v2.19.0.0)
+- https://www.rutoken.ru/developers/sdk/ — Рутокен SDK
+- https://dev.rutoken.ru/pages/viewpage.action?pageId=3178509 — rtPKCS11ECP
+- https://dev.rutoken.ru/pages/viewpage.action?pageId=78479413 — начало работы с Рутокен ЭЦП 3.0 NFC
+- https://auroraos.ru/applications/rutoken — приложение «Рутокен» в каталоге Авроры
+- https://forum.rutoken.ru/topic/3779/ — Bluetooth-Рутокен на Авроре не поддерживается; ограничение КриптоПро CSP
+- https://developer.auroraos.ru/doc/extended/flutter — документация Flutter для Авроры
