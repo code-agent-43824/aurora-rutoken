@@ -60,9 +60,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rutokentestapp-${{ steps.package.outputs.version_release }}-${{ matrix.arch }}-rpms
-          path: |
-            RPMS/*.${{ matrix.arch }}.rpm
-            VENDOR_RPMS/*.${{ matrix.arch }}.rpm
+          path: RPMS/*.${{ matrix.arch }}.rpm
           if-no-files-found: error
 
   publish-release:

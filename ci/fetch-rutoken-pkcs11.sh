@@ -24,8 +24,10 @@ case "$TARGET_ARCH" in
         ;;
 esac
 
-mkdir -p VENDOR_RPMS
-RPM_PATH="VENDOR_RPMS/${URL##*/}"
+mkdir -p RPMS
+# Keep the official dependency next to the already verified application RPM.
+# A single upload root makes the Actions artifact flat and deterministic.
+RPM_PATH="RPMS/${URL##*/}"
 
 echo "== downloading official Rutoken PKCS#11 $VERSION for $TARGET_ARCH"
 curl --fail --location --retry 3 --output "$RPM_PATH" "$URL"

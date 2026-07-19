@@ -2,7 +2,6 @@
 /.qmake.stash
 /RPMS/
 /RPMS-out/
-/VENDOR_RPMS/
 /installroot/
 /moc_*.cpp
 /*.o
