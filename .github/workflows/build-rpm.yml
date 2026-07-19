@@ -11,7 +11,8 @@ permissions:
 env:
   PSDK_RELEASE: "5.2.1"
   PSDK_BUILD: "5.2.1.200"
-  TARGET_ARCH: "aarch64"
+  # armv7hl — 32-битные устройства (телефон владельца), aarch64 — 64-битные.
+  TARGET_ARCHS: "armv7hl aarch64"
 
 jobs:
   build-rpm:
@@ -25,7 +26,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/AuroraPlatformSDK/tarballs
-          key: psdk-tarballs-${{ env.PSDK_BUILD }}-${{ env.TARGET_ARCH }}
+          key: psdk-tarballs-${{ env.PSDK_BUILD }}-armv7hl+aarch64
+          restore-keys: |
+            psdk-tarballs-${{ env.PSDK_BUILD }}-
 
       - name: Install Aurora Platform SDK
         run: ./ci/install-psdk.sh
@@ -36,7 +39,7 @@ jobs:
       - name: Upload RPM artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rutokentestapp-${{ env.TARGET_ARCH }}-rpm
+          name: rutokentestapp-rpms
           path: RPMS/*.rpm
           if-no-files-found: error
 
@@ -54,4 +57,4 @@ jobs:
           gh release upload ci-latest RPMS/*.rpm --clobber
           gh release edit ci-latest --prerelease \
             --title "Последняя CI-сборка (main)" \
-            --notes "RPM для ОС Аврора 5.x (${TARGET_ARCH}), собран автоматически из коммита ${GITHUB_SHA} ($(date -u '+%Y-%m-%d %H:%M UTC')). Установка: скачайте .rpm на телефон, разрешите установку недоверенных приложений и откройте файл в Файлах."
+            --notes "RPM для ОС Аврора 5.x, подписаны тестовым ключом OMP; собраны автоматически из коммита ${GITHUB_SHA} ($(date -u '+%Y-%m-%d %H:%M UTC')). Какой файл качать: 32-битный телефон — *.armv7hl.rpm, 64-битный — *.aarch64.rpm. Установка: включите режим разработчика, разрешите недоверенное ПО, скачайте .rpm и откройте в Файлах."

@@ -13,6 +13,8 @@ A test application for Aurora OS (Russian mobile OS derived from Sailfish OS) th
 - Application ID: `ru.codeagent43824.rutokentestapp` (owner's scheme `ru.<github account>.rutokentestapp`; account `code-agent-43824`, hyphens dropped because app-id segments — also used as D-Bus names — must not contain `-`).
 - Target OS: Aurora **5.x**.
 - The owner has physical Rutoken ECP 3.0 **USB** and **NFC** tokens for testing.
+- The owner's phone is **32-bit (armv7hl)** — discovered 2026-07-19 via `BadPackageArchitecture` on an aarch64 RPM. CI builds **both** armv7hl and aarch64; the armv7hl RPM is the one the owner installs.
+- RPMs **must be signed** or Aurora refuses to install them (`BadPackageSignature`). CI signs with the public OMP test key pair (`ci/keys/`, regular profile, GOST) via `rpmsign-external` in the PSDK chroot; test-key packages require **developer mode** enabled on the phone (Aurora 5+). Details: `docs/RESEARCH.md` §5а.
 - Development proceeds by versions `v0.0.1 → v1.0` as laid out in `PLAN.md` (version goes into the RPM spec).
 
 ## MANDATORY agent workflow
