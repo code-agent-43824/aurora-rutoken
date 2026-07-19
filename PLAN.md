@@ -31,8 +31,8 @@
 - [x] Склонировать и изучить референс `ApplicationTemplate` с hub.mos.ru — 2026-07-19 (qmake `CONFIG += auroraapp`, spec с `%qmake5`, desktop с секцией `[X-Application]`, QML на `Sailfish.Silica`; hub.mos.ru доступен из среды агента напрямую)
 - [x] Найти способ сборки без локальной установки: Аврора **Platform SDK 5.2.1.200** (chroot) разворачивается на ubuntu-раннере; тарболлы публично доступны: `sdk-repo.omprussia.ru/sdk/installers/5.2.1/5.2.1.200-release/AuroraPSDK/` (Chroot `.tar.bz2`, Tooling и Target-aarch64 `.tar.7z`) — 2026-07-19
 - [x] Создать каркас приложения `ru.codeagent43824.rutokentestapp`: `.pro`, `rpm/*.spec` (Version 0.0.1), `.desktop`, `src/main.cpp`, `qml/` (MainPage «Hello Rutoken», cover), иконки 86/108/128/172 (сгенерированы скриптом), переводы — 2026-07-19
-- [~] CI: `.github/workflows/build-rpm.yml` + `ci/install-psdk.sh` + `ci/build-rpm.sh` — установка PSDK-chroot на раннере, `mb2 -t AuroraOS-5.2.1.200-aarch64 build`, артефакт с RPM и роллинг-релиз `ci-latest` (прямое скачивание RPM с телефона без логина); файлы созданы 2026-07-19, ждём зелёной сборки
-- [ ] Дождаться зелёной сборки в Actions (мониторить запуски, чинить до успеха)
+- [x] CI: `.github/workflows/build-rpm.yml` + `ci/install-psdk.sh` + `ci/build-rpm.sh` — установка PSDK-chroot на раннере, `mb2 -t AuroraOS-5.2.1.200-aarch64 build`, артефакт с RPM и роллинг-релиз `ci-latest` (прямое скачивание RPM с телефона без логина) — 2026-07-19
+- [x] Дождаться зелёной сборки в Actions — 2026-07-19: run №1 зелёный с первой попытки за 4м49с (https://github.com/code-agent-43824/aurora-rutoken/actions/runs/29697410776); содержимое RPM проверено вручную (aarch64 ELF, desktop, иконки, QML, переводы)
 - [x] Инструкция по установке на телефон (разрешить недоверенное ПО, установка из «Файлов» или `pkcon install-local`) в README.md — 2026-07-19
 - [ ] Подтверждение владельца: RPM ставится и запускается на Авроре 5.2 → закрыть версию записью в журнале
 
