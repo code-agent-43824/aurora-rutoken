@@ -120,6 +120,18 @@ Flutter не отвергается навсегда: если позже пон
 6. Генерация ключевой пары ГОСТ Р 34.10-2012: `C_GenerateKeyPair`.
 7. Подпись тестовых данных (ГОСТ Р 34.11-2012 + ГОСТ Р 34.10-2012): `C_SignInit` / `C_Sign` — и проверка.
 
+## 5а. Подпись RPM-пакетов (установлено 2026-07-19, после реальной ошибки на телефоне)
+
+Факт с устройства владельца (Аврора 5.2): неподписанный RPM отклоняется установщиком с ошибкой **`Failed to install package (code: BadPackageSignature)`** — даже при разрешённой установке недоверенного ПО.
+
+Как устроено (док-ция: developer.auroraos.ru, разделы `rpm_requirements`, `package_signing`, `tools/rpmsign-external`):
+
+- Все установочные пакеты для Авроры должны нести **подпись разработчика** (X.509/PKCS#7 поверх RPM, алгоритм ГОСТ Р 34.10-2012). Профили подписи: Regular, Antivirus, Extended, Market, MDM.
+- Для отладки OMP публикует **общедоступную тестовую пару профиля Regular**: `regular_key.pem` + `regular_cert.pem` (subject: «Noname developer (for testing only, do not use for production)», issuer: «Open Mobile Platform LLC Root Packages Certificate», срок до 2045 г.), URL: `https://developer.auroraos.ru/content-images/dev-documentation/regular_{key,cert}.pem` (портал отдаёт файлы только с браузерным User-Agent, иначе 403). Копия закоммичена в `ci/keys/`.
+- Подпись: утилита `rpmsign-external` (пакет `rpmsign-external-tool`): `rpmsign-external sign --key regular_key.pem --cert regular_cert.pem pkg.rpm`; проверка — `verify`/`dump`. Ключ ГОСТ, поэтому подписываем внутри чрута Platform SDK (там есть ГОСТ-крипто); наш CI делает это в `ci/build-rpm.sh`.
+- **С Авроры 5 пакеты на общедоступных (тестовых) ключах устанавливаются и запускаются только при включённом режиме разработчика** на устройстве; плюс нужна разрешённая установка недоверенного ПО.
+- Боевой вариант — личные ключи из кабинета разработчика Авроры (требует регистрации OMP); для тестового приложения достаточно тестовой пары.
+
 ## 6. Открытые вопросы (проверять на следующих этапах)
 
 1. Входят ли `pcscd` и NFC-handler в стандартную поставку Авроры, или ставятся отдельными пакетами (например, вместе с приложением «Рутокен»)? Доступен ли pcscd стороннему приложению из песочницы?
@@ -147,3 +159,6 @@ Flutter не отвергается навсегда: если позже пон
 - https://auroraos.ru/applications/rutoken — приложение «Рутокен» в каталоге Авроры
 - https://forum.rutoken.ru/topic/3779/ — Bluetooth-Рутокен на Авроре не поддерживается; ограничение КриптоПро CSP
 - https://developer.auroraos.ru/doc/extended/flutter — документация Flutter для Авроры
+- https://developer.auroraos.ru/doc/software_development/guidelines/rpm_requirements — требования к установочным пакетам (обязательная подпись)
+- https://developer.auroraos.ru/doc/sdk/app_development/packaging/package_signing — подписание пакетов; ссылки на тестовую пару regular_key/regular_cert; про блокировку общедоступных ключей без режима разработчика на Аврора 5
+- https://developer.auroraos.ru/doc/sdk/tools/rpmsign_external — утилита rpmsign-external (пакет rpmsign-external-tool), синтаксис sign/verify/dump
