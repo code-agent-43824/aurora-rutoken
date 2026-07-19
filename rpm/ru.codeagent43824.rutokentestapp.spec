@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.0.2
-Release:    1
+Release:    2
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -37,3 +37,7 @@ PC/SC stack (libpcsclite/pcscd) and the NFC stack (nfcd over D-Bus).
 %{_datadir}/%{name}
 %{_datadir}/applications/%{name}.desktop
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
+
+%changelog
+* Sun Jul 19 2026 Watson <noreply@openclaw.ai> - 0.0.2-2
+- Rebuild each architecture in an isolated CI job and verify RPM/ELF metadata.

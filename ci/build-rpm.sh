@@ -1,43 +1,45 @@
 #!/bin/sh
-# Сборка RPM приложения через mb2 в chroot Аврора Platform SDK для всех
-# архитектур из TARGET_ARCHS и подпись тестовым ключом (профиль regular).
-# Без подписи Аврора 5 отклоняет пакет (BadPackageSignature); пакет чужой
-# архитектуры — BadPackageArchitecture (телефон владельца — 32-битный armv7hl).
-# Запускать из корня проекта. Результат кладётся в ./RPMS/.
+# Сборка, подпись и проверка одного RPM в чистом matrix job.
+# TARGET_ARCH обязан быть ровно armv7hl либо aarch64.
 set -eu
 
 PSDK_BUILD="${PSDK_BUILD:?PSDK_BUILD is not set}"
-TARGET_ARCHS="${TARGET_ARCHS:-armv7hl aarch64}"
+TARGET_ARCH="${TARGET_ARCH:?TARGET_ARCH is not set}"
 PSDK_DIR="$HOME/AuroraPlatformSDK/sdks/aurora_psdk"
 
-# rpmsign-external нужен один раз (живёт в тулинге/чруте, не в таргете).
+case "$TARGET_ARCH" in
+    armv7hl|aarch64) ;;
+    *) echo "Unsupported TARGET_ARCH: $TARGET_ARCH" >&2; exit 2 ;;
+esac
+
 if ! "$PSDK_DIR/sdk-chroot" which rpmsign-external >/dev/null 2>&1; then
     echo "== rpmsign-external not found in tooling, installing"
     "$PSDK_DIR/sdk-chroot" sudo zypper --non-interactive install rpmsign-external-tool
 fi
 
-OUT="RPMS-out"
-rm -rf "$OUT" RPMS
-mkdir -p "$OUT"
+rm -rf RPMS
 
-for arch in $TARGET_ARCHS; do
-    echo "== building for $arch"
-    "$PSDK_DIR/sdk-chroot" mb2 -t "AuroraOS-${PSDK_BUILD}-${arch}" build
+echo "== building for $TARGET_ARCH"
+"$PSDK_DIR/sdk-chroot" mb2 -t "AuroraOS-${PSDK_BUILD}-${TARGET_ARCH}" build
 
-    # Подпись публичной тестовой парой ключей OMP (ci/keys/, источник —
-    # developer.auroraos.ru, раздел package_signing). Ключ ГОСТ Р 34.10-2012,
-    # поэтому подписываем внутри чрута PSDK, где есть ГОСТ-крипто.
-    echo "== signing $arch packages with the regular test key"
-    for rpm in RPMS/*.rpm; do
-        "$PSDK_DIR/sdk-chroot" rpmsign-external sign \
-            --key ci/keys/regular_key.pem --cert ci/keys/regular_cert.pem "$rpm"
-        "$PSDK_DIR/sdk-chroot" rpmsign-external dump "$rpm"
-    done
+set -- RPMS/*.rpm
+if [ ! -e "$1" ] || [ "$#" -ne 1 ]; then
+    echo "Expected exactly one RPM for $TARGET_ARCH, got $#" >&2
+    exit 1
+fi
+RPM_PATH="$1"
 
-    mv RPMS/*.rpm "$OUT"/
-    rm -rf RPMS
-done
+case "$RPM_PATH" in
+    *."$TARGET_ARCH".rpm) ;;
+    *) echo "Unexpected RPM filename for $TARGET_ARCH: $RPM_PATH" >&2; exit 1 ;;
+esac
 
-mv "$OUT" RPMS
-echo "== built packages:"
-ls -l RPMS/
+echo "== signing $RPM_PATH with the OMP regular test key"
+"$PSDK_DIR/sdk-chroot" rpmsign-external sign \
+    --key ci/keys/regular_key.pem --cert ci/keys/regular_cert.pem "$RPM_PATH"
+
+echo "== verifying package architecture, ELF loader and signature metadata"
+"$PSDK_DIR/sdk-chroot" ./ci/verify-rpm.sh "$TARGET_ARCH" "$RPM_PATH"
+
+echo "== verified package"
+ls -l "$RPM_PATH"

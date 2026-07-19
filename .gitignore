@@ -1,0 +1,9 @@
+/Makefile
+/.qmake.stash
+/RPMS/
+/RPMS-out/
+/installroot/
+/moc_*.cpp
+/*.o
+/ru.codeagent43824.rutokentestapp
+/translations/*.qm

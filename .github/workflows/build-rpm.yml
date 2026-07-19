@@ -5,19 +5,25 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 env:
   PSDK_RELEASE: "5.2.1"
   PSDK_BUILD: "5.2.1.200"
-  # armv7hl — 32-битные устройства (телефон владельца), aarch64 — 64-битные.
-  TARGET_ARCHS: "armv7hl aarch64"
 
 jobs:
   build-rpm:
+    name: Build and verify ${{ matrix.arch }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [armv7hl, aarch64]
+    env:
+      # Каждая архитектура собирается на отдельном чистом runner/workspace.
+      # Это запрещает повторное использование object-файлов другой архитектуры.
+      TARGET_ARCH: ${{ matrix.arch }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,50 +32,69 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/AuroraPlatformSDK/tarballs
-          key: psdk-tarballs-${{ env.PSDK_BUILD }}-armv7hl+aarch64
+          key: psdk-tarballs-${{ env.PSDK_BUILD }}-${{ matrix.arch }}
           restore-keys: |
+            psdk-tarballs-${{ env.PSDK_BUILD }}-${{ matrix.arch }}
             psdk-tarballs-${{ env.PSDK_BUILD }}-
 
       - name: Install Aurora Platform SDK
         run: ./ci/install-psdk.sh
 
-      - name: Build RPM
+      - name: Build, sign and verify RPM
         run: ./ci/build-rpm.sh
 
-      # Артефакты раздельные по архитектурам (требование владельца).
-      # Примечание: интерфейс GitHub всегда отдаёт артефакт зипом; прямые
-      # .rpm без архива — в релизе ci-latest.
-      - name: Upload armv7hl RPM artifact
+      - name: Upload verified RPM artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rutokentestapp-armv7hl-rpm
-          path: RPMS/*.armv7hl.rpm
+          name: rutokentestapp-${{ matrix.arch }}-rpm
+          path: RPMS/*.${{ matrix.arch }}.rpm
           if-no-files-found: error
 
-      - name: Upload aarch64 RPM artifact
-        uses: actions/upload-artifact@v4
+  publish-release:
+    name: Publish verified RPM pair
+    if: github.ref == 'refs/heads/main'
+    needs: build-rpm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified RPM artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: rutokentestapp-aarch64-rpm
-          path: RPMS/*.aarch64.rpm
-          if-no-files-found: error
+          pattern: rutokentestapp-*-rpm
+          path: RPMS
+          merge-multiple: true
+
+      - name: Require exactly one RPM per architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          arm=(RPMS/*.armv7hl.rpm)
+          a64=(RPMS/*.aarch64.rpm)
+          all=(RPMS/*.rpm)
+          [[ ${#arm[@]} -eq 1 ]]
+          [[ ${#a64[@]} -eq 1 ]]
+          [[ ${#all[@]} -eq 2 ]]
+          sha256sum "${all[@]}"
 
       - name: Update rolling release ci-latest
-        if: github.ref == 'refs/heads/main'
-        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
         run: |
+          set -euo pipefail
           if ! gh release view ci-latest >/dev/null 2>&1; then
             gh release create ci-latest --prerelease \
               --title "Последняя CI-сборка (main)" \
               --notes "placeholder"
           fi
-          # Убираем ассеты прошлых сборок (имена меняются с версией пакета),
-          # чтобы в ci-latest всегда лежала ровно одна свежая пара RPM.
-          for asset in $(gh release view ci-latest --json assets -q '.assets[].name'); do
+          mapfile -t assets < <(gh release view ci-latest --json assets -q '.assets[].name')
+          for asset in "${assets[@]}"; do
             gh release delete-asset ci-latest "$asset" -y
           done
           gh release upload ci-latest RPMS/*.rpm --clobber
           gh release edit ci-latest --prerelease \
             --title "Последняя CI-сборка (main)" \
-            --notes "RPM для ОС Аврора 5.x, подписаны тестовым ключом OMP; собраны автоматически из коммита ${GITHUB_SHA} ($(date -u '+%Y-%m-%d %H:%M UTC')). Какой файл качать: 32-битный телефон — *.armv7hl.rpm, 64-битный — *.aarch64.rpm. Установка: включите режим разработчика, разрешите недоверенное ПО, скачайте .rpm и откройте в Файлах."
+            --notes "Проверенные RPM для ОС Аврора 5.x, подписаны тестовым ключом OMP; собраны независимо по архитектурам из коммита ${GITHUB_SHA} ($(date -u '+%Y-%m-%d %H:%M UTC')). 32-битный телефон — *.armv7hl.rpm, 64-битный — *.aarch64.rpm. Установка: включить режим разработчика, разрешить недоверенное ПО, скачать .rpm и открыть в Файлах."
