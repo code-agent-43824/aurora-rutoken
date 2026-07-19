@@ -13,6 +13,10 @@ Page {
         case "pcsclib": return qsTr("PC/SC library")
         case "context": return qsTr("PC/SC daemon (pcscd)")
         case "readers": return qsTr("PC/SC readers")
+        case "pkcs11lib": return qsTr("Rutoken PKCS#11 library")
+        case "pkcs11init": return qsTr("PKCS#11 initialization")
+        case "pkcs11info": return qsTr("PKCS#11 information")
+        case "pkcs11finalize": return qsTr("PKCS#11 finalization")
         default: return id
         }
     }
@@ -35,7 +39,7 @@ Page {
             PageHeader {
                 objectName: "pageHeader"
                 title: qsTr("Rutoken Test")
-                description: qsTr("Diagnostics — v0.0.2")
+                description: qsTr("PKCS#11 diagnostics — v0.0.3")
             }
 
             BusyIndicator {

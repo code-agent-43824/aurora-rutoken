@@ -8,8 +8,8 @@
         <translation>Рутокен Тест</translation>
     </message>
     <message>
-        <source>Diagnostics — v0.0.2</source>
-        <translation>Диагностика — v0.0.2</translation>
+        <source>PKCS#11 diagnostics — v0.0.3</source>
+        <translation>Диагностика PKCS#11 — v0.0.3</translation>
     </message>
     <message>
         <source>Refresh</source>
@@ -34,6 +34,22 @@
     <message>
         <source>PC/SC readers</source>
         <translation>Ридеры PC/SC</translation>
+    </message>
+    <message>
+        <source>Rutoken PKCS#11 library</source>
+        <translation>Библиотека PKCS#11 Рутокен</translation>
+    </message>
+    <message>
+        <source>PKCS#11 initialization</source>
+        <translation>Инициализация PKCS#11</translation>
+    </message>
+    <message>
+        <source>PKCS#11 information</source>
+        <translation>Информация PKCS#11</translation>
+    </message>
+    <message>
+        <source>PKCS#11 finalization</source>
+        <translation>Финализация PKCS#11</translation>
     </message>
     <message>
         <source>Pull down to refresh</source>

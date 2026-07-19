@@ -1,4 +1,5 @@
 #include "diagnostics.h"
+#include "pkcs11_minimal.h"
 
 #include <QtConcurrent/QtConcurrent>
 #include <QtCore/QLibrary>
@@ -56,6 +57,20 @@ QString scardErrorText(PcscLong rv, FnStringifyError stringify)
     return text;
 }
 
+QString pkcs11Rv(CK_RV rv)
+{
+    return QStringLiteral("0x%1").arg(static_cast<qulonglong>(rv),
+                                      sizeof(CK_RV) * 2, 16, QLatin1Char('0'));
+}
+
+QString fixedPkcs11Text(const CK_UTF8CHAR *value, int size)
+{
+    QByteArray bytes(reinterpret_cast<const char *>(value), size);
+    while (!bytes.isEmpty() && (bytes.endsWith(' ') || bytes.endsWith('\0')))
+        bytes.chop(1);
+    return QString::fromUtf8(bytes);
+}
+
 QVariantMap makeRow(const QString &id, int ok, const QString &detail)
 {
     QVariantMap row;
@@ -70,9 +85,9 @@ QVariantMap makeRow(const QString &id, int ok, const QString &detail)
 Diagnostics::Diagnostics(QObject *parent)
     : QObject(parent)
 {
-    // Результаты PC/SC приходят из рабочего потока; соединение авто-queued.
-    connect(this, &Diagnostics::pcscRowsReady, this, [this](const QVariantList &pcscRows) {
-        m_rows = m_nfcRows + pcscRows;
+    // Результаты PC/SC и PKCS#11 приходят из рабочего потока; соединение auto-queued.
+    connect(this, &Diagnostics::backendRowsReady, this, [this](const QVariantList &backendRows) {
+        m_rows = m_nfcRows + backendRows;
         m_running = false;
         emit rowsChanged();
         emit runningChanged();
@@ -87,7 +102,7 @@ void Diagnostics::refresh()
     emit runningChanged();
 
     m_nfcRows = probeNfc(); // быстрые D-Bus-проверки — в главном потоке
-    QtConcurrent::run(this, &Diagnostics::probePcsc);
+    QtConcurrent::run(this, &Diagnostics::probeBackends);
 }
 
 QVariantList Diagnostics::probeNfc() const
@@ -146,15 +161,19 @@ QVariantList Diagnostics::probeNfc() const
     return rows;
 }
 
-void Diagnostics::probePcsc()
+void Diagnostics::probeBackends()
+{
+    emit backendRowsReady(probePcsc() + probePkcs11());
+}
+
+QVariantList Diagnostics::probePcsc() const
 {
     QVariantList rows;
 
     QLibrary lib(QStringLiteral("libpcsclite"), 1);
     if (!lib.load()) {
         rows.append(makeRow(QStringLiteral("pcsclib"), 0, lib.errorString()));
-        emit pcscRowsReady(rows);
-        return;
+        return rows;
     }
 
     FnEstablishContext establish = reinterpret_cast<FnEstablishContext>(lib.resolve("SCardEstablishContext"));
@@ -166,8 +185,7 @@ void Diagnostics::probePcsc()
     if (!establish || !release || !listReaders) {
         rows.append(makeRow(QStringLiteral("pcsclib"), 0,
                             QStringLiteral("библиотека загружена, но SCard*-символы не найдены")));
-        emit pcscRowsReady(rows);
-        return;
+        return rows;
     }
     rows.append(makeRow(QStringLiteral("pcsclib"), 1, lib.fileName()));
 
@@ -176,8 +194,7 @@ void Diagnostics::probePcsc()
     if (rv != 0) {
         // SCARD_E_NO_SERVICE / SERVICE_STOPPED здесь означают «pcscd не запущен».
         rows.append(makeRow(QStringLiteral("context"), 0, scardErrorText(rv, stringify)));
-        emit pcscRowsReady(rows);
-        return;
+        return rows;
     }
     rows.append(makeRow(QStringLiteral("context"), 1,
                         QStringLiteral("SCardEstablishContext: OK (pcscd отвечает)")));
@@ -203,5 +220,82 @@ void Diagnostics::probePcsc()
     }
 
     release(context);
-    emit pcscRowsReady(rows);
+    return rows;
+}
+
+QVariantList Diagnostics::probePkcs11() const
+{
+    QVariantList rows;
+    const QString path = QStringLiteral(
+        "/usr/lib/3rdparty/ru.rutoken.librtpkcs11ecp/librtpkcs11ecp.so");
+
+    QLibrary library(path);
+    if (!library.load()) {
+        rows.append(makeRow(QStringLiteral("pkcs11lib"), 0,
+                            path + QStringLiteral(": ") + library.errorString()));
+        return rows;
+    }
+    rows.append(makeRow(QStringLiteral("pkcs11lib"), 1, path));
+
+    CK_C_GetFunctionList getFunctionList =
+        reinterpret_cast<CK_C_GetFunctionList>(library.resolve("C_GetFunctionList"));
+    if (!getFunctionList) {
+        rows.append(makeRow(QStringLiteral("pkcs11init"), 0,
+                            QStringLiteral("C_GetFunctionList не найден")));
+        return rows;
+    }
+
+    CK_FUNCTION_LIST_PREFIX *functions = nullptr;
+    CK_RV rv = getFunctionList(&functions);
+    if (rv != CKR_OK || !functions || !functions->C_Initialize
+            || !functions->C_Finalize || !functions->C_GetInfo) {
+        rows.append(makeRow(QStringLiteral("pkcs11init"), 0,
+                            QStringLiteral("C_GetFunctionList: ") + pkcs11Rv(rv)));
+        return rows;
+    }
+
+    rv = functions->C_Initialize(nullptr);
+    const bool ownsInitialization = rv == CKR_OK;
+    if (!ownsInitialization && rv != CKR_CRYPTOKI_ALREADY_INITIALIZED) {
+        rows.append(makeRow(QStringLiteral("pkcs11init"), 0,
+                            QStringLiteral("C_Initialize: ") + pkcs11Rv(rv)));
+        return rows;
+    }
+    rows.append(makeRow(QStringLiteral("pkcs11init"), 1,
+                        QStringLiteral("C_Initialize: OK; interface %1.%2")
+                            .arg(static_cast<int>(functions->version.major))
+                            .arg(static_cast<int>(functions->version.minor))));
+
+    CK_INFO info;
+    std::memset(&info, 0, sizeof(info));
+    rv = functions->C_GetInfo(&info);
+    if (rv == CKR_OK) {
+        const QString detail = QStringLiteral("Cryptoki %1.%2; library %3.%4; %5; %6")
+            .arg(static_cast<int>(info.cryptokiVersion.major))
+            .arg(static_cast<int>(info.cryptokiVersion.minor))
+            .arg(static_cast<int>(info.libraryVersion.major))
+            .arg(static_cast<int>(info.libraryVersion.minor))
+            .arg(fixedPkcs11Text(info.manufacturerID, sizeof(info.manufacturerID)))
+            .arg(fixedPkcs11Text(info.libraryDescription, sizeof(info.libraryDescription)));
+        rows.append(makeRow(QStringLiteral("pkcs11info"), 1, detail));
+    } else {
+        rows.append(makeRow(QStringLiteral("pkcs11info"), 0,
+                            QStringLiteral("C_GetInfo: ") + pkcs11Rv(rv)));
+    }
+
+    if (ownsInitialization) {
+        const CK_RV finalizeRv = functions->C_Finalize(nullptr);
+        if (finalizeRv != CKR_OK) {
+            rows.append(makeRow(QStringLiteral("pkcs11finalize"), 0,
+                                QStringLiteral("C_Finalize: ") + pkcs11Rv(finalizeRv)));
+        } else {
+            rows.append(makeRow(QStringLiteral("pkcs11finalize"), 1,
+                                QStringLiteral("C_Finalize: OK")));
+        }
+    } else {
+        rows.append(makeRow(QStringLiteral("pkcs11finalize"), -1,
+                            QStringLiteral("модуль уже был инициализирован; не финализируем чужую сессию")));
+    }
+
+    return rows;
 }

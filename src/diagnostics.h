@@ -4,10 +4,10 @@
 #include <QtCore/QObject>
 #include <QtCore/QVariantList>
 
-// Диагностика v0.0.2: достижимость PC/SC (libpcsclite + pcscd) и NFC-стека
-// (nfcd через системную D-Bus-шину). PC/SC грузится через dlopen, чтобы
-// приложение стартовало и на системе без библиотеки; сами вызовы PC/SC
-// выполняются в рабочем потоке (могут блокироваться на сокете pcscd).
+// Диагностика v0.0.3: NFC, PC/SC и официальный PKCS#11-модуль Рутокен.
+// Динамическая загрузка сохраняет работоспособность экрана даже при отсутствии
+// одной из библиотек. Потенциально блокирующие PC/SC/PKCS#11-вызовы выполняются
+// в рабочем потоке.
 class Diagnostics : public QObject
 {
     Q_OBJECT
@@ -25,11 +25,13 @@ public:
 signals:
     void runningChanged();
     void rowsChanged();
-    void pcscRowsReady(const QVariantList &pcscRows); // из рабочего потока
+    void backendRowsReady(const QVariantList &backendRows); // из рабочего потока
 
 private:
-    void probePcsc();                 // рабочий поток
-    QVariantList probeNfc() const;    // главный поток (QtDBus)
+    void probeBackends();                 // рабочий поток
+    QVariantList probePcsc() const;
+    QVariantList probePkcs11() const;
+    QVariantList probeNfc() const;        // главный поток (QtDBus)
 
     bool m_running = false;
     QVariantList m_rows;

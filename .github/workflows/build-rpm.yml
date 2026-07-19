@@ -43,11 +43,26 @@ jobs:
       - name: Build, sign and verify RPM
         run: ./ci/build-rpm.sh
 
-      - name: Upload verified RPM artifact
+      - name: Download and verify official Rutoken PKCS#11 RPM
+        run: ./ci/fetch-rutoken-pkcs11.sh
+
+      - name: Read package version for artifact name
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(awk '$1 == "Version:" { print $2; exit }' rpm/*.spec)
+          release=$(awk '$1 == "Release:" { print $2; exit }' rpm/*.spec)
+          [[ -n "$version" && -n "$release" ]]
+          echo "version_release=${version}-${release}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload versioned verified RPM artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rutokentestapp-${{ matrix.arch }}-rpm
-          path: RPMS/*.${{ matrix.arch }}.rpm
+          name: rutokentestapp-${{ steps.package.outputs.version_release }}-${{ matrix.arch }}-rpms
+          path: |
+            RPMS/*.${{ matrix.arch }}.rpm
+            VENDOR_RPMS/*.${{ matrix.arch }}.rpm
           if-no-files-found: error
 
   publish-release:
@@ -61,21 +76,25 @@ jobs:
       - name: Download verified RPM artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: rutokentestapp-*-rpm
+          pattern: rutokentestapp-*-rpms
           path: RPMS
           merge-multiple: true
 
-      - name: Require exactly one RPM per architecture
+      - name: Require one application and one official dependency RPM per architecture
         shell: bash
         run: |
           set -euo pipefail
           shopt -s nullglob
-          arm=(RPMS/*.armv7hl.rpm)
-          a64=(RPMS/*.aarch64.rpm)
+          app_arm=(RPMS/ru.codeagent43824.rutokentestapp-*.armv7hl.rpm)
+          app_a64=(RPMS/ru.codeagent43824.rutokentestapp-*.aarch64.rpm)
+          lib_arm=(RPMS/ru.rutoken.librtpkcs11ecp-*.armv7hl.rpm)
+          lib_a64=(RPMS/ru.rutoken.librtpkcs11ecp-*.aarch64.rpm)
           all=(RPMS/*.rpm)
-          [[ ${#arm[@]} -eq 1 ]]
-          [[ ${#a64[@]} -eq 1 ]]
-          [[ ${#all[@]} -eq 2 ]]
+          [[ ${#app_arm[@]} -eq 1 ]]
+          [[ ${#app_a64[@]} -eq 1 ]]
+          [[ ${#lib_arm[@]} -eq 1 ]]
+          [[ ${#lib_a64[@]} -eq 1 ]]
+          [[ ${#all[@]} -eq 4 ]]
           sha256sum "${all[@]}"
 
       - name: Update rolling release ci-latest
@@ -97,4 +116,4 @@ jobs:
           gh release upload ci-latest RPMS/*.rpm --clobber
           gh release edit ci-latest --prerelease \
             --title "Последняя CI-сборка (main)" \
-            --notes "Проверенные RPM для ОС Аврора 5.x, подписаны тестовым ключом OMP; собраны независимо по архитектурам из коммита ${GITHUB_SHA} ($(date -u '+%Y-%m-%d %H:%M UTC')). 32-битный телефон — *.armv7hl.rpm, 64-битный — *.aarch64.rpm. Установка: включить режим разработчика, разрешить недоверенное ПО, скачать .rpm и открыть в Файлах."
+            --notes "Проверенные RPM для ОС Аврора 5.x из коммита ${GITHUB_SHA} ($(date -u '+%Y-%m-%d %H:%M UTC')). Для своей архитектуры сначала установите неизменённый официальный ru.rutoken.librtpkcs11ecp-2.19.0.0-1 RPM, затем ru.codeagent43824.rutokentestapp. 32-битный телефон — *.armv7hl.rpm, 64-битный — *.aarch64.rpm. Приложение подписано тестовым ключом OMP; нужен режим разработчика и разрешение недоверенного ПО. Лицензия Рутокен: https://www.rutoken.ru/download/license/License_Agreement_Rutoken.pdf"

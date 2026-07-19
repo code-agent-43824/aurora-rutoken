@@ -13,6 +13,7 @@ SOURCES += \
 
 HEADERS += \
     src/diagnostics.h \
+    src/pkcs11_minimal.h \
 
 DISTFILES += \
     rpm/ru.codeagent43824.rutokentestapp.spec \

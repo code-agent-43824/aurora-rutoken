@@ -171,6 +171,19 @@ Flutter не отвергается навсегда: если позже пон
 
 Run `29701204751` подтвердил корректную пару `0.0.2-2`. Предупреждения rpmlint `no-changelogname-tag` и `unstripped-binary-or-object` оставлены как известные особенности тестовой PSDK-сборки: официальный OMP ApplicationTemplate не содержит changelog, а диагностическое приложение сохраняет отладочную информацию. Они не заменяют и не отключают жёсткую проверку архитектуры и подписи.
 
+## 6c. Поставка PKCS#11-библиотеки в v0.0.3 (2026-07-19)
+
+Официальная страница загрузки Рутокен предлагает для Авроры версию **2.19.0.0** от 17.04.2026 отдельно для ARM32 и ARM64. Зафиксированы прямые официальные пакеты:
+
+- armv7hl: `https://download.rutoken.ru/Rutoken/PKCS11Lib/2.19.0.0/Aurora/armv7/ru.rutoken.librtpkcs11ecp-2.19.0.0-1.armv7hl.rpm`, SHA-256 `b9f0da43dd884a95b629155cad3c21a4701ddc0220798bcc046c0146b4cd88c3`;
+- aarch64: `https://download.rutoken.ru/Rutoken/PKCS11Lib/2.19.0.0/Aurora/aarch64/ru.rutoken.librtpkcs11ecp-2.19.0.0-1.aarch64.rpm`, SHA-256 `c16d8c2006631e9330a1ee6c8b2f60e5ddbfaf7112a0d5056e3b21ca92e69921`.
+
+Оба RPM устанавливают библиотеку по одинаковому системному пути `/usr/lib/3rdparty/ru.rutoken.librtpkcs11ecp/librtpkcs11ecp.so`; armv7hl содержит ELF32 ARM, aarch64 — ELF64 AArch64. SONAME — `librtpkcs11ecp.so`, зависимость — `libpcsclite.so.1`; экспортируются `C_GetFunctionList`, `C_Initialize`, `C_Finalize`, `C_GetInfo`.
+
+Изучено официальное лицензионное соглашение Рутокен. Разделы 4.3 и 4.4 разрешают безвозмездное воспроизведение и распространение ПО при сохранении неизменного вида и целостности; модификация и декомпиляция не допускаются. Поэтому библиотека **не распаковывается внутрь MIT-пакета приложения**. CI скачивает, проверяет и публикует рядом исходный официальный RPM без изменений; пользователь сначала устанавливает его, затем приложение. Жёсткий `Requires:` не добавлен: официальный пакет отсутствует в стандартном репозитории зависимостей, а диагностическое приложение должно устанавливаться и честно показывать отсутствие модуля.
+
+Для компиляции использован только минимально нужный ABI-префикс PKCS#11 v2.40. Источник — функционально эквивалентные заголовки Latchset `pkcs11-headers`, каталог `public-domain/2.40`, commit `c5e61990c5621a9b955fc208644fe8145ac0a75d`; авторы явно поместили переписанные с нуля заголовки в public domain. В `src/pkcs11_minimal.h` сохранены атрибуция, версия, только структуры `CK_VERSION`, `CK_INFO` и начало `CK_FUNCTION_LIST`, а также compile-time проверки обязательного one-byte packing.
+
 ## 7. Источники
 
 - https://hub.mos.ru/auroraos — группа ОМП на Мос.Хабе (подгруппы demos/examples/flutter/edu)
@@ -183,6 +196,8 @@ Run `29701204751` подтвердил корректную пару `0.0.2-2`. 
 - https://hub.mos.ru/auroraos/demos/UsbUseCases — USB-демо
 - https://www.rutoken.ru/products/all/rutoken-ecp-3/ — Рутокен ЭЦП 3.0
 - https://www.rutoken.ru/support/download/pkcs/ — загрузки PKCS#11 (RPM для Авроры ARM32/ARM64, v2.19.0.0)
+- https://www.rutoken.ru/download/license/License_Agreement_Rutoken.pdf — лицензионное соглашение, условия распространения неизменного ПО (разделы 4.3–4.4)
+- https://github.com/latchset/pkcs11-headers/tree/main/public-domain/2.40 — public-domain ABI-заголовки PKCS#11 v2.40
 - https://www.rutoken.ru/developers/sdk/ — Рутокен SDK
 - https://dev.rutoken.ru/pages/viewpage.action?pageId=3178509 — rtPKCS11ECP
 - https://dev.rutoken.ru/pages/viewpage.action?pageId=78479413 — начало работы с Рутокен ЭЦП 3.0 NFC
