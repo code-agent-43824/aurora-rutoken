@@ -36,11 +36,21 @@ jobs:
       - name: Build RPM
         run: ./ci/build-rpm.sh
 
-      - name: Upload RPM artifact
+      # Артефакты раздельные по архитектурам (требование владельца).
+      # Примечание: интерфейс GitHub всегда отдаёт артефакт зипом; прямые
+      # .rpm без архива — в релизе ci-latest.
+      - name: Upload armv7hl RPM artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rutokentestapp-rpms
-          path: RPMS/*.rpm
+          name: rutokentestapp-armv7hl-rpm
+          path: RPMS/*.armv7hl.rpm
+          if-no-files-found: error
+
+      - name: Upload aarch64 RPM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rutokentestapp-aarch64-rpm
+          path: RPMS/*.aarch64.rpm
           if-no-files-found: error
 
       - name: Update rolling release ci-latest
@@ -54,6 +64,11 @@ jobs:
               --title "Последняя CI-сборка (main)" \
               --notes "placeholder"
           fi
+          # Убираем ассеты прошлых сборок (имена меняются с версией пакета),
+          # чтобы в ci-latest всегда лежала ровно одна свежая пара RPM.
+          for asset in $(gh release view ci-latest --json assets -q '.assets[].name'); do
+            gh release delete-asset ci-latest "$asset" -y
+          done
           gh release upload ci-latest RPMS/*.rpm --clobber
           gh release edit ci-latest --prerelease \
             --title "Последняя CI-сборка (main)" \

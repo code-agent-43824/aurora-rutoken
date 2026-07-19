@@ -3,12 +3,16 @@ TARGET = ru.codeagent43824.rutokentestapp
 CONFIG += \
     auroraapp
 
+QT += dbus concurrent
+
 PKGCONFIG += \
 
 SOURCES += \
     src/main.cpp \
+    src/diagnostics.cpp \
 
 HEADERS += \
+    src/diagnostics.h \
 
 DISTFILES += \
     rpm/ru.codeagent43824.rutokentestapp.spec \

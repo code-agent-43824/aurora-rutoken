@@ -1,6 +1,6 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    0.0.1
+Version:    0.0.2
 Release:    1
 Group:      Qt/Qt
 License:    MIT
@@ -12,10 +12,13 @@ BuildRequires:  pkgconfig(auroraapp)
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Quick)
+BuildRequires:  pkgconfig(Qt5DBus)
+BuildRequires:  pkgconfig(Qt5Concurrent)
 
 %description
 Test application for working with Rutoken ECP 3.0 hardware tokens over USB
-and NFC on Aurora OS. Version 0.0.1 is the minimal "Hello Rutoken" skeleton.
+and NFC on Aurora OS. Version 0.0.2 shows reachability diagnostics for the
+PC/SC stack (libpcsclite/pcscd) and the NFC stack (nfcd over D-Bus).
 
 %prep
 %autosetup

@@ -9,7 +9,7 @@ Comment=Rutoken ECP 3.0 test application
 Comment[ru]=Тестовое приложение для Рутокен ЭЦП 3.0
 
 [X-Application]
-Permissions=
+Permissions=NFC
 OrganizationName=ru.codeagent43824
 ApplicationName=rutokentestapp
 ExecDBus=/usr/bin/ru.codeagent43824.rutokentestapp
