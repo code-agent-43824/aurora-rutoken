@@ -20,7 +20,7 @@ This project is developed by coding agents working in relay. Any agent can be in
 ## Git rules (set by the project owner — do not deviate)
 
 - **No branches, ever.** All work is committed directly to `main` (the repository's default branch; the owner calls it "master") and pushed to `origin main` immediately after each completed change.
-- Do not create pull requests. Do not create feature branches. If a stray branch appears, merge anything valuable into `main` and delete the branch (local and remote).
+- Do not create pull requests. Do not create feature branches. If a stray branch appears, merge anything valuable into `main` and delete the branch (local and remote). Note: the remote execution environment's GitHub proxy blocks remote branch deletion (HTTP 403 for both `git push --delete` and the API) — in that case ask the owner to delete the branch via the GitHub UI; do not keep retrying.
 - Push with `git push origin main`; on network failure retry with exponential backoff.
 
 ## Project documentation (in Russian)
