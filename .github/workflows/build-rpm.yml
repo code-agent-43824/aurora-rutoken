@@ -1,0 +1,57 @@
+name: Build Aurora RPM
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PSDK_RELEASE: "5.2.1"
+  PSDK_BUILD: "5.2.1.200"
+  TARGET_ARCH: "aarch64"
+
+jobs:
+  build-rpm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Platform SDK tarballs
+        uses: actions/cache@v4
+        with:
+          path: ~/AuroraPlatformSDK/tarballs
+          key: psdk-tarballs-${{ env.PSDK_BUILD }}-${{ env.TARGET_ARCH }}
+
+      - name: Install Aurora Platform SDK
+        run: ./ci/install-psdk.sh
+
+      - name: Build RPM
+        run: ./ci/build-rpm.sh
+
+      - name: Upload RPM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rutokentestapp-${{ env.TARGET_ARCH }}-rpm
+          path: RPMS/*.rpm
+          if-no-files-found: error
+
+      - name: Update rolling release ci-latest
+        if: github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view ci-latest >/dev/null 2>&1; then
+            gh release create ci-latest --prerelease \
+              --title "Последняя CI-сборка (main)" \
+              --notes "placeholder"
+          fi
+          gh release upload ci-latest RPMS/*.rpm --clobber
+          gh release edit ci-latest --prerelease \
+            --title "Последняя CI-сборка (main)" \
+            --notes "RPM для ОС Аврора 5.x (${TARGET_ARCH}), собран автоматически из коммита ${GITHUB_SHA} ($(date -u '+%Y-%m-%d %H:%M UTC')). Установка: скачайте .rpm на телефон, разрешите установку недоверенных приложений и откройте файл в Файлах."

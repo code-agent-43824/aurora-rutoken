@@ -24,15 +24,17 @@
 
 Версия проставляется в `rpm/*.spec`; завершение версии = все её задачи `[x]`, работоспособность проверена, коммит запушен, запись в журнале.
 
-### v0.0.1 — «Hello Rutoken» — СЛЕДУЮЩАЯ
+### v0.0.1 — «Hello Rutoken» — В РАБОТЕ
 
-Цель: собираемое и запускаемое Qt-приложение для Авроры 5.x, экран с текстом «Hello Rutoken».
+Цель: собираемое Qt-приложение для Авроры 5.x с текстом «Hello Rutoken». Требование владельца (2026-07-19): ему не нужно ничего ставить локально — **RPM собирает GitHub Actions**, владелец скачивает готовый пакет на телефон (Аврора 5.2, режим разработчика включён).
 
-- [ ] Склонировать и изучить референс `ApplicationTemplate` с hub.mos.ru (структура `.pro`, `rpm/*.spec`, `.desktop`, `src/`, `qml/`)
-- [ ] Создать каркас приложения `ru.codeagent43824.rutokentestapp`: `.pro`, `rpm/*.spec` (Version: 0.0.1), `.desktop`, `src/main.cpp`, `qml/` (главная страница с текстом «Hello Rutoken», cover), иконки
-- [ ] Выяснить, можно ли развернуть Аврора Platform SDK в среде агента (sdk-repo.omprussia.ru / developer.auroraos.ru); если нет — подготовить владельцу пошаговую инструкцию сборки в Аврора SDK/IDE
-- [ ] Собрать RPM под Аврору 5.x (aarch64; armv7hl — по необходимости) и проверить запуск на устройстве владельца или эмуляторе
-- [ ] Задокументировать команды сборки в CLAUDE.md («Build commands») и README.md
+- [x] Склонировать и изучить референс `ApplicationTemplate` с hub.mos.ru — 2026-07-19 (qmake `CONFIG += auroraapp`, spec с `%qmake5`, desktop с секцией `[X-Application]`, QML на `Sailfish.Silica`; hub.mos.ru доступен из среды агента напрямую)
+- [x] Найти способ сборки без локальной установки: Аврора **Platform SDK 5.2.1.200** (chroot) разворачивается на ubuntu-раннере; тарболлы публично доступны: `sdk-repo.omprussia.ru/sdk/installers/5.2.1/5.2.1.200-release/AuroraPSDK/` (Chroot `.tar.bz2`, Tooling и Target-aarch64 `.tar.7z`) — 2026-07-19
+- [x] Создать каркас приложения `ru.codeagent43824.rutokentestapp`: `.pro`, `rpm/*.spec` (Version 0.0.1), `.desktop`, `src/main.cpp`, `qml/` (MainPage «Hello Rutoken», cover), иконки 86/108/128/172 (сгенерированы скриптом), переводы — 2026-07-19
+- [~] CI: `.github/workflows/build-rpm.yml` + `ci/install-psdk.sh` + `ci/build-rpm.sh` — установка PSDK-chroot на раннере, `mb2 -t AuroraOS-5.2.1.200-aarch64 build`, артефакт с RPM и роллинг-релиз `ci-latest` (прямое скачивание RPM с телефона без логина); файлы созданы 2026-07-19, ждём зелёной сборки
+- [ ] Дождаться зелёной сборки в Actions (мониторить запуски, чинить до успеха)
+- [x] Инструкция по установке на телефон (разрешить недоверенное ПО, установка из «Файлов» или `pkcon install-local`) в README.md — 2026-07-19
+- [ ] Подтверждение владельца: RPM ставится и запускается на Авроре 5.2 → закрыть версию записью в журнале
 
 ### v0.0.2 — PC/SC и NFC достижимы
 

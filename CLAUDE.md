@@ -53,8 +53,16 @@ This project is developed by coding agents working in relay. Any agent can be in
 
 ## Build commands
 
-Not available yet — the application skeleton is Stage 1 in `PLAN.md`. As soon as the skeleton lands, document here: how to build the RPM with the Aurora SDK, how to run on the emulator/device, and how to run tests.
+The owner installs nothing locally — the RPM is built by GitHub Actions (`.github/workflows/build-rpm.yml`) on every push to `main`:
+
+1. `ci/install-psdk.sh` — installs the Aurora Platform SDK **5.2.1.200** chroot on the ubuntu runner (public tarballs from `sdk-repo.omprussia.ru/sdk/installers/5.2.1/5.2.1.200-release/AuroraPSDK/`, cached via actions/cache), creates tooling `AuroraOS-5.2.1.200` and target `AuroraOS-5.2.1.200-aarch64` with `sdk-assistant … --non-interactive`.
+2. `ci/build-rpm.sh` — `sdk-chroot mb2 -t AuroraOS-5.2.1.200-aarch64 build`; RPMs land in `./RPMS/`.
+3. RPMs are uploaded as a run artifact and to the rolling prerelease **`ci-latest`**, which the owner downloads on the phone.
+
+Local build (only if a Platform SDK is available): `$PSDK_DIR/sdk-chroot mb2 -t AuroraOS-5.2.1.200-aarch64 build` from the repo root.
+
+**After every push that can affect the build, check the Actions run result (read-only GitHub MCP tools are fine for reading CI status/logs) and fix failures until green.** No tests exist yet.
 
 ## Current state
 
-Stage 0 (research, stack decision, documentation) is complete; the owner's decisions (app ID, Aurora 5.x, available hardware) are recorded. The plan is a version roadmap in `PLAN.md`. Next action: **v0.0.1 "Hello Rutoken"** — minimal buildable Qt/QML Aurora app skeleton.
+Stage 0 (research, stack decision, documentation) is complete; the owner's decisions (app ID, Aurora 5.x, available hardware) are recorded. v0.0.1 "Hello Rutoken" skeleton and the CI pipeline are in the repo; see `PLAN.md` for what remains before v0.0.1 is closed.

@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+X-Nemo-Application-Type=silica-qt5
+Icon=ru.codeagent43824.rutokentestapp
+Exec=/usr/bin/ru.codeagent43824.rutokentestapp
+Name=Rutoken Test
+Name[ru]=Рутокен Тест
+Comment=Rutoken ECP 3.0 test application
+Comment[ru]=Тестовое приложение для Рутокен ЭЦП 3.0
+
+[X-Application]
+Permissions=
+OrganizationName=ru.codeagent43824
+ApplicationName=rutokentestapp
+ExecDBus=/usr/bin/ru.codeagent43824.rutokentestapp
