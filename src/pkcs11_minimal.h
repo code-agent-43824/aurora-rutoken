@@ -29,7 +29,13 @@ typedef CK_ULONG CK_RV;
 typedef CK_ULONG CK_SLOT_ID;
 typedef CK_ULONG CK_SESSION_HANDLE;
 typedef CK_ULONG CK_USER_TYPE;
+typedef CK_ULONG CK_OBJECT_HANDLE;
+typedef CK_ULONG CK_OBJECT_CLASS;
+typedef CK_ULONG CK_KEY_TYPE;
+typedef CK_ULONG CK_ATTRIBUTE_TYPE;
 typedef void *CK_VOID_PTR;
+
+static const CK_ULONG CK_UNAVAILABLE_INFORMATION = static_cast<CK_ULONG>(-1);
 
 static const CK_BBOOL CK_TRUE_VALUE = 1;
 
@@ -61,6 +67,22 @@ static const CK_FLAGS CKF_USER_PIN_LOCKED = 0x00040000UL;
 // Флаги слота (CK_SLOT_INFO.flags).
 static const CK_FLAGS CKF_TOKEN_PRESENT = 0x00000001UL;
 static const CK_FLAGS CKF_HW_SLOT = 0x00000004UL;
+
+// Классы объектов (CKA_CLASS) и атрибуты для перечисления объектов токена.
+static const CK_OBJECT_CLASS CKO_CERTIFICATE = 0x00000001UL;
+static const CK_OBJECT_CLASS CKO_PUBLIC_KEY = 0x00000002UL;
+static const CK_OBJECT_CLASS CKO_PRIVATE_KEY = 0x00000003UL;
+
+static const CK_ATTRIBUTE_TYPE CKA_CLASS = 0x00000000UL;
+static const CK_ATTRIBUTE_TYPE CKA_LABEL = 0x00000003UL;
+static const CK_ATTRIBUTE_TYPE CKA_KEY_TYPE = 0x00000100UL;
+static const CK_ATTRIBUTE_TYPE CKA_ID = 0x00000102UL;
+
+// Типы ключей (CKA_KEY_TYPE) — для человекочитаемого отображения.
+static const CK_KEY_TYPE CKK_RSA = 0x00000000UL;
+static const CK_KEY_TYPE CKK_EC = 0x00000003UL;
+static const CK_KEY_TYPE CKK_GOSTR3410 = 0x00000030UL;
+static const CK_KEY_TYPE CKK_GOSTR3410_512 = 0x00000032UL;
 
 struct CK_VERSION {
     CK_BYTE major;
@@ -104,6 +126,13 @@ struct CK_TOKEN_INFO {
     CK_CHAR utcTime[16];
 };
 
+// Дескриптор атрибута для C_GetAttributeValue/C_FindObjectsInit.
+struct CK_ATTRIBUTE {
+    CK_ATTRIBUTE_TYPE type;
+    CK_VOID_PTR pValue;
+    CK_ULONG ulValueLen;
+};
+
 struct CK_FUNCTION_LIST_PREFIX;
 typedef CK_RV (*CK_C_Initialize)(CK_VOID_PTR);
 typedef CK_RV (*CK_C_Finalize)(CK_VOID_PTR);
@@ -116,12 +145,16 @@ typedef CK_RV (*CK_C_OpenSession)(CK_SLOT_ID, CK_FLAGS, CK_VOID_PTR, CK_VOID_PTR
 typedef CK_RV (*CK_C_CloseSession)(CK_SESSION_HANDLE);
 typedef CK_RV (*CK_C_Login)(CK_SESSION_HANDLE, CK_USER_TYPE, CK_UTF8CHAR *, CK_ULONG);
 typedef CK_RV (*CK_C_Logout)(CK_SESSION_HANDLE);
+typedef CK_RV (*CK_C_GetAttributeValue)(CK_SESSION_HANDLE, CK_OBJECT_HANDLE, CK_ATTRIBUTE *, CK_ULONG);
+typedef CK_RV (*CK_C_FindObjectsInit)(CK_SESSION_HANDLE, CK_ATTRIBUTE *, CK_ULONG);
+typedef CK_RV (*CK_C_FindObjects)(CK_SESSION_HANDLE, CK_OBJECT_HANDLE *, CK_ULONG, CK_ULONG *);
+typedef CK_RV (*CK_C_FindObjectsFinal)(CK_SESSION_HANDLE);
 // Заглушка для точек входа PKCS#11, которые нам не нужны, но обязаны занимать
 // свою позицию в таблице ради правильных смещений последующих функций.
 typedef CK_RV (*CK_SkippedFn)(void);
 
 // Реальный CK_FUNCTION_LIST продолжается остальными точками входа PKCS#11.
-// Порядок функций фиксирован стандартом; нам нужен префикс до C_Logout (№20).
+// Порядок функций фиксирован стандартом; нам нужен префикс до C_FindObjectsFinal (№29).
 struct CK_FUNCTION_LIST_PREFIX {
     CK_VERSION version;
     CK_C_Initialize C_Initialize;             // 1
@@ -144,6 +177,15 @@ struct CK_FUNCTION_LIST_PREFIX {
     CK_SkippedFn C_SetOperationState;         // 18
     CK_C_Login C_Login;                       // 19
     CK_C_Logout C_Logout;                     // 20
+    CK_SkippedFn C_CreateObject;              // 21
+    CK_SkippedFn C_CopyObject;                // 22
+    CK_SkippedFn C_DestroyObject;             // 23
+    CK_SkippedFn C_GetObjectSize;             // 24
+    CK_C_GetAttributeValue C_GetAttributeValue; // 25
+    CK_SkippedFn C_SetAttributeValue;         // 26
+    CK_C_FindObjectsInit C_FindObjectsInit;   // 27
+    CK_C_FindObjects C_FindObjects;           // 28
+    CK_C_FindObjectsFinal C_FindObjectsFinal; // 29
 };
 
 // Контроль естественного выравнивания на обеих архитектурах Авроры.
@@ -188,5 +230,15 @@ static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_Login) == 19 * sizeof(void *),
               "CK_FUNCTION_LIST: C_Login offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_Logout) == 20 * sizeof(void *),
               "CK_FUNCTION_LIST: C_Logout offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_GetAttributeValue) == 25 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_GetAttributeValue offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_FindObjectsInit) == 27 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_FindObjectsInit offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_FindObjectsFinal) == 29 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_FindObjectsFinal offset");
+
+static_assert(offsetof(CK_ATTRIBUTE, pValue) == sizeof(void *), "CK_ATTRIBUTE.pValue offset");
+static_assert(offsetof(CK_ATTRIBUTE, ulValueLen) == 2 * sizeof(void *), "CK_ATTRIBUTE.ulValueLen offset");
+static_assert(sizeof(CK_ATTRIBUTE) == 3 * sizeof(void *), "CK_ATTRIBUTE size");
 
 #endif // PKCS11_MINIMAL_H

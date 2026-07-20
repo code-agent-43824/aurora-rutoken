@@ -104,6 +104,16 @@ Page {
                 font.pixelSize: Theme.fontSizeMedium
             }
 
+            Button {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: !tokenSession.busy && tokenSession.outcome === 1
+                text: qsTr("Token objects (%1)").arg(tokenSession.objects.length)
+                onClicked: pageStack.push(Qt.resolvedUrl("ObjectsPage.qml"), {
+                    tokenLabel: page.tokenLabel,
+                    connection: page.connection
+                })
+            }
+
             Label {
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin

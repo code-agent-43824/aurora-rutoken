@@ -11,6 +11,7 @@ SOURCES += \
     src/main.cpp \
     src/diagnostics.cpp \
     src/pkcs11_guard.cpp \
+    src/pkcs11_objects.cpp \
     src/pkcs11_tokens.cpp \
     src/tokensession.cpp \
     src/tokenwatcher.cpp \
@@ -19,6 +20,7 @@ HEADERS += \
     src/diagnostics.h \
     src/pkcs11_guard.h \
     src/pkcs11_minimal.h \
+    src/pkcs11_objects.h \
     src/pkcs11_tokens.h \
     src/tokensession.h \
     src/tokenwatcher.h \

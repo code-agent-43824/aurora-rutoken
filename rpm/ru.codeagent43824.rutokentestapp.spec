@@ -1,6 +1,6 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    0.2.0
+Version:    0.3.0
 Release:    1
 Group:      Qt/Qt
 License:    MIT
@@ -17,10 +17,12 @@ BuildRequires:  pkgconfig(Qt5Concurrent)
 
 %description
 Test application for working with Rutoken ECP 3.0 hardware tokens over USB
-and NFC on Aurora OS. Version 0.2 adds a token details screen: tap a token in
-the live list to see its full information and verify the user PIN via C_Login,
-with an indicator of the remaining attempts. Builds on the v0.1 live list of
-connected tokens (USB/NFC) and the separate diagnostics page.
+and NFC on Aurora OS. Version 0.3 adds a two-level object browser: after PIN
+login it lists certificates on the top level with their keys nested below
+(grouped by CKA_ID), shows whether a certificate has a key or is standalone,
+places keys without a certificate on the top level with CKA_ID/CKA_LABEL, and
+labels the read source (PKCS#11). Builds on the v0.1 live token list and the
+v0.2 details/PIN screen.
 
 %prep
 %autosetup
@@ -41,6 +43,10 @@ connected tokens (USB/NFC) and the separate diagnostics page.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Mon Jul 20 2026 Claude <noreply@anthropic.com> - 0.3.0-1
+- Two-level object browser: certificates with nested keys grouped by CKA_ID,
+  standalone keys on the top level, read source labelled (PKCS#11).
+
 * Mon Jul 20 2026 Claude <noreply@anthropic.com> - 0.2.0-1
 - Token details screen with user PIN login (C_Login) and remaining-attempts
   indicator; shared PKCS#11 mutex so polling and login do not overlap.

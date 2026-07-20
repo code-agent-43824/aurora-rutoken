@@ -1,6 +1,7 @@
 #include "tokensession.h"
 #include "pkcs11_guard.h"
 #include "pkcs11_minimal.h"
+#include "pkcs11_objects.h"
 
 #include <QtConcurrent/QtConcurrent>
 #include <QtCore/QByteArray>
@@ -48,6 +49,7 @@ void TokenSession::clear()
         return;
     m_outcome = 0;
     m_result.clear();
+    m_objects.clear();
     emit changed();
 }
 
@@ -73,6 +75,7 @@ void TokenSession::login(qulonglong slotId, const QString &pin)
     QtConcurrent::run([this, slotId, pinBytes, getFunctionList]() mutable {
         int outcome = -1;
         QString message;
+        QVariantList objects;
 
         typedef CK_RV (*GetListFn)(CK_FUNCTION_LIST_PREFIX **);
         GetListFn getList = reinterpret_cast<GetListFn>(getFunctionList);
@@ -84,7 +87,7 @@ void TokenSession::login(qulonglong slotId, const QString &pin)
                 || !fns->C_OpenSession || !fns->C_CloseSession || !fns->C_Login
                 || !fns->C_Logout) {
             pinBytes.fill('\0');
-            emit finished(-1, QStringLiteral("Библиотека не предоставляет функции сессии"));
+            emit finished(-1, QStringLiteral("Библиотека не предоставляет функции сессии"), QVariantList());
             return;
         }
 
@@ -92,7 +95,7 @@ void TokenSession::login(qulonglong slotId, const QString &pin)
         const bool owns = (initRv == CKR_OK);
         if (!owns && initRv != CKR_CRYPTOKI_ALREADY_INITIALIZED) {
             pinBytes.fill('\0');
-            emit finished(-1, QStringLiteral("C_Initialize: ") + rvHex(initRv));
+            emit finished(-1, QStringLiteral("C_Initialize: ") + rvHex(initRv), QVariantList());
             return;
         }
 
@@ -103,7 +106,7 @@ void TokenSession::login(qulonglong slotId, const QString &pin)
             if (owns)
                 fns->C_Finalize(nullptr);
             pinBytes.fill('\0');
-            emit finished(-1, QStringLiteral("Не удалось открыть сессию: ") + rvHex(rv));
+            emit finished(-1, QStringLiteral("Не удалось открыть сессию: ") + rvHex(rv), QVariantList());
             return;
         }
 
@@ -113,6 +116,9 @@ void TokenSession::login(qulonglong slotId, const QString &pin)
 
         if (rv == CKR_OK || rv == CKR_USER_ALREADY_LOGGED_IN) {
             outcome = 1;
+            // Читаем объекты токена в этой же залогиненной сессии (иначе приватные
+            // ключи не видны).
+            objects = pkcs11::listTokenObjects(fns, session);
             message = QStringLiteral("PIN верный — вход выполнен");
             fns->C_Logout(session);
         } else {
@@ -139,14 +145,15 @@ void TokenSession::login(qulonglong slotId, const QString &pin)
             fns->C_Finalize(nullptr);
 
         pinBytes.fill('\0');
-        emit finished(outcome, message);
+        emit finished(outcome, message, objects);
     });
 }
 
-void TokenSession::onFinished(int outcome, const QString &message)
+void TokenSession::onFinished(int outcome, const QString &message, const QVariantList &objects)
 {
     m_busy = false;
     m_outcome = outcome;
     m_result = message;
+    m_objects = objects;
     emit changed();
 }

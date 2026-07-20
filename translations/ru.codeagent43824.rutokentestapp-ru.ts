@@ -161,6 +161,45 @@
         <source>The PIN is sent only to the token and is not stored.</source>
         <translation>PIN передаётся только в токен и нигде не сохраняется.</translation>
     </message>
+    <message>
+        <source>Token objects (%1)</source>
+        <translation>Объекты токена (%1)</translation>
+    </message>
+</context>
+<context>
+    <name>ObjectsPage</name>
+    <message>
+        <source>Objects</source>
+        <translation>Объекты</translation>
+    </message>
+    <message>
+        <source>Objects via PKCS#11</source>
+        <translation>Объекты через PKCS#11</translation>
+    </message>
+    <message>
+        <source>No certificates or keys found on the token</source>
+        <translation>На токене не найдено сертификатов и ключей</translation>
+    </message>
+    <message>
+        <source>CERT</source>
+        <translation>СЕРТ</translation>
+    </message>
+    <message>
+        <source>KEY</source>
+        <translation>КЛЮЧ</translation>
+    </message>
+    <message>
+        <source>(no label)</source>
+        <translation>(без метки)</translation>
+    </message>
+    <message>
+        <source>ID: %1</source>
+        <translation>ID: %1</translation>
+    </message>
+    <message>
+        <source>certificate without a key (standalone)</source>
+        <translation>сертификат без ключа (сам по себе)</translation>
+    </message>
 </context>
 <context>
     <name>DefaultCoverPage</name>

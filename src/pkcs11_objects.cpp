@@ -1,0 +1,174 @@
+#include "pkcs11_objects.h"
+#include "pkcs11_minimal.h"
+
+#include <QtCore/QByteArray>
+#include <QtCore/QVariantMap>
+#include <QtCore/QVector>
+
+namespace {
+
+const QString kSource = QStringLiteral("PKCS#11");
+
+// Прочитать байтовый атрибут двухпроходно (сначала длина, потом значение).
+QByteArray readByteAttr(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session,
+                        CK_OBJECT_HANDLE obj, CK_ATTRIBUTE_TYPE type)
+{
+    CK_ATTRIBUTE attr;
+    attr.type = type;
+    attr.pValue = nullptr;
+    attr.ulValueLen = 0;
+    if (fns->C_GetAttributeValue(session, obj, &attr, 1) != CKR_OK)
+        return QByteArray();
+    if (attr.ulValueLen == CK_UNAVAILABLE_INFORMATION || attr.ulValueLen == 0)
+        return QByteArray();
+
+    QByteArray buffer(static_cast<int>(attr.ulValueLen), '\0');
+    attr.pValue = buffer.data();
+    if (fns->C_GetAttributeValue(session, obj, &attr, 1) != CKR_OK)
+        return QByteArray();
+    return buffer;
+}
+
+bool readUlongAttr(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session,
+                   CK_OBJECT_HANDLE obj, CK_ATTRIBUTE_TYPE type, CK_ULONG &out)
+{
+    CK_ATTRIBUTE attr;
+    attr.type = type;
+    attr.pValue = &out;
+    attr.ulValueLen = sizeof(out);
+    return fns->C_GetAttributeValue(session, obj, &attr, 1) == CKR_OK
+            && attr.ulValueLen == sizeof(out);
+}
+
+QVector<CK_OBJECT_HANDLE> findByClass(CK_FUNCTION_LIST_PREFIX *fns,
+                                      CK_SESSION_HANDLE session, CK_OBJECT_CLASS cls)
+{
+    QVector<CK_OBJECT_HANDLE> result;
+    CK_ATTRIBUTE tmpl;
+    tmpl.type = CKA_CLASS;
+    tmpl.pValue = &cls;
+    tmpl.ulValueLen = sizeof(cls);
+    if (fns->C_FindObjectsInit(session, &tmpl, 1) != CKR_OK)
+        return result;
+
+    CK_OBJECT_HANDLE batch[32];
+    CK_ULONG found = 0;
+    while (fns->C_FindObjects(session, batch, 32, &found) == CKR_OK && found > 0) {
+        for (CK_ULONG i = 0; i < found; ++i)
+            result.append(batch[i]);
+        if (found < 32)
+            break;
+    }
+    fns->C_FindObjectsFinal(session);
+    return result;
+}
+
+QString keyTypeName(CK_ULONG keyType)
+{
+    switch (keyType) {
+    case CKK_RSA: return QStringLiteral("RSA");
+    case CKK_EC: return QStringLiteral("EC");
+    case CKK_GOSTR3410: return QStringLiteral("ГОСТ Р 34.10-2012 (256)");
+    case CKK_GOSTR3410_512: return QStringLiteral("ГОСТ Р 34.10-2012 (512)");
+    default: return QStringLiteral("тип 0x%1").arg(static_cast<qulonglong>(keyType), 0, 16);
+    }
+}
+
+QString labelOf(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session, CK_OBJECT_HANDLE obj)
+{
+    return QString::fromUtf8(readByteAttr(fns, session, obj, CKA_LABEL));
+}
+
+QString idHexOf(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session, CK_OBJECT_HANDLE obj)
+{
+    return QString::fromLatin1(readByteAttr(fns, session, obj, CKA_ID).toHex());
+}
+
+QVariantMap makeKey(const QString &idHex, const QString &label, const QString &keyType,
+                    CK_OBJECT_CLASS cls)
+{
+    QVariantMap key;
+    key.insert(QStringLiteral("idHex"), idHex);
+    key.insert(QStringLiteral("label"), label);
+    key.insert(QStringLiteral("keyType"), keyType);
+    key.insert(QStringLiteral("keyClass"),
+               cls == CKO_PRIVATE_KEY ? QStringLiteral("закрытый ключ")
+                                      : QStringLiteral("открытый ключ"));
+    key.insert(QStringLiteral("source"), kSource);
+    return key;
+}
+
+} // namespace
+
+namespace pkcs11 {
+
+QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessionHandle)
+{
+    QVariantList out;
+    if (!fns || !fns->C_FindObjectsInit || !fns->C_FindObjects || !fns->C_FindObjectsFinal
+            || !fns->C_GetAttributeValue)
+        return out;
+
+    const CK_SESSION_HANDLE session = static_cast<CK_SESSION_HANDLE>(sessionHandle);
+
+    // Собираем все ключи (открытые и закрытые) c их CKA_ID.
+    struct KeyEntry { QString idHex; QVariantMap map; bool consumed; };
+    QVector<KeyEntry> keys;
+    const CK_OBJECT_CLASS keyClasses[2] = { CKO_PRIVATE_KEY, CKO_PUBLIC_KEY };
+    for (int k = 0; k < 2; ++k) {
+        const QVector<CK_OBJECT_HANDLE> handles = findByClass(fns, session, keyClasses[k]);
+        for (int i = 0; i < handles.size(); ++i) {
+            const CK_OBJECT_HANDLE obj = handles.at(i);
+            const QString idHex = idHexOf(fns, session, obj);
+            const QString label = labelOf(fns, session, obj);
+            CK_ULONG keyType = 0;
+            const QString keyTypeStr = readUlongAttr(fns, session, obj, CKA_KEY_TYPE, keyType)
+                    ? keyTypeName(keyType) : QString();
+            KeyEntry entry;
+            entry.idHex = idHex;
+            entry.map = makeKey(idHex, label, keyTypeStr, keyClasses[k]);
+            entry.consumed = false;
+            keys.append(entry);
+        }
+    }
+
+    // Сертификаты — верхний уровень; под каждым его ключи (совпадение по CKA_ID).
+    const QVector<CK_OBJECT_HANDLE> certs = findByClass(fns, session, CKO_CERTIFICATE);
+    for (int i = 0; i < certs.size(); ++i) {
+        const CK_OBJECT_HANDLE obj = certs.at(i);
+        const QString idHex = idHexOf(fns, session, obj);
+        const QString label = labelOf(fns, session, obj);
+
+        QVariantList certKeys;
+        if (!idHex.isEmpty()) {
+            for (int j = 0; j < keys.size(); ++j) {
+                if (!keys[j].consumed && keys[j].idHex == idHex) {
+                    keys[j].consumed = true;
+                    certKeys.append(keys[j].map);
+                }
+            }
+        }
+
+        QVariantMap cert;
+        cert.insert(QStringLiteral("kind"), QStringLiteral("certificate"));
+        cert.insert(QStringLiteral("idHex"), idHex);
+        cert.insert(QStringLiteral("label"), label);
+        cert.insert(QStringLiteral("source"), kSource);
+        cert.insert(QStringLiteral("hasKey"), !certKeys.isEmpty());
+        cert.insert(QStringLiteral("keys"), certKeys);
+        out.append(cert);
+    }
+
+    // Ключи без сертификата — на верхний уровень.
+    for (int j = 0; j < keys.size(); ++j) {
+        if (keys[j].consumed)
+            continue;
+        QVariantMap orphan = keys[j].map;
+        orphan.insert(QStringLiteral("kind"), QStringLiteral("key"));
+        out.append(orphan);
+    }
+
+    return out;
+}
+
+} // namespace pkcs11

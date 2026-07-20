@@ -161,6 +161,45 @@
         <source>The PIN is sent only to the token and is not stored.</source>
         <translation>The PIN is sent only to the token and is not stored.</translation>
     </message>
+    <message>
+        <source>Token objects (%1)</source>
+        <translation>Token objects (%1)</translation>
+    </message>
+</context>
+<context>
+    <name>ObjectsPage</name>
+    <message>
+        <source>Objects</source>
+        <translation>Objects</translation>
+    </message>
+    <message>
+        <source>Objects via PKCS#11</source>
+        <translation>Objects via PKCS#11</translation>
+    </message>
+    <message>
+        <source>No certificates or keys found on the token</source>
+        <translation>No certificates or keys found on the token</translation>
+    </message>
+    <message>
+        <source>CERT</source>
+        <translation>CERT</translation>
+    </message>
+    <message>
+        <source>KEY</source>
+        <translation>KEY</translation>
+    </message>
+    <message>
+        <source>(no label)</source>
+        <translation>(no label)</translation>
+    </message>
+    <message>
+        <source>ID: %1</source>
+        <translation>ID: %1</translation>
+    </message>
+    <message>
+        <source>certificate without a key (standalone)</source>
+        <translation>certificate without a key (standalone)</translation>
+    </message>
 </context>
 <context>
     <name>DefaultCoverPage</name>
