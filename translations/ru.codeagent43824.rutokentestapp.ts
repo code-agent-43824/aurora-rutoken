@@ -8,8 +8,8 @@
         <translation>Rutoken Test</translation>
     </message>
     <message>
-        <source>PKCS#11 diagnostics — v0.0.3</source>
-        <translation>PKCS#11 diagnostics — v0.0.3</translation>
+        <source>Rutoken info — v0.0.4</source>
+        <translation>Rutoken info — v0.0.4</translation>
     </message>
     <message>
         <source>Refresh</source>
@@ -50,6 +50,14 @@
     <message>
         <source>PKCS#11 finalization</source>
         <translation>PKCS#11 finalization</translation>
+    </message>
+    <message>
+        <source>Connected tokens</source>
+        <translation>Connected tokens</translation>
+    </message>
+    <message>
+        <source>Token</source>
+        <translation>Token</translation>
     </message>
     <message>
         <source>Pull down to refresh</source>

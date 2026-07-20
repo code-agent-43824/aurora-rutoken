@@ -8,8 +8,8 @@
         <translation>Рутокен Тест</translation>
     </message>
     <message>
-        <source>PKCS#11 diagnostics — v0.0.3</source>
-        <translation>Диагностика PKCS#11 — v0.0.3</translation>
+        <source>Rutoken info — v0.0.4</source>
+        <translation>Информация о Рутокене — v0.0.4</translation>
     </message>
     <message>
         <source>Refresh</source>
@@ -50,6 +50,14 @@
     <message>
         <source>PKCS#11 finalization</source>
         <translation>Финализация PKCS#11</translation>
+    </message>
+    <message>
+        <source>Connected tokens</source>
+        <translation>Подключённые токены</translation>
+    </message>
+    <message>
+        <source>Token</source>
+        <translation>Токен</translation>
     </message>
     <message>
         <source>Pull down to refresh</source>

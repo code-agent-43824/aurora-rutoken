@@ -17,6 +17,8 @@ Page {
         case "pkcs11init": return qsTr("PKCS#11 initialization")
         case "pkcs11info": return qsTr("PKCS#11 information")
         case "pkcs11finalize": return qsTr("PKCS#11 finalization")
+        case "tokens": return qsTr("Connected tokens")
+        case "token": return qsTr("Token")
         default: return id
         }
     }
@@ -39,7 +41,7 @@ Page {
             PageHeader {
                 objectName: "pageHeader"
                 title: qsTr("Rutoken Test")
-                description: qsTr("PKCS#11 diagnostics — v0.0.3")
+                description: qsTr("Rutoken info — v0.0.4")
             }
 
             BusyIndicator {
@@ -76,9 +78,12 @@ Page {
 
                         Label {
                             width: parent.width
-                            text: rowTitle(modelData.id)
+                            text: (modelData.title && modelData.title.length > 0)
+                                  ? modelData.title : rowTitle(modelData.id)
                             color: Theme.highlightColor
                             font.pixelSize: Theme.fontSizeMedium
+                            wrapMode: Text.Wrap
+                            textFormat: Text.PlainText
                         }
 
                         Label {
@@ -87,6 +92,7 @@ Page {
                             color: Theme.secondaryColor
                             font.pixelSize: Theme.fontSizeExtraSmall
                             wrapMode: Text.Wrap
+                            textFormat: Text.PlainText
                         }
                     }
                 }
