@@ -209,6 +209,10 @@
         <translation>ключи показываются после входа по PIN</translation>
     </message>
     <message>
+        <source>Export (DER + PEM)</source>
+        <translation>Экспорт (DER + PEM)</translation>
+    </message>
+    <message>
         <source>certificate without a key (standalone)</source>
         <translation>сертификат без ключа (сам по себе)</translation>
     </message>

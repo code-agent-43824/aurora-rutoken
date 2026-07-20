@@ -69,10 +69,30 @@ jobs:
       - name: Download and verify official Rutoken PKCS#11 RPM
         run: ./ci/fetch-rutoken-pkcs11.sh
 
+      # Артефакт Actions этой архитектуры — второй канал скачивания по просьбе
+      # владельца (2026-07-20), В ДОПОЛНЕНИЕ к голым .rpm в релизе ci-latest.
+      # GitHub всегда отдаёт артефакт зазипованной папкой — это ОК как второй
+      # канал; основной канал с голыми .rpm — релиз (см. AGENTS.md).
+      - name: Read package version for artifact name
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(awk '$1 == "Version:" { print $2; exit }' rpm/*.spec)
+          release=$(awk '$1 == "Release:" { print $2; exit }' rpm/*.spec)
+          [[ -n "$version" && -n "$release" ]]
+          echo "version_release=${version}-${release}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload RPMs of this architecture as an Actions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rutokentestapp-${{ steps.package.outputs.version_release }}-${{ matrix.arch }}-rpms
+          path: RPMS/*.${{ matrix.arch }}.rpm
+          if-no-files-found: error
+
       # Публикация БЕЗ ЗИПА: RPM этой архитектуры (приложение + официальная
-      # библиотека) заливаются прямо в релиз ci-latest как отдельные .rpm.
-      # Никаких actions/upload-artifact — их GitHub всегда отдаёт зазипованной
-      # папкой, что владельцу не нужно (см. AGENTS.md, «Доставка … БЕЗ ЗИПА»).
+      # библиотека) заливаются прямо в релиз ci-latest как отдельные .rpm —
+      # это ОСНОВНОЙ канал (голые файлы, без архива).
       - name: Publish this architecture RPMs to ci-latest
         if: github.ref == 'refs/heads/main'
         env:

@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    0.3.0
-Release:    2
+Version:    0.4.0
+Release:    1
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -18,11 +18,10 @@ BuildRequires:  pkgconfig(Qt5Network)
 
 %description
 Test application for working with Rutoken ECP 3.0 hardware tokens over USB
-and NFC on Aurora OS. Version 0.3 adds a two-level object browser: certificates
-on the top level (described from the parsed X.509 body — Common Name, issuer,
-expiry) with their keys nested below (grouped by CKA_ID). Certificates are
-shown without a PIN (they are public); after PIN login their keys and any
-standalone keys are added. The read source is labelled (PKCS#11).
+and NFC on Aurora OS. Version 0.4 adds certificate export (DER and PEM, without
+the private key), and will add key-pair generation and certificate import.
+Builds on the v0.3 two-level object browser (certificates described from the
+parsed X.509 body, keys nested by CKA_ID).
 
 %prep
 %autosetup
@@ -43,6 +42,10 @@ standalone keys are added. The read source is labelled (PKCS#11).
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Mon Jul 20 2026 Claude <noreply@anthropic.com> - 0.4.0-1
+- Export a certificate to DER and PEM files (no private key); UserDirs
+  permission. Restore per-arch Actions artifacts as a second download channel.
+
 * Mon Jul 20 2026 Claude <noreply@anthropic.com> - 0.3.0-2
 - Show certificates before PIN login (public objects); parse the X.509 body
   for Common Name, issuer and expiry instead of CKA_ID/CKA_LABEL.

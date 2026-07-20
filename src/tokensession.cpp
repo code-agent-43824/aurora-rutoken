@@ -5,7 +5,10 @@
 
 #include <QtConcurrent/QtConcurrent>
 #include <QtCore/QByteArray>
+#include <QtCore/QDir>
+#include <QtCore/QFile>
 #include <QtCore/QMutex>
+#include <QtCore/QStandardPaths>
 #include <QtCore/QStringList>
 
 #include <cstring>
@@ -181,4 +184,51 @@ void TokenSession::onFinished(int outcome, const QString &message, const QVarian
     m_result = message;
     m_objects = objects;
     emit changed();
+}
+
+QString TokenSession::exportCertificate(const QString &derB64, const QString &suggestedName)
+{
+    const QByteArray der = QByteArray::fromBase64(derB64.toLatin1());
+    if (der.isEmpty())
+        return QStringLiteral("Экспорт: пустое тело сертификата");
+
+    // Безопасное имя файла.
+    QString safe;
+    for (int i = 0; i < suggestedName.size(); ++i) {
+        const QChar c = suggestedName.at(i);
+        if (c.isLetterOrNumber() || c == QLatin1Char('.') || c == QLatin1Char('_')
+                || c == QLatin1Char('-'))
+            safe.append(c);
+    }
+    if (safe.isEmpty())
+        safe = QStringLiteral("certificate");
+
+    QString dir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    if (dir.isEmpty())
+        dir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    if (dir.isEmpty())
+        dir = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    QDir().mkpath(dir);
+
+    const QString derPath = dir + QLatin1Char('/') + safe + QStringLiteral(".der");
+    const QString pemPath = dir + QLatin1Char('/') + safe + QStringLiteral(".pem");
+
+    // PEM формируем вручную (не через QSslCertificate) — работает и для ГОСТ.
+    QByteArray pem = "-----BEGIN CERTIFICATE-----\n";
+    const QByteArray b64 = der.toBase64();
+    for (int i = 0; i < b64.size(); i += 64)
+        pem += b64.mid(i, 64) + '\n';
+    pem += "-----END CERTIFICATE-----\n";
+
+    QFile derFile(derPath);
+    if (!derFile.open(QIODevice::WriteOnly) || derFile.write(der) != der.size())
+        return QStringLiteral("Не удалось записать ") + derPath;
+    derFile.close();
+
+    QFile pemFile(pemPath);
+    if (!pemFile.open(QIODevice::WriteOnly) || pemFile.write(pem) != pem.size())
+        return QStringLiteral("Не удалось записать ") + pemPath;
+    pemFile.close();
+
+    return QStringLiteral("Сохранено: %1 и %2").arg(derPath, pemPath);
 }

@@ -174,9 +174,9 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
         const QString idHex = idHexOf(fns, session, obj);
         const QString label = labelOf(fns, session, obj);
 
+        const QByteArray der = readByteAttr(fns, session, obj, CKA_VALUE);
         QString commonName, issuer, expiry;
-        const bool parsed = parseCertificate(readByteAttr(fns, session, obj, CKA_VALUE),
-                                             commonName, issuer, expiry);
+        const bool parsed = parseCertificate(der, commonName, issuer, expiry);
 
         QVariantList certKeys;
         if (loggedIn && !idHex.isEmpty()) {
@@ -196,6 +196,7 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
         cert.insert(QStringLiteral("parsed"), parsed);
         cert.insert(QStringLiteral("idHex"), idHex);
         cert.insert(QStringLiteral("label"), label);
+        cert.insert(QStringLiteral("derB64"), QString::fromLatin1(der.toBase64())); // для экспорта
         cert.insert(QStringLiteral("source"), kSource);
         cert.insert(QStringLiteral("keysKnown"), loggedIn);
         cert.insert(QStringLiteral("hasKey"), !certKeys.isEmpty());

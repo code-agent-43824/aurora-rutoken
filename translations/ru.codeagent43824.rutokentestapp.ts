@@ -209,6 +209,10 @@
         <translation>keys are shown after PIN login</translation>
     </message>
     <message>
+        <source>Export (DER + PEM)</source>
+        <translation>Export (DER + PEM)</translation>
+    </message>
+    <message>
         <source>certificate without a key (standalone)</source>
         <translation>certificate without a key (standalone)</translation>
     </message>

@@ -8,6 +8,7 @@ Page {
 
     property string tokenLabel: ""
     property string connection: ""
+    property string exportMessage: ""
 
     function certTitle(o) {
         if (o.parsed && o.commonName && o.commonName.length > 0)
@@ -29,6 +30,17 @@ Page {
             PageHeader {
                 title: page.tokenLabel.length > 0 ? page.tokenLabel : qsTr("Objects")
                 description: qsTr("Objects via PKCS#11")
+            }
+
+            Label {
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                visible: page.exportMessage.length > 0
+                wrapMode: Text.Wrap
+                textFormat: Text.PlainText
+                text: page.exportMessage
+                color: Theme.highlightColor
+                font.pixelSize: Theme.fontSizeExtraSmall
             }
 
             Label {
@@ -184,6 +196,14 @@ Page {
                                 wrapMode: Text.Wrap
                             }
                         }
+                    }
+
+                    Button {
+                        x: Theme.horizontalPageMargin
+                        visible: modelData.kind === "certificate"
+                        text: qsTr("Export (DER + PEM)")
+                        onClicked: page.exportMessage =
+                            tokenSession.exportCertificate(modelData.derB64, page.certTitle(modelData))
                     }
 
                     Separator {
