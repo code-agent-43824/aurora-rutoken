@@ -121,8 +121,9 @@ QVariantList enumerateTokens(CK_FUNCTION_LIST_PREFIX *fns)
         return rows;
     }
 
-    QVector<CK_SLOT_ID> slots(static_cast<int>(count));
-    rv = fns->C_GetSlotList(CK_TRUE_VALUE, slots.data(), &count);
+    // NB: имя переменной не должно быть 'slots' — это макрос Qt (Q_SLOTS).
+    QVector<CK_SLOT_ID> slotIds(static_cast<int>(count));
+    rv = fns->C_GetSlotList(CK_TRUE_VALUE, slotIds.data(), &count);
     if (rv != CKR_OK) {
         rows.append(makeRow(QStringLiteral("tokens"), 0,
                             QStringLiteral("C_GetSlotList (2): ") + pkcs11Rv(rv)));
@@ -137,14 +138,14 @@ QVariantList enumerateTokens(CK_FUNCTION_LIST_PREFIX *fns)
         std::memset(&slotInfo, 0, sizeof(slotInfo));
         QString slotName;
         QString connType;
-        if (fns->C_GetSlotInfo(slots[static_cast<int>(i)], &slotInfo) == CKR_OK) {
+        if (fns->C_GetSlotInfo(slotIds[static_cast<int>(i)], &slotInfo) == CKR_OK) {
             slotName = fixedPkcs11Text(slotInfo.slotDescription, sizeof(slotInfo.slotDescription));
             connType = connectionType(slotName);
         }
 
         CK_TOKEN_INFO tokenInfo;
         std::memset(&tokenInfo, 0, sizeof(tokenInfo));
-        rv = fns->C_GetTokenInfo(slots[static_cast<int>(i)], &tokenInfo);
+        rv = fns->C_GetTokenInfo(slotIds[static_cast<int>(i)], &tokenInfo);
 
         const QString connLabel = connType.isEmpty() ? QStringLiteral("тип ?") : connType;
         if (rv != CKR_OK) {
@@ -152,7 +153,7 @@ QVariantList enumerateTokens(CK_FUNCTION_LIST_PREFIX *fns)
                                 QStringLiteral("C_GetTokenInfo: ") + pkcs11Rv(rv)
                                     + QStringLiteral("; слот/ридер: ") + slotName,
                                 QStringLiteral("Слот %1 — %2")
-                                    .arg(static_cast<qulonglong>(slots[static_cast<int>(i)]))
+                                    .arg(static_cast<qulonglong>(slotIds[static_cast<int>(i)]))
                                     .arg(connLabel)));
             continue;
         }
