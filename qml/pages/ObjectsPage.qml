@@ -9,6 +9,14 @@ Page {
     property string tokenLabel: ""
     property string connection: ""
 
+    function certTitle(o) {
+        if (o.parsed && o.commonName && o.commonName.length > 0)
+            return o.commonName
+        if (o.label && o.label.length > 0)
+            return o.label
+        return qsTr("(no label)")
+    }
+
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: content.height
@@ -40,7 +48,7 @@ Page {
                     width: content.width
                     spacing: Theme.paddingSmall
 
-                    // Заголовок верхнего уровня: сертификат или ключ-сирота.
+                    // Заголовок верхнего уровня: сертификат (Common Name) или ключ-сирота.
                     Row {
                         x: Theme.horizontalPageMargin
                         width: content.width - 2 * Theme.horizontalPageMargin
@@ -66,44 +74,87 @@ Page {
                         Label {
                             id: kindTitle
                             width: parent.width - kindBadge.width - Theme.paddingMedium
-                            text: modelData.label.length > 0 ? modelData.label : qsTr("(no label)")
+                            text: modelData.kind === "certificate"
+                                  ? page.certTitle(modelData)
+                                  : (modelData.label.length > 0 ? modelData.label : qsTr("(no label)"))
                             color: Theme.highlightColor
                             font.pixelSize: Theme.fontSizeMedium
                             truncationMode: TruncationMode.Fade
                         }
                     }
 
+                    // Сертификат: издатель и срок (из тела X.509).
                     Label {
                         x: Theme.horizontalPageMargin
                         width: content.width - 2 * Theme.horizontalPageMargin
+                        visible: modelData.kind === "certificate"
                         textFormat: Text.PlainText
+                        wrapMode: Text.Wrap
                         text: {
                             var parts = []
-                            parts.push(qsTr("ID: %1").arg(modelData.idHex.length > 0 ? modelData.idHex : "—"))
-                            if (modelData.kind === "key" && modelData.keyType && modelData.keyType.length > 0)
-                                parts.push(modelData.keyType)
-                            if (modelData.kind === "key" && modelData.keyClass && modelData.keyClass.length > 0)
-                                parts.push(modelData.keyClass)
-                            parts.push(modelData.source)
+                            if (modelData.kind === "certificate") {
+                                if (modelData.parsed) {
+                                    if (modelData.issuer && modelData.issuer.length > 0)
+                                        parts.push(qsTr("issuer: %1").arg(modelData.issuer))
+                                    if (modelData.expiry && modelData.expiry.length > 0)
+                                        parts.push(qsTr("expires: %1").arg(modelData.expiry))
+                                } else if (modelData.idHex && modelData.idHex.length > 0) {
+                                    parts.push(qsTr("ID: %1").arg(modelData.idHex))
+                                }
+                                parts.push(modelData.source)
+                            }
                             return parts.join("  •  ")
                         }
                         color: Theme.secondaryColor
                         font.pixelSize: Theme.fontSizeExtraSmall
-                        wrapMode: Text.Wrap
                     }
 
-                    // Для сертификата: есть ключ или он сам по себе.
+                    // Ключ-сирота: ID, тип, класс, источник.
                     Label {
                         x: Theme.horizontalPageMargin
                         width: content.width - 2 * Theme.horizontalPageMargin
-                        visible: modelData.kind === "certificate" && !modelData.hasKey
+                        visible: modelData.kind === "key"
+                        textFormat: Text.PlainText
+                        wrapMode: Text.Wrap
+                        text: {
+                            var parts = []
+                            if (modelData.kind === "key") {
+                                parts.push(qsTr("ID: %1").arg(modelData.idHex && modelData.idHex.length > 0 ? modelData.idHex : "—"))
+                                if (modelData.keyType && modelData.keyType.length > 0)
+                                    parts.push(modelData.keyType)
+                                if (modelData.keyClass && modelData.keyClass.length > 0)
+                                    parts.push(modelData.keyClass)
+                                parts.push(modelData.source)
+                            }
+                            return parts.join("  •  ")
+                        }
+                        color: Theme.secondaryColor
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                    }
+
+                    // До входа: про закрытые ключи ничего не известно.
+                    Label {
+                        x: Theme.horizontalPageMargin
+                        width: content.width - 2 * Theme.horizontalPageMargin
+                        visible: modelData.kind === "certificate" && !modelData.keysKnown
+                        text: qsTr("keys are shown after PIN login")
+                        color: Theme.secondaryColor
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                        font.italic: true
+                    }
+
+                    // После входа: сертификат без ключа.
+                    Label {
+                        x: Theme.horizontalPageMargin
+                        width: content.width - 2 * Theme.horizontalPageMargin
+                        visible: modelData.kind === "certificate" && modelData.keysKnown && !modelData.hasKey
                         text: qsTr("certificate without a key (standalone)")
                         color: Theme.secondaryColor
                         font.pixelSize: Theme.fontSizeExtraSmall
                         font.italic: true
                     }
 
-                    // Вложенные ключи сертификата (второй уровень).
+                    // После входа: вложенные ключи сертификата (второй уровень).
                     Repeater {
                         model: modelData.kind === "certificate" ? modelData.keys : []
 

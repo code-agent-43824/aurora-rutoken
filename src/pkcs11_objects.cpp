@@ -2,8 +2,10 @@
 #include "pkcs11_minimal.h"
 
 #include <QtCore/QByteArray>
+#include <QtCore/QDateTime>
 #include <QtCore/QVariantMap>
 #include <QtCore/QVector>
+#include <QtNetwork/QSslCertificate>
 
 namespace {
 
@@ -84,6 +86,35 @@ QString idHexOf(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session, CK_OBJE
     return QString::fromLatin1(readByteAttr(fns, session, obj, CKA_ID).toHex());
 }
 
+QString firstInfo(const QStringList &values)
+{
+    return values.isEmpty() ? QString() : values.first();
+}
+
+// Разобрать тело сертификата (DER X.509) и заполнить commonName/issuer/expiry.
+// Возвращает true, если удалось извлечь хоть одно поле (иначе — fallback на
+// CKA_LABEL на стороне вызывающего; например, для ГОСТ без поддержки в OpenSSL).
+bool parseCertificate(const QByteArray &der, QString &commonName, QString &issuer,
+                      QString &expiry)
+{
+    if (der.isEmpty())
+        return false;
+    const QSslCertificate cert(der, QSsl::Der);
+    if (cert.isNull())
+        return false;
+
+    commonName = firstInfo(cert.subjectInfo(QSslCertificate::CommonName));
+    issuer = firstInfo(cert.issuerInfo(QSslCertificate::CommonName));
+    if (issuer.isEmpty())
+        issuer = firstInfo(cert.issuerInfo(QSslCertificate::Organization));
+
+    const QDateTime notAfter = cert.expiryDate();
+    if (notAfter.isValid())
+        expiry = notAfter.toUTC().toString(QStringLiteral("yyyy-MM-dd"));
+
+    return !commonName.isEmpty() || !issuer.isEmpty() || notAfter.isValid();
+}
+
 QVariantMap makeKey(const QString &idHex, const QString &label, const QString &keyType,
                     CK_OBJECT_CLASS cls)
 {
@@ -102,7 +133,7 @@ QVariantMap makeKey(const QString &idHex, const QString &label, const QString &k
 
 namespace pkcs11 {
 
-QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessionHandle)
+QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessionHandle, bool loggedIn)
 {
     QVariantList out;
     if (!fns || !fns->C_FindObjectsInit || !fns->C_FindObjects || !fns->C_FindObjectsFinal
@@ -111,36 +142,44 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
 
     const CK_SESSION_HANDLE session = static_cast<CK_SESSION_HANDLE>(sessionHandle);
 
-    // Собираем все ключи (открытые и закрытые) c их CKA_ID.
+    // Ключи читаем только в залогиненной сессии: приватные ключи не видны без
+    // входа, а до входа наличие ключа у сертификата неизвестно.
     struct KeyEntry { QString idHex; QVariantMap map; bool consumed; };
     QVector<KeyEntry> keys;
-    const CK_OBJECT_CLASS keyClasses[2] = { CKO_PRIVATE_KEY, CKO_PUBLIC_KEY };
-    for (int k = 0; k < 2; ++k) {
-        const QVector<CK_OBJECT_HANDLE> handles = findByClass(fns, session, keyClasses[k]);
-        for (int i = 0; i < handles.size(); ++i) {
-            const CK_OBJECT_HANDLE obj = handles.at(i);
-            const QString idHex = idHexOf(fns, session, obj);
-            const QString label = labelOf(fns, session, obj);
-            CK_ULONG keyType = 0;
-            const QString keyTypeStr = readUlongAttr(fns, session, obj, CKA_KEY_TYPE, keyType)
-                    ? keyTypeName(keyType) : QString();
-            KeyEntry entry;
-            entry.idHex = idHex;
-            entry.map = makeKey(idHex, label, keyTypeStr, keyClasses[k]);
-            entry.consumed = false;
-            keys.append(entry);
+    if (loggedIn) {
+        const CK_OBJECT_CLASS keyClasses[2] = { CKO_PRIVATE_KEY, CKO_PUBLIC_KEY };
+        for (int k = 0; k < 2; ++k) {
+            const QVector<CK_OBJECT_HANDLE> handles = findByClass(fns, session, keyClasses[k]);
+            for (int i = 0; i < handles.size(); ++i) {
+                const CK_OBJECT_HANDLE obj = handles.at(i);
+                const QString idHex = idHexOf(fns, session, obj);
+                const QString label = labelOf(fns, session, obj);
+                CK_ULONG keyType = 0;
+                const QString keyTypeStr = readUlongAttr(fns, session, obj, CKA_KEY_TYPE, keyType)
+                        ? keyTypeName(keyType) : QString();
+                KeyEntry entry;
+                entry.idHex = idHex;
+                entry.map = makeKey(idHex, label, keyTypeStr, keyClasses[k]);
+                entry.consumed = false;
+                keys.append(entry);
+            }
         }
     }
 
-    // Сертификаты — верхний уровень; под каждым его ключи (совпадение по CKA_ID).
+    // Сертификаты — верхний уровень. Описание берём из разобранного тела X.509
+    // (Common Name / Issuer / срок истечения), fallback — CKA_LABEL.
     const QVector<CK_OBJECT_HANDLE> certs = findByClass(fns, session, CKO_CERTIFICATE);
     for (int i = 0; i < certs.size(); ++i) {
         const CK_OBJECT_HANDLE obj = certs.at(i);
         const QString idHex = idHexOf(fns, session, obj);
         const QString label = labelOf(fns, session, obj);
 
+        QString commonName, issuer, expiry;
+        const bool parsed = parseCertificate(readByteAttr(fns, session, obj, CKA_VALUE),
+                                             commonName, issuer, expiry);
+
         QVariantList certKeys;
-        if (!idHex.isEmpty()) {
+        if (loggedIn && !idHex.isEmpty()) {
             for (int j = 0; j < keys.size(); ++j) {
                 if (!keys[j].consumed && keys[j].idHex == idHex) {
                     keys[j].consumed = true;
@@ -151,15 +190,20 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
 
         QVariantMap cert;
         cert.insert(QStringLiteral("kind"), QStringLiteral("certificate"));
+        cert.insert(QStringLiteral("commonName"), commonName);
+        cert.insert(QStringLiteral("issuer"), issuer);
+        cert.insert(QStringLiteral("expiry"), expiry);
+        cert.insert(QStringLiteral("parsed"), parsed);
         cert.insert(QStringLiteral("idHex"), idHex);
         cert.insert(QStringLiteral("label"), label);
         cert.insert(QStringLiteral("source"), kSource);
+        cert.insert(QStringLiteral("keysKnown"), loggedIn);
         cert.insert(QStringLiteral("hasKey"), !certKeys.isEmpty());
         cert.insert(QStringLiteral("keys"), certKeys);
         out.append(cert);
     }
 
-    // Ключи без сертификата — на верхний уровень.
+    // Ключи без сертификата — на верхний уровень (только когда вошли).
     for (int j = 0; j < keys.size(); ++j) {
         if (keys[j].consumed)
             continue;

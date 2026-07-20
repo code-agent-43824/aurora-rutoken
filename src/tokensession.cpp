@@ -55,25 +55,39 @@ void TokenSession::clear()
 
 void TokenSession::login(qulonglong slotId, const QString &pin)
 {
+    run(slotId, pin, /*doLogin*/ true);
+}
+
+void TokenSession::preview(qulonglong slotId)
+{
+    run(slotId, QString(), /*doLogin*/ false);
+}
+
+void TokenSession::run(qulonglong slotId, const QString &pin, bool doLogin)
+{
     if (m_busy)
         return;
     if (!m_getFunctionList) {
-        m_outcome = -1;
-        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
-        emit changed();
+        if (doLogin) {
+            m_outcome = -1;
+            m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+            emit changed();
+        }
         return;
     }
 
     m_busy = true;
-    m_outcome = 0;
-    m_result.clear();
+    if (doLogin) {
+        m_outcome = 0;
+        m_result.clear();
+    }
     emit changed();
 
     const QFunctionPointer getFunctionList = m_getFunctionList;
     QByteArray pinBytes = pin.toUtf8();
 
-    QtConcurrent::run([this, slotId, pinBytes, getFunctionList]() mutable {
-        int outcome = -1;
+    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, doLogin]() mutable {
+        int outcome = doLogin ? -1 : 0;
         QString message;
         QVariantList objects;
 
@@ -83,11 +97,14 @@ void TokenSession::login(qulonglong slotId, const QString &pin)
 
         QMutexLocker locker(&pkcs11::globalMutex());
 
-        if (getList(&fns) != CKR_OK || !fns || !fns->C_Initialize || !fns->C_Finalize
-                || !fns->C_OpenSession || !fns->C_CloseSession || !fns->C_Login
-                || !fns->C_Logout) {
+        const bool haveBasics = getList(&fns) == CKR_OK && fns && fns->C_Initialize
+                && fns->C_Finalize && fns->C_OpenSession && fns->C_CloseSession;
+        const bool haveLogin = fns && fns->C_Login && fns->C_Logout;
+        if (!haveBasics || (doLogin && !haveLogin)) {
             pinBytes.fill('\0');
-            emit finished(-1, QStringLiteral("Библиотека не предоставляет функции сессии"), QVariantList());
+            emit finished(doLogin ? -1 : 0,
+                          doLogin ? QStringLiteral("Библиотека не предоставляет функции сессии") : QString(),
+                          QVariantList());
             return;
         }
 
@@ -95,7 +112,9 @@ void TokenSession::login(qulonglong slotId, const QString &pin)
         const bool owns = (initRv == CKR_OK);
         if (!owns && initRv != CKR_CRYPTOKI_ALREADY_INITIALIZED) {
             pinBytes.fill('\0');
-            emit finished(-1, QStringLiteral("C_Initialize: ") + rvHex(initRv), QVariantList());
+            emit finished(doLogin ? -1 : 0,
+                          doLogin ? QStringLiteral("C_Initialize: ") + rvHex(initRv) : QString(),
+                          QVariantList());
             return;
         }
 
@@ -106,40 +125,46 @@ void TokenSession::login(qulonglong slotId, const QString &pin)
             if (owns)
                 fns->C_Finalize(nullptr);
             pinBytes.fill('\0');
-            emit finished(-1, QStringLiteral("Не удалось открыть сессию: ") + rvHex(rv), QVariantList());
+            emit finished(doLogin ? -1 : 0,
+                          doLogin ? QStringLiteral("Не удалось открыть сессию: ") + rvHex(rv) : QString(),
+                          QVariantList());
             return;
         }
 
-        rv = fns->C_Login(session, CKU_USER,
-                          reinterpret_cast<CK_UTF8CHAR *>(pinBytes.data()),
-                          static_cast<CK_ULONG>(pinBytes.size()));
-
-        if (rv == CKR_OK || rv == CKR_USER_ALREADY_LOGGED_IN) {
-            outcome = 1;
-            // Читаем объекты токена в этой же залогиненной сессии (иначе приватные
-            // ключи не видны).
-            objects = pkcs11::listTokenObjects(fns, session);
-            message = QStringLiteral("PIN верный — вход выполнен");
-            fns->C_Logout(session);
-        } else {
-            // Уточняем состояние PIN по флагам токена.
-            QString hint;
-            if (fns->C_GetTokenInfo) {
-                CK_TOKEN_INFO info;
-                std::memset(&info, 0, sizeof(info));
-                if (fns->C_GetTokenInfo(static_cast<CK_SLOT_ID>(slotId), &info) == CKR_OK)
-                    hint = pinAttemptsHint(info.flags);
+        bool loggedIn = false;
+        if (doLogin) {
+            rv = fns->C_Login(session, CKU_USER,
+                              reinterpret_cast<CK_UTF8CHAR *>(pinBytes.data()),
+                              static_cast<CK_ULONG>(pinBytes.size()));
+            if (rv == CKR_OK || rv == CKR_USER_ALREADY_LOGGED_IN) {
+                loggedIn = true;
+                outcome = 1;
+                message = QStringLiteral("PIN верный — вход выполнен");
+            } else {
+                QString hint;
+                if (fns->C_GetTokenInfo) {
+                    CK_TOKEN_INFO info;
+                    std::memset(&info, 0, sizeof(info));
+                    if (fns->C_GetTokenInfo(static_cast<CK_SLOT_ID>(slotId), &info) == CKR_OK)
+                        hint = pinAttemptsHint(info.flags);
+                }
+                if (rv == CKR_PIN_INCORRECT)
+                    message = QStringLiteral("Неверный PIN");
+                else if (rv == CKR_PIN_LOCKED)
+                    message = QStringLiteral("PIN заблокирован");
+                else
+                    message = QStringLiteral("Ошибка входа: ") + rvHex(rv);
+                if (!hint.isEmpty())
+                    message += QStringLiteral(" (") + hint + QLatin1Char(')');
             }
-            if (rv == CKR_PIN_INCORRECT)
-                message = QStringLiteral("Неверный PIN");
-            else if (rv == CKR_PIN_LOCKED)
-                message = QStringLiteral("PIN заблокирован");
-            else
-                message = QStringLiteral("Ошибка входа: ") + rvHex(rv);
-            if (!hint.isEmpty())
-                message += QStringLiteral(" (") + hint + QLatin1Char(')');
         }
 
+        // Сертификаты видны без входа; ключи — только в залогиненной сессии.
+        if (!doLogin || loggedIn)
+            objects = pkcs11::listTokenObjects(fns, session, loggedIn);
+
+        if (loggedIn)
+            fns->C_Logout(session);
         fns->C_CloseSession(session);
         if (owns)
             fns->C_Finalize(nullptr);

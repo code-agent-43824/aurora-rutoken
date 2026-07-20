@@ -24,6 +24,9 @@ Page {
         tokenSession.login(page.slotId, pinField.text)
     }
 
+    // Сертификаты видны без входа — читаем их сразу при открытии деталей.
+    Component.onCompleted: tokenSession.preview(page.slotId)
+
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: col.height + Theme.paddingLarge
@@ -106,7 +109,7 @@ Page {
 
             Button {
                 anchors.horizontalCenter: parent.horizontalCenter
-                visible: !tokenSession.busy && tokenSession.outcome === 1
+                visible: !tokenSession.busy && tokenSession.objects.length > 0
                 text: qsTr("Token objects (%1)").arg(tokenSession.objects.length)
                 onClicked: pageStack.push(Qt.resolvedUrl("ObjectsPage.qml"), {
                     tokenLabel: page.tokenLabel,

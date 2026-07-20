@@ -3,7 +3,7 @@ TARGET = ru.codeagent43824.rutokentestapp
 CONFIG += \
     auroraapp
 
-QT += dbus concurrent
+QT += dbus concurrent network
 
 PKGCONFIG += \
 

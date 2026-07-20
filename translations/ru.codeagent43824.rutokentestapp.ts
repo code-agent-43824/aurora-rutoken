@@ -197,6 +197,18 @@
         <translation>ID: %1</translation>
     </message>
     <message>
+        <source>issuer: %1</source>
+        <translation>issuer: %1</translation>
+    </message>
+    <message>
+        <source>expires: %1</source>
+        <translation>expires: %1</translation>
+    </message>
+    <message>
+        <source>keys are shown after PIN login</source>
+        <translation>keys are shown after PIN login</translation>
+    </message>
+    <message>
         <source>certificate without a key (standalone)</source>
         <translation>certificate without a key (standalone)</translation>
     </message>

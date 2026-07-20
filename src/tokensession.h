@@ -27,7 +27,10 @@ public:
     QString result() const { return m_result; }
     QVariantList objects() const { return m_objects; }
 
+    // Вход по PIN + чтение всех объектов (сертификаты и ключи).
     Q_INVOKABLE void login(qulonglong slotId, const QString &pin);
+    // Чтение только сертификатов без входа (они видны без PIN).
+    Q_INVOKABLE void preview(qulonglong slotId);
     Q_INVOKABLE void clear();
 
 signals:
@@ -35,6 +38,7 @@ signals:
     void finished(int outcome, const QString &message, const QVariantList &objects); // из рабочего потока
 
 private:
+    void run(qulonglong slotId, const QString &pin, bool doLogin);
     void onFinished(int outcome, const QString &message, const QVariantList &objects);
 
     QLibrary m_library;
