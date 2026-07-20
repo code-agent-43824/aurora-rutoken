@@ -1,6 +1,6 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    0.0.4
+Version:    0.1.0
 Release:    1
 Group:      Qt/Qt
 License:    MIT
@@ -17,10 +17,11 @@ BuildRequires:  pkgconfig(Qt5Concurrent)
 
 %description
 Test application for working with Rutoken ECP 3.0 hardware tokens over USB
-and NFC on Aurora OS. Version 0.0.4 enumerates connected tokens via
-C_GetSlotList/C_GetSlotInfo/C_GetTokenInfo and shows each token's label,
-serial number, model and connection type (USB or NFC), on top of the PKCS#11,
-PC/SC and NFC reachability diagnostics.
+and NFC on Aurora OS. Version 0.1 is the first product screen: a live list of
+connected tokens that updates by itself as a token is plugged in or removed
+(USB) or tapped on the NFC antenna, showing each token's label, serial number,
+model and connection type. PC/SC, NFC and PKCS#11 diagnostics moved to a
+separate page.
 
 %prep
 %autosetup
@@ -41,6 +42,10 @@ PC/SC and NFC reachability diagnostics.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Mon Jul 20 2026 Claude <noreply@anthropic.com> - 0.1.0-1
+- First product screen: live list of connected tokens (USB/NFC) that
+  updates automatically; diagnostics moved to a separate page.
+
 * Mon Jul 20 2026 Claude <noreply@anthropic.com> - 0.0.4-1
 - Enumerate connected tokens (USB and NFC): label, serial, model, connection type.
 

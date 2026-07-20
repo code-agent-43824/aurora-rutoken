@@ -83,121 +83,6 @@ QVariantMap makeRow(const QString &id, int ok, const QString &detail,
     return row;
 }
 
-// Эвристика типа подключения по имени PC/SC-слота (ридера). USB-Рутокен на
-// Авроре виден как «Aktiv Rutoken ECP …» (подтверждено на устройстве в v0.0.2);
-// NFC-считыватель — по «nfc» в имени. Сырое имя всё равно показывается в
-// деталях, чтобы уточнить эвристику на реальном железе владельца.
-QString connectionType(const QString &slotName)
-{
-    const QString low = slotName.toLower();
-    if (low.contains(QStringLiteral("nfc")) || low.contains(QStringLiteral("contactless")))
-        return QStringLiteral("NFC");
-    if (low.contains(QStringLiteral("rutoken")) || low.contains(QStringLiteral("aktiv"))
-            || low.contains(QStringLiteral("ccid")) || low.contains(QStringLiteral("usb")))
-        return QStringLiteral("USB");
-    return QString();
-}
-
-// Перечисление подключённых токенов через уже инициализированный модуль.
-QVariantList enumerateTokens(CK_FUNCTION_LIST_PREFIX *fns)
-{
-    QVariantList rows;
-    if (!fns->C_GetSlotList || !fns->C_GetSlotInfo || !fns->C_GetTokenInfo) {
-        rows.append(makeRow(QStringLiteral("tokens"), -1,
-                            QStringLiteral("перечисление токенов недоступно в этой версии библиотеки")));
-        return rows;
-    }
-
-    CK_ULONG count = 0;
-    CK_RV rv = fns->C_GetSlotList(CK_TRUE_VALUE, nullptr, &count); // только слоты с токеном
-    if (rv != CKR_OK) {
-        rows.append(makeRow(QStringLiteral("tokens"), 0,
-                            QStringLiteral("C_GetSlotList: ") + pkcs11Rv(rv)));
-        return rows;
-    }
-    if (count == 0) {
-        rows.append(makeRow(QStringLiteral("tokens"), -1,
-                            QStringLiteral("токен не подключён (подключите Рутокен по USB или поднесите к NFC)")));
-        return rows;
-    }
-
-    // NB: имя переменной не должно быть 'slots' — это макрос Qt (Q_SLOTS).
-    QVector<CK_SLOT_ID> slotIds(static_cast<int>(count));
-    rv = fns->C_GetSlotList(CK_TRUE_VALUE, slotIds.data(), &count);
-    if (rv != CKR_OK) {
-        rows.append(makeRow(QStringLiteral("tokens"), 0,
-                            QStringLiteral("C_GetSlotList (2): ") + pkcs11Rv(rv)));
-        return rows;
-    }
-
-    rows.append(makeRow(QStringLiteral("tokens"), 1,
-                        QStringLiteral("подключено токенов: %1").arg(count)));
-
-    for (CK_ULONG i = 0; i < count; ++i) {
-        CK_SLOT_INFO slotInfo;
-        std::memset(&slotInfo, 0, sizeof(slotInfo));
-        QString slotName;
-        QString connType;
-        if (fns->C_GetSlotInfo(slotIds[static_cast<int>(i)], &slotInfo) == CKR_OK) {
-            slotName = fixedPkcs11Text(slotInfo.slotDescription, sizeof(slotInfo.slotDescription));
-            connType = connectionType(slotName);
-        }
-
-        CK_TOKEN_INFO tokenInfo;
-        std::memset(&tokenInfo, 0, sizeof(tokenInfo));
-        rv = fns->C_GetTokenInfo(slotIds[static_cast<int>(i)], &tokenInfo);
-
-        const QString connLabel = connType.isEmpty() ? QStringLiteral("тип ?") : connType;
-        if (rv != CKR_OK) {
-            rows.append(makeRow(QStringLiteral("token"), 0,
-                                QStringLiteral("C_GetTokenInfo: ") + pkcs11Rv(rv)
-                                    + QStringLiteral("; слот/ридер: ") + slotName,
-                                QStringLiteral("Слот %1 — %2")
-                                    .arg(static_cast<qulonglong>(slotIds[static_cast<int>(i)]))
-                                    .arg(connLabel)));
-            continue;
-        }
-
-        const QString label = fixedPkcs11Text(tokenInfo.label, sizeof(tokenInfo.label));
-        const QString serial = fixedPkcs11Text(tokenInfo.serialNumber, sizeof(tokenInfo.serialNumber));
-        const QString model = fixedPkcs11Text(tokenInfo.model, sizeof(tokenInfo.model));
-        const QString manuf = fixedPkcs11Text(tokenInfo.manufacturerID, sizeof(tokenInfo.manufacturerID));
-
-        const QString title = QStringLiteral("%1 — %2")
-            .arg(label.isEmpty() ? QStringLiteral("Рутокен без метки") : label, connLabel);
-
-        QStringList det;
-        det << QStringLiteral("серийный №: ") + (serial.isEmpty() ? QStringLiteral("—") : serial);
-        if (!model.isEmpty())
-            det << QStringLiteral("модель: ") + model;
-        if (!manuf.isEmpty())
-            det << QStringLiteral("производитель: ") + manuf;
-        det << QStringLiteral("прошивка %1.%2; железо %3.%4")
-                   .arg(static_cast<int>(tokenInfo.firmwareVersion.major))
-                   .arg(static_cast<int>(tokenInfo.firmwareVersion.minor))
-                   .arg(static_cast<int>(tokenInfo.hardwareVersion.major))
-                   .arg(static_cast<int>(tokenInfo.hardwareVersion.minor));
-
-        QStringList flags;
-        if (tokenInfo.flags & CKF_TOKEN_INITIALIZED)
-            flags << QStringLiteral("инициализирован");
-        if (tokenInfo.flags & CKF_LOGIN_REQUIRED)
-            flags << QStringLiteral("нужен вход (PIN)");
-        if (tokenInfo.flags & CKF_USER_PIN_INITIALIZED)
-            flags << QStringLiteral("PIN пользователя задан");
-        if (tokenInfo.flags & CKF_WRITE_PROTECTED)
-            flags << QStringLiteral("защита записи");
-        if (!flags.isEmpty())
-            det << flags.join(QStringLiteral(", "));
-
-        det << QStringLiteral("слот/ридер: ") + (slotName.isEmpty() ? QStringLiteral("—") : slotName);
-
-        rows.append(makeRow(QStringLiteral("token"), 1, det.join(QStringLiteral("\n")), title));
-    }
-
-    return rows;
-}
-
 } // namespace
 
 Diagnostics::Diagnostics(QObject *parent)
@@ -401,8 +286,8 @@ QVariantList Diagnostics::probePkcs11() const
                             QStringLiteral("C_GetInfo: ") + pkcs11Rv(rv)));
     }
 
-    // v0.0.4: информация о подключённых токенах (USB и NFC).
-    rows += enumerateTokens(functions);
+    // Перечисление подключённых токенов вынесено в продуктовый экран (v0.1,
+    // TokenWatcher/pkcs11_tokens); здесь остаётся только lifecycle-диагностика.
 
     if (ownsInitialization) {
         const CK_RV finalizeRv = functions->C_Finalize(nullptr);

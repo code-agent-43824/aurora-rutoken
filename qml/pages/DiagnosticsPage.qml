@@ -2,7 +2,7 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 Page {
-    objectName: "mainPage"
+    objectName: "diagnosticsPage"
     allowedOrientations: Orientation.All
 
     // Заголовки строк диагностики по id из C++ (Diagnostics::rows)
@@ -40,8 +40,8 @@ Page {
 
             PageHeader {
                 objectName: "pageHeader"
-                title: qsTr("Rutoken Test")
-                description: qsTr("Rutoken info — v0.0.4")
+                title: qsTr("Diagnostics")
+                description: qsTr("PC/SC, NFC and PKCS#11 — v0.1")
             }
 
             BusyIndicator {

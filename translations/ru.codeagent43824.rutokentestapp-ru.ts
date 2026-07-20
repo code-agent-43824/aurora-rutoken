@@ -2,14 +2,53 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="ru">
 <context>
-    <name>MainPage</name>
+    <name>TokensPage</name>
     <message>
-        <source>Rutoken Test</source>
-        <translation>Рутокен Тест</translation>
+        <source>Diagnostics</source>
+        <translation>Диагностика</translation>
     </message>
     <message>
-        <source>Rutoken info — v0.0.4</source>
-        <translation>Информация о Рутокене — v0.0.4</translation>
+        <source>Refresh</source>
+        <translation>Обновить</translation>
+    </message>
+    <message>
+        <source>Rutoken</source>
+        <translation>Рутокен</translation>
+    </message>
+    <message>
+        <source>Connect a Rutoken over USB or hold it near the NFC antenna</source>
+        <translation>Подключите Рутокен по USB или поднесите к NFC-антенне</translation>
+    </message>
+    <message>
+        <source>The list updates automatically</source>
+        <translation>Список обновляется автоматически</translation>
+    </message>
+    <message>
+        <source>?</source>
+        <translation>?</translation>
+    </message>
+    <message>
+        <source>Serial number: %1</source>
+        <translation>Серийный номер: %1</translation>
+    </message>
+    <message>
+        <source>firmware %1</source>
+        <translation>прошивка %1</translation>
+    </message>
+    <message>
+        <source>reader: %1</source>
+        <translation>ридер: %1</translation>
+    </message>
+</context>
+<context>
+    <name>DiagnosticsPage</name>
+    <message>
+        <source>Diagnostics</source>
+        <translation>Диагностика</translation>
+    </message>
+    <message>
+        <source>PC/SC, NFC and PKCS#11 — v0.1</source>
+        <translation>PC/SC, NFC и PKCS#11 — v0.1</translation>
     </message>
     <message>
         <source>Refresh</source>
@@ -67,8 +106,16 @@
 <context>
     <name>DefaultCoverPage</name>
     <message>
-        <source>Rutoken Test</source>
-        <translation>Рутокен Тест</translation>
+        <source>Rutoken</source>
+        <translation>Рутокен</translation>
+    </message>
+    <message>
+        <source>token</source>
+        <translation>токен</translation>
+    </message>
+    <message>
+        <source>tokens</source>
+        <translation>токенов</translation>
     </message>
 </context>
 </TS>
