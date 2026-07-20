@@ -104,6 +104,65 @@
     </message>
 </context>
 <context>
+    <name>TokenDetailsPage</name>
+    <message>
+        <source>Rutoken</source>
+        <translation>Рутокен</translation>
+    </message>
+    <message>
+        <source>token</source>
+        <translation>токен</translation>
+    </message>
+    <message>
+        <source>Serial number</source>
+        <translation>Серийный номер</translation>
+    </message>
+    <message>
+        <source>Model</source>
+        <translation>Модель</translation>
+    </message>
+    <message>
+        <source>Manufacturer</source>
+        <translation>Производитель</translation>
+    </message>
+    <message>
+        <source>Firmware / hardware</source>
+        <translation>Прошивка / железо</translation>
+    </message>
+    <message>
+        <source>Reader</source>
+        <translation>Ридер</translation>
+    </message>
+    <message>
+        <source>Flags</source>
+        <translation>Флаги</translation>
+    </message>
+    <message>
+        <source>User PIN login</source>
+        <translation>Вход по PIN пользователя</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Enter user PIN</source>
+        <translation>Введите PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Checking…</source>
+        <translation>Проверка…</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Войти</translation>
+    </message>
+    <message>
+        <source>The PIN is sent only to the token and is not stored.</source>
+        <translation>PIN передаётся только в токен и нигде не сохраняется.</translation>
+    </message>
+</context>
+<context>
     <name>DefaultCoverPage</name>
     <message>
         <source>Rutoken</source>

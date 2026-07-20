@@ -27,6 +27,8 @@ typedef unsigned long CK_ULONG;
 typedef CK_ULONG CK_FLAGS;
 typedef CK_ULONG CK_RV;
 typedef CK_ULONG CK_SLOT_ID;
+typedef CK_ULONG CK_SESSION_HANDLE;
+typedef CK_ULONG CK_USER_TYPE;
 typedef void *CK_VOID_PTR;
 
 static const CK_BBOOL CK_TRUE_VALUE = 1;
@@ -34,6 +36,16 @@ static const CK_BBOOL CK_TRUE_VALUE = 1;
 static const CK_RV CKR_OK = 0x00000000UL;
 static const CK_RV CKR_CRYPTOKI_ALREADY_INITIALIZED = 0x00000191UL;
 static const CK_RV CKR_BUFFER_TOO_SMALL = 0x00000150UL;
+static const CK_RV CKR_PIN_INCORRECT = 0x000000A0UL;
+static const CK_RV CKR_PIN_LOCKED = 0x000000A4UL;
+static const CK_RV CKR_USER_ALREADY_LOGGED_IN = 0x00000100UL;
+static const CK_RV CKR_USER_PIN_NOT_INITIALIZED = 0x00000102UL;
+
+static const CK_USER_TYPE CKU_USER = 1;
+
+// Флаги открытия сессии (C_OpenSession).
+static const CK_FLAGS CKF_RW_SESSION = 0x00000002UL;
+static const CK_FLAGS CKF_SERIAL_SESSION = 0x00000004UL;
 
 // Флаги токена (CK_TOKEN_INFO.flags), которые показываем в UI.
 static const CK_FLAGS CKF_RNG = 0x00000001UL;
@@ -41,6 +53,10 @@ static const CK_FLAGS CKF_WRITE_PROTECTED = 0x00000002UL;
 static const CK_FLAGS CKF_LOGIN_REQUIRED = 0x00000004UL;
 static const CK_FLAGS CKF_USER_PIN_INITIALIZED = 0x00000008UL;
 static const CK_FLAGS CKF_TOKEN_INITIALIZED = 0x00000400UL;
+// Флаги состояния PIN пользователя (обновляются после неудачного C_Login).
+static const CK_FLAGS CKF_USER_PIN_COUNT_LOW = 0x00010000UL;
+static const CK_FLAGS CKF_USER_PIN_FINAL_TRY = 0x00020000UL;
+static const CK_FLAGS CKF_USER_PIN_LOCKED = 0x00040000UL;
 
 // Флаги слота (CK_SLOT_INFO.flags).
 static const CK_FLAGS CKF_TOKEN_PRESENT = 0x00000001UL;
@@ -96,18 +112,38 @@ typedef CK_RV (*CK_C_GetFunctionList)(CK_FUNCTION_LIST_PREFIX **);
 typedef CK_RV (*CK_C_GetSlotList)(CK_BBOOL, CK_SLOT_ID *, CK_ULONG *);
 typedef CK_RV (*CK_C_GetSlotInfo)(CK_SLOT_ID, CK_SLOT_INFO *);
 typedef CK_RV (*CK_C_GetTokenInfo)(CK_SLOT_ID, CK_TOKEN_INFO *);
+typedef CK_RV (*CK_C_OpenSession)(CK_SLOT_ID, CK_FLAGS, CK_VOID_PTR, CK_VOID_PTR, CK_SESSION_HANDLE *);
+typedef CK_RV (*CK_C_CloseSession)(CK_SESSION_HANDLE);
+typedef CK_RV (*CK_C_Login)(CK_SESSION_HANDLE, CK_USER_TYPE, CK_UTF8CHAR *, CK_ULONG);
+typedef CK_RV (*CK_C_Logout)(CK_SESSION_HANDLE);
+// Заглушка для точек входа PKCS#11, которые нам не нужны, но обязаны занимать
+// свою позицию в таблице ради правильных смещений последующих функций.
+typedef CK_RV (*CK_SkippedFn)(void);
 
 // Реальный CK_FUNCTION_LIST продолжается остальными точками входа PKCS#11.
-// Порядок функций фиксирован стандартом; нам нужен префикс до C_GetTokenInfo.
+// Порядок функций фиксирован стандартом; нам нужен префикс до C_Logout (№20).
 struct CK_FUNCTION_LIST_PREFIX {
     CK_VERSION version;
-    CK_C_Initialize C_Initialize;
-    CK_C_Finalize C_Finalize;
-    CK_C_GetInfo C_GetInfo;
-    CK_C_GetFunctionList C_GetFunctionList;
-    CK_C_GetSlotList C_GetSlotList;
-    CK_C_GetSlotInfo C_GetSlotInfo;
-    CK_C_GetTokenInfo C_GetTokenInfo;
+    CK_C_Initialize C_Initialize;             // 1
+    CK_C_Finalize C_Finalize;                 // 2
+    CK_C_GetInfo C_GetInfo;                   // 3
+    CK_C_GetFunctionList C_GetFunctionList;   // 4
+    CK_C_GetSlotList C_GetSlotList;           // 5
+    CK_C_GetSlotInfo C_GetSlotInfo;           // 6
+    CK_C_GetTokenInfo C_GetTokenInfo;         // 7
+    CK_SkippedFn C_GetMechanismList;          // 8
+    CK_SkippedFn C_GetMechanismInfo;          // 9
+    CK_SkippedFn C_InitToken;                 // 10
+    CK_SkippedFn C_InitPIN;                   // 11
+    CK_SkippedFn C_SetPIN;                    // 12
+    CK_C_OpenSession C_OpenSession;           // 13
+    CK_C_CloseSession C_CloseSession;         // 14
+    CK_SkippedFn C_CloseAllSessions;          // 15
+    CK_SkippedFn C_GetSessionInfo;            // 16
+    CK_SkippedFn C_GetOperationState;         // 17
+    CK_SkippedFn C_SetOperationState;         // 18
+    CK_C_Login C_Login;                       // 19
+    CK_C_Logout C_Logout;                     // 20
 };
 
 // Контроль естественного выравнивания на обеих архитектурах Авроры.
@@ -144,5 +180,13 @@ static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_GetSlotList) == 5 * sizeof(voi
               "CK_FUNCTION_LIST: C_GetSlotList offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_GetTokenInfo) == 7 * sizeof(void *),
               "CK_FUNCTION_LIST: C_GetTokenInfo offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_OpenSession) == 13 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_OpenSession offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_CloseSession) == 14 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_CloseSession offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_Login) == 19 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_Login offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_Logout) == 20 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_Logout offset");
 
 #endif // PKCS11_MINIMAL_H

@@ -60,87 +60,103 @@ Page {
             Repeater {
                 model: tokenWatcher.tokens
 
-                delegate: Column {
+                delegate: BackgroundItem {
                     width: content.width
-                    spacing: Theme.paddingSmall
+                    height: cardColumn.height + Theme.paddingMedium
 
-                    Row {
-                        x: Theme.horizontalPageMargin
-                        width: content.width - 2 * Theme.horizontalPageMargin
-                        spacing: Theme.paddingMedium
+                    onClicked: {
+                        tokenSession.clear()
+                        pageStack.push(Qt.resolvedUrl("TokenDetailsPage.qml"), {
+                            slotId: modelData.slotId,
+                            tokenLabel: modelData.label,
+                            serial: modelData.serial,
+                            tokenModel: modelData.model,
+                            manufacturer: modelData.manufacturer,
+                            connection: modelData.connection,
+                            firmware: modelData.firmware,
+                            hardware: modelData.hardware,
+                            flags: modelData.flags,
+                            slotName: modelData.slotName
+                        })
+                    }
 
-                        Rectangle {
-                            id: badge
-                            anchors.verticalCenter: title.verticalCenter
-                            width: badgeLabel.width + 2 * Theme.paddingMedium
-                            height: badgeLabel.height + Theme.paddingSmall
-                            radius: Theme.paddingSmall
-                            color: modelData.connection === "NFC"
-                                   ? "#3949ab"
-                                   : (modelData.connection === "USB" ? "#00796b" : "#616161")
+                    Column {
+                        id: cardColumn
+                        width: parent.width
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.paddingSmall
+
+                        Row {
+                            x: Theme.horizontalPageMargin
+                            width: cardColumn.width - 2 * Theme.horizontalPageMargin
+                            spacing: Theme.paddingMedium
+
+                            Rectangle {
+                                id: badge
+                                anchors.verticalCenter: title.verticalCenter
+                                width: badgeLabel.width + 2 * Theme.paddingMedium
+                                height: badgeLabel.height + Theme.paddingSmall
+                                radius: Theme.paddingSmall
+                                color: modelData.connection === "NFC"
+                                       ? "#3949ab"
+                                       : (modelData.connection === "USB" ? "#00796b" : "#616161")
+                                Label {
+                                    id: badgeLabel
+                                    anchors.centerIn: parent
+                                    text: modelData.connection.length > 0 ? modelData.connection : qsTr("?")
+                                    color: "white"
+                                    font.pixelSize: Theme.fontSizeExtraSmall
+                                    font.bold: true
+                                }
+                            }
+
                             Label {
-                                id: badgeLabel
-                                anchors.centerIn: parent
-                                text: modelData.connection.length > 0 ? modelData.connection : qsTr("?")
-                                color: "white"
-                                font.pixelSize: Theme.fontSizeExtraSmall
-                                font.bold: true
+                                id: title
+                                width: parent.width - badge.width - Theme.paddingMedium
+                                text: modelData.label.length > 0 ? modelData.label : qsTr("Rutoken")
+                                color: Theme.highlightColor
+                                font.pixelSize: Theme.fontSizeLarge
+                                truncationMode: TruncationMode.Fade
                             }
                         }
 
                         Label {
-                            id: title
-                            width: parent.width - badge.width - Theme.paddingMedium
-                            text: modelData.label.length > 0 ? modelData.label : qsTr("Rutoken")
-                            color: Theme.highlightColor
-                            font.pixelSize: Theme.fontSizeLarge
-                            truncationMode: TruncationMode.Fade
+                            x: Theme.horizontalPageMargin
+                            width: cardColumn.width - 2 * Theme.horizontalPageMargin
+                            text: qsTr("Serial number: %1").arg(modelData.serial.length > 0 ? modelData.serial : "—")
+                            color: Theme.primaryColor
+                            font.pixelSize: Theme.fontSizeMedium
+                            textFormat: Text.PlainText
                         }
-                    }
 
-                    Label {
-                        x: Theme.horizontalPageMargin
-                        width: content.width - 2 * Theme.horizontalPageMargin
-                        text: qsTr("Serial number: %1").arg(modelData.serial.length > 0 ? modelData.serial : "—")
-                        color: Theme.primaryColor
-                        font.pixelSize: Theme.fontSizeMedium
-                        textFormat: Text.PlainText
-                    }
-
-                    Label {
-                        x: Theme.horizontalPageMargin
-                        width: content.width - 2 * Theme.horizontalPageMargin
-                        wrapMode: Text.Wrap
-                        textFormat: Text.PlainText
-                        text: {
-                            var parts = []
-                            if (modelData.model.length > 0)
-                                parts.push(modelData.model)
-                            if (modelData.firmware.length > 0)
-                                parts.push(qsTr("firmware %1").arg(modelData.firmware))
-                            if (modelData.flags.length > 0)
-                                parts.push(modelData.flags)
-                            return parts.join("  •  ")
+                        Label {
+                            x: Theme.horizontalPageMargin
+                            width: cardColumn.width - 2 * Theme.horizontalPageMargin
+                            wrapMode: Text.Wrap
+                            textFormat: Text.PlainText
+                            text: {
+                                var parts = []
+                                if (modelData.model.length > 0)
+                                    parts.push(modelData.model)
+                                if (modelData.firmware.length > 0)
+                                    parts.push(qsTr("firmware %1").arg(modelData.firmware))
+                                if (modelData.flags.length > 0)
+                                    parts.push(modelData.flags)
+                                return parts.join("  •  ")
+                            }
+                            color: Theme.secondaryColor
+                            font.pixelSize: Theme.fontSizeExtraSmall
                         }
-                        color: Theme.secondaryColor
-                        font.pixelSize: Theme.fontSizeExtraSmall
-                    }
 
-                    Label {
-                        x: Theme.horizontalPageMargin
-                        width: content.width - 2 * Theme.horizontalPageMargin
-                        wrapMode: Text.Wrap
-                        textFormat: Text.PlainText
-                        text: qsTr("reader: %1").arg(modelData.slotName.length > 0 ? modelData.slotName : "—")
-                        color: Theme.secondaryColor
-                        font.pixelSize: Theme.fontSizeTiny
-                    }
-
-                    Separator {
-                        width: content.width - 2 * Theme.horizontalPageMargin
-                        x: Theme.horizontalPageMargin
-                        color: Theme.secondaryColor
-                        horizontalAlignment: Qt.AlignHCenter
+                        Label {
+                            x: Theme.horizontalPageMargin
+                            width: cardColumn.width - 2 * Theme.horizontalPageMargin
+                            wrapMode: Text.Wrap
+                            textFormat: Text.PlainText
+                            text: qsTr("reader: %1").arg(modelData.slotName.length > 0 ? modelData.slotName : "—")
+                            color: Theme.secondaryColor
+                            font.pixelSize: Theme.fontSizeTiny
+                        }
                     }
                 }
             }

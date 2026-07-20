@@ -2,6 +2,7 @@
 #include <QtQuick>
 
 #include "diagnostics.h"
+#include "tokensession.h"
 #include "tokenwatcher.h"
 
 int main(int argc, char *argv[])
@@ -11,10 +12,12 @@ int main(int argc, char *argv[])
     application->setApplicationName(QStringLiteral("rutokentestapp"));
 
     TokenWatcher tokenWatcher;
+    TokenSession tokenSession;
     Diagnostics diagnostics;
 
     QScopedPointer<QQuickView> view(Aurora::Application::createView());
     view->rootContext()->setContextProperty(QStringLiteral("tokenWatcher"), &tokenWatcher);
+    view->rootContext()->setContextProperty(QStringLiteral("tokenSession"), &tokenSession);
     view->rootContext()->setContextProperty(QStringLiteral("diag"), &diagnostics);
     view->setSource(Aurora::Application::pathTo(QStringLiteral("qml/rutokentestapp.qml")));
     view->show();

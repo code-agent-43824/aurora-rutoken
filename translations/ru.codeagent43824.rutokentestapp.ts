@@ -104,6 +104,65 @@
     </message>
 </context>
 <context>
+    <name>TokenDetailsPage</name>
+    <message>
+        <source>Rutoken</source>
+        <translation>Rutoken</translation>
+    </message>
+    <message>
+        <source>token</source>
+        <translation>token</translation>
+    </message>
+    <message>
+        <source>Serial number</source>
+        <translation>Serial number</translation>
+    </message>
+    <message>
+        <source>Model</source>
+        <translation>Model</translation>
+    </message>
+    <message>
+        <source>Manufacturer</source>
+        <translation>Manufacturer</translation>
+    </message>
+    <message>
+        <source>Firmware / hardware</source>
+        <translation>Firmware / hardware</translation>
+    </message>
+    <message>
+        <source>Reader</source>
+        <translation>Reader</translation>
+    </message>
+    <message>
+        <source>Flags</source>
+        <translation>Flags</translation>
+    </message>
+    <message>
+        <source>User PIN login</source>
+        <translation>User PIN login</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>User PIN</translation>
+    </message>
+    <message>
+        <source>Enter user PIN</source>
+        <translation>Enter user PIN</translation>
+    </message>
+    <message>
+        <source>Checking…</source>
+        <translation>Checking…</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Log in</translation>
+    </message>
+    <message>
+        <source>The PIN is sent only to the token and is not stored.</source>
+        <translation>The PIN is sent only to the token and is not stored.</translation>
+    </message>
+</context>
+<context>
     <name>DefaultCoverPage</name>
     <message>
         <source>Rutoken</source>

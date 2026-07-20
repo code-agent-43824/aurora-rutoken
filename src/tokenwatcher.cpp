@@ -1,8 +1,10 @@
 #include "tokenwatcher.h"
+#include "pkcs11_guard.h"
 #include "pkcs11_minimal.h"
 #include "pkcs11_tokens.h"
 
 #include <QtConcurrent/QtConcurrent>
+#include <QtCore/QMutex>
 #include <QtCore/QStringList>
 #include <QtCore/QTimer>
 
@@ -87,6 +89,9 @@ void TokenWatcher::doPoll()
     QtConcurrent::run([this, getFunctionList]() {
         QVariantList cards;
         QString error;
+
+        // Изолированный цикл init…finalize не должен пересекаться с логином.
+        QMutexLocker locker(&pkcs11::globalMutex());
 
         typedef CK_RV (*GetListFn)(CK_FUNCTION_LIST_PREFIX **);
         GetListFn getList = reinterpret_cast<GetListFn>(getFunctionList);

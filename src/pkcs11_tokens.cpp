@@ -30,10 +30,15 @@ namespace pkcs11 {
 
 QString connectionType(const QString &slotName)
 {
+    // Реальные имена PC/SC-ридеров на ОС Аврора (подтверждено на устройстве
+    // владельца 2026-07-20):
+    //   NFC: "ifd-nfcd-handler 00 00"   → содержит "nfc"
+    //   USB: "Aktiv Rutoken ECP 00 00"  → содержит "aktiv"/"rutoken"
+    // Порядок важен: NFC-ридер несёт признак "nfc", проверяем его первым.
     const QString low = slotName.toLower();
     if (low.contains(QStringLiteral("nfc")) || low.contains(QStringLiteral("contactless")))
         return QStringLiteral("NFC");
-    if (low.contains(QStringLiteral("rutoken")) || low.contains(QStringLiteral("aktiv"))
+    if (low.contains(QStringLiteral("aktiv")) || low.contains(QStringLiteral("rutoken"))
             || low.contains(QStringLiteral("ccid")) || low.contains(QStringLiteral("usb")))
         return QStringLiteral("USB");
     return QString();
