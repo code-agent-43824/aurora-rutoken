@@ -186,49 +186,64 @@ void TokenSession::onFinished(int outcome, const QString &message, const QVarian
     emit changed();
 }
 
-QString TokenSession::exportCertificate(const QString &derB64, const QString &suggestedName)
+QString TokenSession::defaultExportDir()
 {
-    const QByteArray der = QByteArray::fromBase64(derB64.toLatin1());
-    if (der.isEmpty())
-        return QStringLiteral("Экспорт: пустое тело сертификата");
-
-    // Безопасное имя файла.
-    QString safe;
-    for (int i = 0; i < suggestedName.size(); ++i) {
-        const QChar c = suggestedName.at(i);
-        if (c.isLetterOrNumber() || c == QLatin1Char('.') || c == QLatin1Char('_')
-                || c == QLatin1Char('-'))
-            safe.append(c);
-    }
-    if (safe.isEmpty())
-        safe = QStringLiteral("certificate");
-
     QString dir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
     if (dir.isEmpty())
         dir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     if (dir.isEmpty())
         dir = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    return dir;
+}
+
+QString TokenSession::exportCertificate(const QString &derB64, const QString &format,
+                                        const QString &dirPath, const QString &baseName)
+{
+    const QByteArray der = QByteArray::fromBase64(derB64.toLatin1());
+    if (der.isEmpty())
+        return QStringLiteral("Экспорт: пустое тело сертификата");
+
+    const bool pemFormat = format.compare(QStringLiteral("pem"), Qt::CaseInsensitive) == 0;
+    const QString ext = pemFormat ? QStringLiteral(".pem") : QStringLiteral(".der");
+
+    // Безопасное имя файла (без пути); убираем уже присутствующее расширение.
+    QString safe;
+    for (int i = 0; i < baseName.size(); ++i) {
+        const QChar c = baseName.at(i);
+        if (c.isLetterOrNumber() || c == QLatin1Char('.') || c == QLatin1Char('_')
+                || c == QLatin1Char('-') || c == QLatin1Char(' '))
+            safe.append(c);
+    }
+    safe = safe.trimmed();
+    if (safe.endsWith(QStringLiteral(".pem"), Qt::CaseInsensitive)
+            || safe.endsWith(QStringLiteral(".der"), Qt::CaseInsensitive))
+        safe.chop(4);
+    if (safe.isEmpty())
+        safe = QStringLiteral("certificate");
+
+    QString dir = dirPath.trimmed();
+    if (dir.isEmpty())
+        dir = defaultExportDir();
     QDir().mkpath(dir);
 
-    const QString derPath = dir + QLatin1Char('/') + safe + QStringLiteral(".der");
-    const QString pemPath = dir + QLatin1Char('/') + safe + QStringLiteral(".pem");
+    const QString path = dir + QLatin1Char('/') + safe + ext;
 
-    // PEM формируем вручную (не через QSslCertificate) — работает и для ГОСТ.
-    QByteArray pem = "-----BEGIN CERTIFICATE-----\n";
-    const QByteArray b64 = der.toBase64();
-    for (int i = 0; i < b64.size(); i += 64)
-        pem += b64.mid(i, 64) + '\n';
-    pem += "-----END CERTIFICATE-----\n";
+    QByteArray payload;
+    if (pemFormat) {
+        // PEM формируем вручную (не через QSslCertificate) — работает и для ГОСТ.
+        payload = "-----BEGIN CERTIFICATE-----\n";
+        const QByteArray b64 = der.toBase64();
+        for (int i = 0; i < b64.size(); i += 64)
+            payload += b64.mid(i, 64) + '\n';
+        payload += "-----END CERTIFICATE-----\n";
+    } else {
+        payload = der;
+    }
 
-    QFile derFile(derPath);
-    if (!derFile.open(QIODevice::WriteOnly) || derFile.write(der) != der.size())
-        return QStringLiteral("Не удалось записать ") + derPath;
-    derFile.close();
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly) || file.write(payload) != payload.size())
+        return QStringLiteral("Не удалось записать ") + path;
+    file.close();
 
-    QFile pemFile(pemPath);
-    if (!pemFile.open(QIODevice::WriteOnly) || pemFile.write(pem) != pem.size())
-        return QStringLiteral("Не удалось записать ") + pemPath;
-    pemFile.close();
-
-    return QStringLiteral("Сохранено: %1 и %2").arg(derPath, pemPath);
+    return QStringLiteral("Сохранено: ") + path;
 }

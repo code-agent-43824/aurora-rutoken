@@ -33,10 +33,13 @@ public:
     Q_INVOKABLE void preview(qulonglong slotId);
     Q_INVOKABLE void clear();
 
-    // Экспорт сертификата (тело из derB64) в каталог загрузок в форматах DER и
-    // PEM (без закрытого ключа). Возвращает человекочитаемое сообщение (пути
-    // или ошибку). Выполняется синхронно — файлы небольшие.
-    Q_INVOKABLE QString exportCertificate(const QString &derB64, const QString &suggestedName);
+    // Экспорт сертификата (тело из derB64, без закрытого ключа) в выбранный
+    // пользователем формат ("pem"/"der"), каталог и имя файла. Возвращает
+    // человекочитаемое сообщение (путь или ошибку). Синхронно — файл небольшой.
+    Q_INVOKABLE QString exportCertificate(const QString &derB64, const QString &format,
+                                          const QString &dirPath, const QString &baseName);
+    // Каталог по умолчанию для плейсхолдера пути (загрузки → документы → дом).
+    Q_INVOKABLE QString defaultExportDir();
 
 signals:
     void changed();

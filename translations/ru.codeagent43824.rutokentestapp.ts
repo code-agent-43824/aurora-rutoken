@@ -209,12 +209,110 @@
         <translation>keys are shown after PIN login</translation>
     </message>
     <message>
-        <source>Export (DER + PEM)</source>
-        <translation>Export (DER + PEM)</translation>
-    </message>
-    <message>
         <source>certificate without a key (standalone)</source>
         <translation>certificate without a key (standalone)</translation>
+    </message>
+</context>
+<context>
+    <name>CertificatePage</name>
+    <message>
+        <source>Certificate</source>
+        <translation>Certificate</translation>
+    </message>
+    <message>
+        <source>Certificate — via PKCS#11</source>
+        <translation>Certificate — via PKCS#11</translation>
+    </message>
+    <message>
+        <source>Common Name</source>
+        <translation>Common Name</translation>
+    </message>
+    <message>
+        <source>Issuer</source>
+        <translation>Issuer</translation>
+    </message>
+    <message>
+        <source>Expires</source>
+        <translation>Expires</translation>
+    </message>
+    <message>
+        <source>CKA_LABEL</source>
+        <translation>CKA_LABEL</translation>
+    </message>
+    <message>
+        <source>CKA_ID</source>
+        <translation>CKA_ID</translation>
+    </message>
+    <message>
+        <source>Key on token</source>
+        <translation>Key on token</translation>
+    </message>
+    <message>
+        <source>unknown until PIN login</source>
+        <translation>unknown until PIN login</translation>
+    </message>
+    <message>
+        <source>yes</source>
+        <translation>yes</translation>
+    </message>
+    <message>
+        <source>no (standalone)</source>
+        <translation>no (standalone)</translation>
+    </message>
+    <message>
+        <source>The X.509 body could not be parsed; showing token attributes.</source>
+        <translation>The X.509 body could not be parsed; showing token attributes.</translation>
+    </message>
+    <message>
+        <source>Pull down to export the certificate (without the private key).</source>
+        <translation>Pull down to export the certificate (without the private key).</translation>
+    </message>
+    <message>
+        <source>Export certificate</source>
+        <translation>Export certificate</translation>
+    </message>
+</context>
+<context>
+    <name>ExportCertificatePage</name>
+    <message>
+        <source>Export certificate</source>
+        <translation>Export certificate</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>Format</translation>
+    </message>
+    <message>
+        <source>PEM (text)</source>
+        <translation>PEM (text)</translation>
+    </message>
+    <message>
+        <source>DER (binary)</source>
+        <translation>DER (binary)</translation>
+    </message>
+    <message>
+        <source>File name</source>
+        <translation>File name</translation>
+    </message>
+    <message>
+        <source>certificate</source>
+        <translation>certificate</translation>
+    </message>
+    <message>
+        <source>Folder</source>
+        <translation>Folder</translation>
+    </message>
+    <message>
+        <source>Save folder</source>
+        <translation>Save folder</translation>
+    </message>
+    <message>
+        <source>The file extension (.pem/.der) is added automatically. The private key is never exported.</source>
+        <translation>The file extension (.pem/.der) is added automatically. The private key is never exported.</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Save</translation>
     </message>
 </context>
 <context>

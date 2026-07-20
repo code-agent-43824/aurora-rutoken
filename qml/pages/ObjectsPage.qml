@@ -8,7 +8,6 @@ Page {
 
     property string tokenLabel: ""
     property string connection: ""
-    property string exportMessage: ""
 
     function certTitle(o) {
         if (o.parsed && o.commonName && o.commonName.length > 0)
@@ -35,17 +34,6 @@ Page {
             Label {
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
-                visible: page.exportMessage.length > 0
-                wrapMode: Text.Wrap
-                textFormat: Text.PlainText
-                text: page.exportMessage
-                color: Theme.highlightColor
-                font.pixelSize: Theme.fontSizeExtraSmall
-            }
-
-            Label {
-                x: Theme.horizontalPageMargin
-                width: parent.width - 2 * Theme.horizontalPageMargin
                 visible: tokenSession.objects.length === 0
                 wrapMode: Text.Wrap
                 text: qsTr("No certificates or keys found on the token")
@@ -56,161 +44,168 @@ Page {
             Repeater {
                 model: tokenSession.objects
 
-                delegate: Column {
+                delegate: BackgroundItem {
                     width: content.width
-                    spacing: Theme.paddingSmall
+                    height: card.height + Theme.paddingMedium
+                    // Внутрь можно войти только у сертификата.
+                    enabled: modelData.kind === "certificate"
+                    onClicked: pageStack.push(Qt.resolvedUrl("CertificatePage.qml"), {
+                        commonName: modelData.commonName ? modelData.commonName : "",
+                        issuer: modelData.issuer ? modelData.issuer : "",
+                        expiry: modelData.expiry ? modelData.expiry : "",
+                        parsed: modelData.parsed ? modelData.parsed : false,
+                        idHex: modelData.idHex ? modelData.idHex : "",
+                        label: modelData.label ? modelData.label : "",
+                        source: modelData.source ? modelData.source : "",
+                        derB64: modelData.derB64 ? modelData.derB64 : "",
+                        hasKey: modelData.hasKey ? modelData.hasKey : false,
+                        keysKnown: modelData.keysKnown ? modelData.keysKnown : false
+                    })
 
-                    // Заголовок верхнего уровня: сертификат (Common Name) или ключ-сирота.
-                    Row {
-                        x: Theme.horizontalPageMargin
-                        width: content.width - 2 * Theme.horizontalPageMargin
-                        spacing: Theme.paddingMedium
+                    Column {
+                        id: card
+                        width: parent.width
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.paddingSmall
 
-                        Rectangle {
-                            id: kindBadge
-                            anchors.verticalCenter: kindTitle.verticalCenter
-                            width: kindBadgeLabel.width + 2 * Theme.paddingMedium
-                            height: kindBadgeLabel.height + Theme.paddingSmall
-                            radius: Theme.paddingSmall
-                            color: modelData.kind === "certificate" ? "#00695c" : "#5d4037"
+                        Row {
+                            x: Theme.horizontalPageMargin
+                            width: card.width - 2 * Theme.horizontalPageMargin
+                            spacing: Theme.paddingMedium
+
+                            Rectangle {
+                                id: kindBadge
+                                anchors.verticalCenter: kindTitle.verticalCenter
+                                width: kindBadgeLabel.width + 2 * Theme.paddingMedium
+                                height: kindBadgeLabel.height + Theme.paddingSmall
+                                radius: Theme.paddingSmall
+                                color: modelData.kind === "certificate" ? "#00695c" : "#5d4037"
+                                Label {
+                                    id: kindBadgeLabel
+                                    anchors.centerIn: parent
+                                    text: modelData.kind === "certificate" ? qsTr("CERT") : qsTr("KEY")
+                                    color: "white"
+                                    font.pixelSize: Theme.fontSizeExtraSmall
+                                    font.bold: true
+                                }
+                            }
+
                             Label {
-                                id: kindBadgeLabel
-                                anchors.centerIn: parent
-                                text: modelData.kind === "certificate" ? qsTr("CERT") : qsTr("KEY")
-                                color: "white"
-                                font.pixelSize: Theme.fontSizeExtraSmall
-                                font.bold: true
+                                id: kindTitle
+                                width: parent.width - kindBadge.width - Theme.paddingMedium
+                                text: modelData.kind === "certificate"
+                                      ? page.certTitle(modelData)
+                                      : (modelData.label.length > 0 ? modelData.label : qsTr("(no label)"))
+                                color: Theme.highlightColor
+                                font.pixelSize: Theme.fontSizeMedium
+                                truncationMode: TruncationMode.Fade
                             }
                         }
 
                         Label {
-                            id: kindTitle
-                            width: parent.width - kindBadge.width - Theme.paddingMedium
-                            text: modelData.kind === "certificate"
-                                  ? page.certTitle(modelData)
-                                  : (modelData.label.length > 0 ? modelData.label : qsTr("(no label)"))
-                            color: Theme.highlightColor
-                            font.pixelSize: Theme.fontSizeMedium
-                            truncationMode: TruncationMode.Fade
-                        }
-                    }
-
-                    // Сертификат: издатель и срок (из тела X.509).
-                    Label {
-                        x: Theme.horizontalPageMargin
-                        width: content.width - 2 * Theme.horizontalPageMargin
-                        visible: modelData.kind === "certificate"
-                        textFormat: Text.PlainText
-                        wrapMode: Text.Wrap
-                        text: {
-                            var parts = []
-                            if (modelData.kind === "certificate") {
-                                if (modelData.parsed) {
-                                    if (modelData.issuer && modelData.issuer.length > 0)
-                                        parts.push(qsTr("issuer: %1").arg(modelData.issuer))
-                                    if (modelData.expiry && modelData.expiry.length > 0)
-                                        parts.push(qsTr("expires: %1").arg(modelData.expiry))
-                                } else if (modelData.idHex && modelData.idHex.length > 0) {
-                                    parts.push(qsTr("ID: %1").arg(modelData.idHex))
+                            x: Theme.horizontalPageMargin
+                            width: card.width - 2 * Theme.horizontalPageMargin
+                            visible: modelData.kind === "certificate"
+                            textFormat: Text.PlainText
+                            wrapMode: Text.Wrap
+                            text: {
+                                var parts = []
+                                if (modelData.kind === "certificate") {
+                                    if (modelData.parsed) {
+                                        if (modelData.issuer && modelData.issuer.length > 0)
+                                            parts.push(qsTr("issuer: %1").arg(modelData.issuer))
+                                        if (modelData.expiry && modelData.expiry.length > 0)
+                                            parts.push(qsTr("expires: %1").arg(modelData.expiry))
+                                    } else if (modelData.idHex && modelData.idHex.length > 0) {
+                                        parts.push(qsTr("ID: %1").arg(modelData.idHex))
+                                    }
+                                    parts.push(modelData.source)
                                 }
-                                parts.push(modelData.source)
+                                return parts.join("  •  ")
                             }
-                            return parts.join("  •  ")
+                            color: Theme.secondaryColor
+                            font.pixelSize: Theme.fontSizeExtraSmall
                         }
-                        color: Theme.secondaryColor
-                        font.pixelSize: Theme.fontSizeExtraSmall
-                    }
 
-                    // Ключ-сирота: ID, тип, класс, источник.
-                    Label {
-                        x: Theme.horizontalPageMargin
-                        width: content.width - 2 * Theme.horizontalPageMargin
-                        visible: modelData.kind === "key"
-                        textFormat: Text.PlainText
-                        wrapMode: Text.Wrap
-                        text: {
-                            var parts = []
-                            if (modelData.kind === "key") {
-                                parts.push(qsTr("ID: %1").arg(modelData.idHex && modelData.idHex.length > 0 ? modelData.idHex : "—"))
-                                if (modelData.keyType && modelData.keyType.length > 0)
-                                    parts.push(modelData.keyType)
-                                if (modelData.keyClass && modelData.keyClass.length > 0)
-                                    parts.push(modelData.keyClass)
-                                parts.push(modelData.source)
-                            }
-                            return parts.join("  •  ")
-                        }
-                        color: Theme.secondaryColor
-                        font.pixelSize: Theme.fontSizeExtraSmall
-                    }
-
-                    // До входа: про закрытые ключи ничего не известно.
-                    Label {
-                        x: Theme.horizontalPageMargin
-                        width: content.width - 2 * Theme.horizontalPageMargin
-                        visible: modelData.kind === "certificate" && !modelData.keysKnown
-                        text: qsTr("keys are shown after PIN login")
-                        color: Theme.secondaryColor
-                        font.pixelSize: Theme.fontSizeExtraSmall
-                        font.italic: true
-                    }
-
-                    // После входа: сертификат без ключа.
-                    Label {
-                        x: Theme.horizontalPageMargin
-                        width: content.width - 2 * Theme.horizontalPageMargin
-                        visible: modelData.kind === "certificate" && modelData.keysKnown && !modelData.hasKey
-                        text: qsTr("certificate without a key (standalone)")
-                        color: Theme.secondaryColor
-                        font.pixelSize: Theme.fontSizeExtraSmall
-                        font.italic: true
-                    }
-
-                    // После входа: вложенные ключи сертификата (второй уровень).
-                    Repeater {
-                        model: modelData.kind === "certificate" ? modelData.keys : []
-
-                        delegate: Row {
-                            x: 2 * Theme.horizontalPageMargin
-                            width: content.width - 3 * Theme.horizontalPageMargin
-                            spacing: Theme.paddingSmall
-
-                            Label {
-                                text: "↳"
-                                color: Theme.secondaryColor
-                                font.pixelSize: Theme.fontSizeSmall
-                            }
-                            Label {
-                                width: parent.width - Theme.paddingLarge
-                                textFormat: Text.PlainText
-                                text: {
-                                    var p = [modelData.keyClass]
+                        Label {
+                            x: Theme.horizontalPageMargin
+                            width: card.width - 2 * Theme.horizontalPageMargin
+                            visible: modelData.kind === "key"
+                            textFormat: Text.PlainText
+                            wrapMode: Text.Wrap
+                            text: {
+                                var parts = []
+                                if (modelData.kind === "key") {
+                                    parts.push(qsTr("ID: %1").arg(modelData.idHex && modelData.idHex.length > 0 ? modelData.idHex : "—"))
                                     if (modelData.keyType && modelData.keyType.length > 0)
-                                        p.push(modelData.keyType)
-                                    if (modelData.label && modelData.label.length > 0)
-                                        p.push(modelData.label)
-                                    return p.join("  •  ")
+                                        parts.push(modelData.keyType)
+                                    if (modelData.keyClass && modelData.keyClass.length > 0)
+                                        parts.push(modelData.keyClass)
+                                    parts.push(modelData.source)
                                 }
-                                color: Theme.primaryColor
-                                font.pixelSize: Theme.fontSizeExtraSmall
-                                wrapMode: Text.Wrap
+                                return parts.join("  •  ")
+                            }
+                            color: Theme.secondaryColor
+                            font.pixelSize: Theme.fontSizeExtraSmall
+                        }
+
+                        Label {
+                            x: Theme.horizontalPageMargin
+                            width: card.width - 2 * Theme.horizontalPageMargin
+                            visible: modelData.kind === "certificate" && !modelData.keysKnown
+                            text: qsTr("keys are shown after PIN login")
+                            color: Theme.secondaryColor
+                            font.pixelSize: Theme.fontSizeExtraSmall
+                            font.italic: true
+                        }
+
+                        Label {
+                            x: Theme.horizontalPageMargin
+                            width: card.width - 2 * Theme.horizontalPageMargin
+                            visible: modelData.kind === "certificate" && modelData.keysKnown && !modelData.hasKey
+                            text: qsTr("certificate without a key (standalone)")
+                            color: Theme.secondaryColor
+                            font.pixelSize: Theme.fontSizeExtraSmall
+                            font.italic: true
+                        }
+
+                        Repeater {
+                            model: modelData.kind === "certificate" ? modelData.keys : []
+
+                            delegate: Row {
+                                x: 2 * Theme.horizontalPageMargin
+                                width: content.width - 3 * Theme.horizontalPageMargin
+                                spacing: Theme.paddingSmall
+
+                                Label {
+                                    text: "↳"
+                                    color: Theme.secondaryColor
+                                    font.pixelSize: Theme.fontSizeSmall
+                                }
+                                Label {
+                                    width: parent.width - Theme.paddingLarge
+                                    textFormat: Text.PlainText
+                                    text: {
+                                        var p = [modelData.keyClass]
+                                        if (modelData.keyType && modelData.keyType.length > 0)
+                                            p.push(modelData.keyType)
+                                        if (modelData.label && modelData.label.length > 0)
+                                            p.push(modelData.label)
+                                        return p.join("  •  ")
+                                    }
+                                    color: Theme.primaryColor
+                                    font.pixelSize: Theme.fontSizeExtraSmall
+                                    wrapMode: Text.Wrap
+                                }
                             }
                         }
-                    }
 
-                    Button {
-                        x: Theme.horizontalPageMargin
-                        visible: modelData.kind === "certificate"
-                        text: qsTr("Export (DER + PEM)")
-                        onClicked: page.exportMessage =
-                            tokenSession.exportCertificate(modelData.derB64, page.certTitle(modelData))
-                    }
-
-                    Separator {
-                        width: content.width - 2 * Theme.horizontalPageMargin
-                        x: Theme.horizontalPageMargin
-                        color: Theme.secondaryColor
-                        horizontalAlignment: Qt.AlignHCenter
+                        Separator {
+                            width: card.width - 2 * Theme.horizontalPageMargin
+                            x: Theme.horizontalPageMargin
+                            color: Theme.secondaryColor
+                            horizontalAlignment: Qt.AlignHCenter
+                        }
                     }
                 }
             }

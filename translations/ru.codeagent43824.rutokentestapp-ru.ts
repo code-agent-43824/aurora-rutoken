@@ -209,12 +209,110 @@
         <translation>ключи показываются после входа по PIN</translation>
     </message>
     <message>
-        <source>Export (DER + PEM)</source>
-        <translation>Экспорт (DER + PEM)</translation>
-    </message>
-    <message>
         <source>certificate without a key (standalone)</source>
         <translation>сертификат без ключа (сам по себе)</translation>
+    </message>
+</context>
+<context>
+    <name>CertificatePage</name>
+    <message>
+        <source>Certificate</source>
+        <translation>Сертификат</translation>
+    </message>
+    <message>
+        <source>Certificate — via PKCS#11</source>
+        <translation>Сертификат — через PKCS#11</translation>
+    </message>
+    <message>
+        <source>Common Name</source>
+        <translation>Common Name</translation>
+    </message>
+    <message>
+        <source>Issuer</source>
+        <translation>Издатель</translation>
+    </message>
+    <message>
+        <source>Expires</source>
+        <translation>Истекает</translation>
+    </message>
+    <message>
+        <source>CKA_LABEL</source>
+        <translation>CKA_LABEL</translation>
+    </message>
+    <message>
+        <source>CKA_ID</source>
+        <translation>CKA_ID</translation>
+    </message>
+    <message>
+        <source>Key on token</source>
+        <translation>Ключ на токене</translation>
+    </message>
+    <message>
+        <source>unknown until PIN login</source>
+        <translation>неизвестно до входа по PIN</translation>
+    </message>
+    <message>
+        <source>yes</source>
+        <translation>есть</translation>
+    </message>
+    <message>
+        <source>no (standalone)</source>
+        <translation>нет (сам по себе)</translation>
+    </message>
+    <message>
+        <source>The X.509 body could not be parsed; showing token attributes.</source>
+        <translation>Тело X.509 не разобрано; показаны атрибуты токена.</translation>
+    </message>
+    <message>
+        <source>Pull down to export the certificate (without the private key).</source>
+        <translation>Потяните вниз, чтобы экспортировать сертификат (без закрытого ключа).</translation>
+    </message>
+    <message>
+        <source>Export certificate</source>
+        <translation>Экспорт сертификата</translation>
+    </message>
+</context>
+<context>
+    <name>ExportCertificatePage</name>
+    <message>
+        <source>Export certificate</source>
+        <translation>Экспорт сертификата</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>Формат</translation>
+    </message>
+    <message>
+        <source>PEM (text)</source>
+        <translation>PEM (текст)</translation>
+    </message>
+    <message>
+        <source>DER (binary)</source>
+        <translation>DER (двоичный)</translation>
+    </message>
+    <message>
+        <source>File name</source>
+        <translation>Имя файла</translation>
+    </message>
+    <message>
+        <source>certificate</source>
+        <translation>сертификат</translation>
+    </message>
+    <message>
+        <source>Folder</source>
+        <translation>Папка</translation>
+    </message>
+    <message>
+        <source>Save folder</source>
+        <translation>Папка сохранения</translation>
+    </message>
+    <message>
+        <source>The file extension (.pem/.der) is added automatically. The private key is never exported.</source>
+        <translation>Расширение (.pem/.der) добавляется автоматически. Закрытый ключ не экспортируется.</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Сохранить</translation>
     </message>
 </context>
 <context>

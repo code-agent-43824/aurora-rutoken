@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.4.0
-Release:    1
+Release:    2
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -42,6 +42,10 @@ parsed X.509 body, keys nested by CKA_ID).
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Mon Jul 20 2026 Claude <noreply@anthropic.com> - 0.4.0-2
+- Certificate detail screen (tap a certificate); export moved to its pull-down
+  menu with a chosen format (PEM or DER), file name and folder.
+
 * Mon Jul 20 2026 Claude <noreply@anthropic.com> - 0.4.0-1
 - Export a certificate to DER and PEM files (no private key); UserDirs
   permission. Restore per-arch Actions artifacts as a second download channel.
