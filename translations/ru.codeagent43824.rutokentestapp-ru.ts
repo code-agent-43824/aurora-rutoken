@@ -134,6 +134,10 @@
 <context>
     <name>TokenDetailsPage</name>
     <message>
+        <source>Change token label</source>
+        <translation>Сменить метку токена</translation>
+    </message>
+    <message>
         <source>Unblock user PIN</source>
         <translation>Разблокировать PIN пользователя</translation>
     </message>
@@ -514,6 +518,45 @@
     <message>
         <source>Continue</source>
         <translation>Продолжить</translation>
+    </message>
+</context>
+<context>
+    <name>TokenLabelPage</name>
+    <message>
+        <source>Change token label</source>
+        <translation>Сменить метку токена</translation>
+    </message>
+    <message>
+        <source>Token label</source>
+        <translation>Метка токена</translation>
+    </message>
+    <message>
+        <source>New token label</source>
+        <translation>Новая метка токена</translation>
+    </message>
+    <message>
+        <source>Administrator (SO) PIN</source>
+        <translation>PIN администратора (SO)</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Enter administrator (SO) PIN</source>
+        <translation>Ввести PIN администратора (SO)</translation>
+    </message>
+    <message>
+        <source>Applying…</source>
+        <translation>Применение…</translation>
+    </message>
+    <message>
+        <source>Change label</source>
+        <translation>Сменить метку</translation>
+    </message>
+    <message>
+        <source>Changing the label requires the administrator (SO) PIN and does not erase the token.</source>
+        <translation>Смена метки требует PIN администратора (SO) и не стирает токен.</translation>
     </message>
 </context>
 <context>

@@ -26,24 +26,55 @@ QString rvHex(CK_RV rv)
     return QStringLiteral("0x%1").arg(static_cast<qulonglong>(rv), 8, 16, QLatin1Char('0'));
 }
 
-// Человекочитаемое состояние PIN пользователя по флагам токена после ошибки.
+// Человекочитаемое состояние PIN пользователя по флагам токена (fallback, если
+// vendor-функция недоступна).
 QString pinAttemptsHint(CK_FLAGS flags)
 {
-    QStringList hints;
     if (flags & CKF_USER_PIN_LOCKED)
-        hints << QStringLiteral("PIN заблокирован");
-    else if (flags & CKF_USER_PIN_FINAL_TRY)
-        hints << QStringLiteral("последняя попытка!");
-    else if (flags & CKF_USER_PIN_COUNT_LOW)
-        hints << QStringLiteral("осталось мало попыток");
-    return hints.join(QString());
+        return QStringLiteral("PIN заблокирован");
+    if (flags & CKF_USER_PIN_FINAL_TRY)
+        return QStringLiteral("последняя попытка");
+    if (flags & CKF_USER_PIN_COUNT_LOW)
+        return QStringLiteral("осталось мало попыток");
+    return QString();
 }
 
-// Сообщение об ошибке C_Login с индикатором оставшихся попыток (по флагам токена).
-QString loginErrorMessage(CK_FUNCTION_LIST_PREFIX *fns, CK_SLOT_ID slotId, CK_RV rv)
+// Vendor-функции Рутокена (dlsym-указатели передаём как QFunctionPointer).
+typedef CK_RV (*ExGetTokenInfoExtendedFn)(CK_SLOT_ID, void *);
+typedef CK_RV (*ExSetTokenNameFn)(CK_SESSION_HANDLE, CK_UTF8CHAR *, CK_ULONG);
+
+// Честный остаток попыток PIN пользователя через C_EX_GetTokenInfoExtended.
+// Размер CK_TOKEN_INFO_EXTENDED различается по архитектурам, поэтому подбираем
+// принятый размер probe'ом (верный размер → CKR_OK), а поля читаем по
+// фиксированным смещениям CK_ULONG: индекс 12 — max, 13 — осталось.
+bool exUserPinRetries(ExGetTokenInfoExtendedFn fn, CK_SLOT_ID slot, CK_ULONG &left, CK_ULONG &maxCount)
+{
+    if (!fn)
+        return false;
+    unsigned char buf[320];
+    for (CK_ULONG sz = 14 * sizeof(CK_ULONG); sz <= 256; sz += sizeof(CK_ULONG)) {
+        std::memset(buf, 0, sizeof(buf));
+        *reinterpret_cast<CK_ULONG *>(buf) = sz;
+        if (fn(slot, buf) == CKR_OK) {
+            maxCount = *reinterpret_cast<CK_ULONG *>(buf + 12 * sizeof(CK_ULONG));
+            left = *reinterpret_cast<CK_ULONG *>(buf + 13 * sizeof(CK_ULONG));
+            return true;
+        }
+    }
+    return false;
+}
+
+// Сообщение об ошибке C_Login с честным остатком попыток (vendor), либо, если
+// vendor-функция недоступна, качественным индикатором по флагам токена.
+QString loginErrorMessage(CK_FUNCTION_LIST_PREFIX *fns, CK_SLOT_ID slotId, CK_RV rv,
+                          ExGetTokenInfoExtendedFn exFn)
 {
     QString hint;
-    if (fns->C_GetTokenInfo) {
+    CK_ULONG left = 0, maxCount = 0;
+    if (exUserPinRetries(exFn, slotId, left, maxCount)) {
+        hint = maxCount > 0 ? QStringLiteral("осталось попыток: %1 из %2").arg(left).arg(maxCount)
+                            : QStringLiteral("осталось попыток: %1").arg(left);
+    } else if (fns->C_GetTokenInfo) {
         CK_TOKEN_INFO info;
         std::memset(&info, 0, sizeof(info));
         if (fns->C_GetTokenInfo(slotId, &info) == CKR_OK)
@@ -75,6 +106,7 @@ struct WriteOutcome {
 // pinBytes обнуляется сразу после C_Login. Список объектов перечитывается всегда
 // (и при неуспехе op — показать текущее состояние токена).
 WriteOutcome runTokenWrite(QFunctionPointer getFunctionList, qulonglong slotId, QByteArray pinBytes,
+                           QFunctionPointer exGetTokenInfoExtended,
                            const std::function<QPair<bool, QString>(CK_FUNCTION_LIST_PREFIX *, CK_SESSION_HANDLE)> &op)
 {
     WriteOutcome wo;
@@ -120,7 +152,8 @@ WriteOutcome runTokenWrite(QFunctionPointer getFunctionList, qulonglong slotId, 
     pinBytes.fill('\0');
     const bool loggedIn = (rv == CKR_OK || rv == CKR_USER_ALREADY_LOGGED_IN);
     if (!loggedIn) {
-        wo.message = loginErrorMessage(fns, static_cast<CK_SLOT_ID>(slotId), rv);
+        wo.message = loginErrorMessage(fns, static_cast<CK_SLOT_ID>(slotId), rv,
+                                       reinterpret_cast<ExGetTokenInfoExtendedFn>(exGetTokenInfoExtended));
         fns->C_CloseSession(session);
         if (owns)
             fns->C_Finalize(nullptr);
@@ -199,8 +232,12 @@ TokenSession::TokenSession(QObject *parent)
     connect(this, &TokenSession::finished, this, &TokenSession::onFinished);
 
     m_library.setFileName(kLibraryPath);
-    if (m_library.load())
+    if (m_library.load()) {
         m_getFunctionList = m_library.resolve("C_GetFunctionList");
+        // Vendor-функции Рутокена экспортируются напрямую; их отсутствие не критично.
+        m_exGetTokenInfoExtended = m_library.resolve("C_EX_GetTokenInfoExtended");
+        m_exSetTokenName = m_library.resolve("C_EX_SetTokenName");
+    }
 }
 
 void TokenSession::clear()
@@ -362,11 +399,18 @@ void TokenSession::changeUserPin(qulonglong slotId, const QString &oldPin, const
     QtConcurrent::run([this, slotId, oldB, newB, getFunctionList, keepObjects]() mutable {
         const QPair<int, QString> r = runSessionOp(getFunctionList, slotId,
             [&oldB, &newB](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s) {
-                if (!fns->C_SetPIN)
-                    return qMakePair(false, QStringLiteral("Библиотека не предоставляет C_SetPIN"));
+                // Рутокен требует вход пользователем перед сменой его PIN
+                // (иначе C_SetPIN → CKR_USER_NOT_LOGGED_IN = 0x101).
+                if (!fns->C_SetPIN || !fns->C_Login || !fns->C_Logout)
+                    return qMakePair(false, QStringLiteral("Библиотека не предоставляет функции смены PIN"));
+                const CK_RV lr = fns->C_Login(s, CKU_USER,
+                        reinterpret_cast<CK_UTF8CHAR *>(oldB.data()), static_cast<CK_ULONG>(oldB.size()));
+                if (lr != CKR_OK && lr != CKR_USER_ALREADY_LOGGED_IN)
+                    return qMakePair(false, pinRvMessage(lr));
                 const CK_RV rv = fns->C_SetPIN(s,
                         reinterpret_cast<CK_UTF8CHAR *>(oldB.data()), static_cast<CK_ULONG>(oldB.size()),
                         reinterpret_cast<CK_UTF8CHAR *>(newB.data()), static_cast<CK_ULONG>(newB.size()));
+                fns->C_Logout(s);
                 return qMakePair(rv == CKR_OK,
                                  rv == CKR_OK ? QStringLiteral("PIN пользователя изменён") : pinRvMessage(rv));
             });
@@ -463,6 +507,52 @@ void TokenSession::unblockUserPin(qulonglong slotId, const QString &soPin, const
     });
 }
 
+void TokenSession::changeTokenLabel(qulonglong slotId, const QString &adminPin, const QString &label)
+{
+    if (m_busy)
+        return;
+    if (!m_getFunctionList || !m_exSetTokenName) {
+        m_outcome = -1;
+        m_result = m_getFunctionList ? QStringLiteral("Библиотека не поддерживает смену метки токена")
+                                     : QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        emit changed();
+        return;
+    }
+    m_pendingIsLogin = false;
+    m_invalidateUserPin = false;
+    m_busy = true;
+    m_outcome = 0;
+    m_result.clear();
+    emit changed();
+
+    const QFunctionPointer getFunctionList = m_getFunctionList;
+    const QFunctionPointer exSetName = m_exSetTokenName;
+    QByteArray pinB = adminPin.toUtf8();
+    QByteArray labelB = label.toUtf8();
+    const QVariantList keepObjects = m_objects;
+
+    QtConcurrent::run([this, slotId, pinB, labelB, getFunctionList, exSetName, keepObjects]() mutable {
+        const QPair<int, QString> r = runSessionOp(getFunctionList, slotId,
+            [&pinB, &labelB, exSetName](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s) {
+                ExSetTokenNameFn setName = reinterpret_cast<ExSetTokenNameFn>(exSetName);
+                if (!setName || !fns->C_Login || !fns->C_Logout)
+                    return qMakePair(false, QStringLiteral("Библиотека не предоставляет смену метки"));
+                // Смена метки токена требует входа администратора (SO).
+                const CK_RV lr = fns->C_Login(s, CKU_SO,
+                        reinterpret_cast<CK_UTF8CHAR *>(pinB.data()), static_cast<CK_ULONG>(pinB.size()));
+                if (lr != CKR_OK && lr != CKR_USER_ALREADY_LOGGED_IN)
+                    return qMakePair(false, pinRvMessage(lr));
+                const CK_RV rv = setName(s,
+                        reinterpret_cast<CK_UTF8CHAR *>(labelB.data()), static_cast<CK_ULONG>(labelB.size()));
+                fns->C_Logout(s);
+                return qMakePair(rv == CKR_OK,
+                                 rv == CKR_OK ? QStringLiteral("Метка токена изменена") : pinRvMessage(rv));
+            });
+        pinB.fill('\0');
+        emit finished(r.first, r.second, keepObjects);
+    });
+}
+
 void TokenSession::generateKeyPair(qulonglong slotId, const QString &pin,
                                    const QString &algorithm, const QString &label)
 {
@@ -482,10 +572,11 @@ void TokenSession::generateKeyPair(qulonglong slotId, const QString &pin,
     emit changed();
 
     const QFunctionPointer getFunctionList = m_getFunctionList;
+    const QFunctionPointer exTok = m_exGetTokenInfoExtended;
     QByteArray pinBytes = pin.toUtf8();
 
-    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, algorithm, label]() mutable {
-        const WriteOutcome wo = runTokenWrite(getFunctionList, slotId, pinBytes,
+    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, exTok, algorithm, label]() mutable {
+        const WriteOutcome wo = runTokenWrite(getFunctionList, slotId, pinBytes, exTok,
             [&algorithm, &label](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session) {
                 if (!fns->C_GenerateKeyPair)
                     return qMakePair(false, QStringLiteral("Библиотека не предоставляет C_GenerateKeyPair"));
@@ -516,10 +607,11 @@ void TokenSession::importCertificate(qulonglong slotId, const QString &pin,
     emit changed();
 
     const QFunctionPointer getFunctionList = m_getFunctionList;
+    const QFunctionPointer exTok = m_exGetTokenInfoExtended;
     QByteArray pinBytes = pin.toUtf8();
 
-    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, filePath, label]() mutable {
-        const WriteOutcome wo = runTokenWrite(getFunctionList, slotId, pinBytes,
+    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, exTok, filePath, label]() mutable {
+        const WriteOutcome wo = runTokenWrite(getFunctionList, slotId, pinBytes, exTok,
             [&filePath, &label](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session) {
                 if (!fns->C_CreateObject)
                     return qMakePair(false, QStringLiteral("Библиотека не предоставляет C_CreateObject"));
@@ -554,9 +646,10 @@ void TokenSession::run(qulonglong slotId, const QString &pin, bool doLogin)
     emit changed();
 
     const QFunctionPointer getFunctionList = m_getFunctionList;
+    const QFunctionPointer exTok = m_exGetTokenInfoExtended;
     QByteArray pinBytes = pin.toUtf8();
 
-    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, doLogin]() mutable {
+    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, exTok, doLogin]() mutable {
         int outcome = doLogin ? -1 : 0;
         QString message;
         QVariantList objects;
@@ -611,7 +704,8 @@ void TokenSession::run(qulonglong slotId, const QString &pin, bool doLogin)
                 outcome = 1;
                 message = QStringLiteral("PIN верный — вход выполнен");
             } else {
-                message = loginErrorMessage(fns, static_cast<CK_SLOT_ID>(slotId), rv);
+                message = loginErrorMessage(fns, static_cast<CK_SLOT_ID>(slotId), rv,
+                                            reinterpret_cast<ExGetTokenInfoExtendedFn>(exTok));
             }
         }
 

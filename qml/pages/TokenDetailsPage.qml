@@ -38,8 +38,13 @@ Page {
         contentHeight: col.height + Theme.paddingLarge
 
         // Управление PIN (v0.5): смена PIN пользователя/администратора и
-        // разблокировка PIN пользователя администратором.
+        // разблокировка PIN пользователя администратором; смена метки токена.
         PullDownMenu {
+            MenuItem {
+                text: qsTr("Change token label")
+                onClicked: pageStack.push(Qt.resolvedUrl("TokenLabelPage.qml"),
+                                          { slotId: page.slotId, currentLabel: page.tokenLabel })
+            }
             MenuItem {
                 text: qsTr("Unblock user PIN")
                 onClicked: pageStack.push(Qt.resolvedUrl("PinChangePage.qml"),

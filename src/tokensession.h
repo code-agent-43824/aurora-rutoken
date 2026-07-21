@@ -94,6 +94,8 @@ public:
     Q_INVOKABLE void changeUserPin(qulonglong slotId, const QString &oldPin, const QString &newPin);
     Q_INVOKABLE void changeSoPin(qulonglong slotId, const QString &oldSoPin, const QString &newSoPin);
     Q_INVOKABLE void unblockUserPin(qulonglong slotId, const QString &soPin, const QString &newUserPin);
+    // Смена метки токена (vendor C_EX_SetTokenName) с входом администратора (SO).
+    Q_INVOKABLE void changeTokenLabel(qulonglong slotId, const QString &adminPin, const QString &label);
 
     // Экспорт сертификата (тело из derB64, без закрытого ключа) в выбранный
     // пользователем формат ("pem"/"der"), каталог и имя файла. Возвращает
@@ -113,6 +115,10 @@ private:
 
     QLibrary m_library;
     QFunctionPointer m_getFunctionList = nullptr;
+    // Vendor-расширения Рутокена (dlsym напрямую): честный остаток попыток PIN и
+    // смена метки токена без переинициализации.
+    QFunctionPointer m_exGetTokenInfoExtended = nullptr;
+    QFunctionPointer m_exSetTokenName = nullptr;
     bool m_busy = false;
     int m_outcome = 0;
     QString m_result;

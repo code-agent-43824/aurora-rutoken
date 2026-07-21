@@ -134,6 +134,10 @@
 <context>
     <name>TokenDetailsPage</name>
     <message>
+        <source>Change token label</source>
+        <translation>Change token label</translation>
+    </message>
+    <message>
         <source>Unblock user PIN</source>
         <translation>Unblock user PIN</translation>
     </message>
@@ -514,6 +518,45 @@
     <message>
         <source>Continue</source>
         <translation>Continue</translation>
+    </message>
+</context>
+<context>
+    <name>TokenLabelPage</name>
+    <message>
+        <source>Change token label</source>
+        <translation>Change token label</translation>
+    </message>
+    <message>
+        <source>Token label</source>
+        <translation>Token label</translation>
+    </message>
+    <message>
+        <source>New token label</source>
+        <translation>New token label</translation>
+    </message>
+    <message>
+        <source>Administrator (SO) PIN</source>
+        <translation>Administrator (SO) PIN</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Enter administrator (SO) PIN</source>
+        <translation>Enter administrator (SO) PIN</translation>
+    </message>
+    <message>
+        <source>Applying…</source>
+        <translation>Applying…</translation>
+    </message>
+    <message>
+        <source>Change label</source>
+        <translation>Change label</translation>
+    </message>
+    <message>
+        <source>Changing the label requires the administrator (SO) PIN and does not erase the token.</source>
+        <translation>Changing the label requires the administrator (SO) PIN and does not erase the token.</translation>
     </message>
 </context>
 <context>
