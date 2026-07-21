@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.4.1
-Release:    3
+Release:    4
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -15,6 +15,7 @@ BuildRequires:  pkgconfig(Qt5Quick)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(Qt5Concurrent)
 BuildRequires:  pkgconfig(Qt5Network)
+BuildRequires:  pkgconfig(Qt5Multimedia)
 
 %description
 Test application for working with Rutoken ECP 3.0 hardware tokens over USB
@@ -43,6 +44,12 @@ key pair by public key. Builds on the v0.3 two-level object browser
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.4.1-4
+- Hide the "Connect over NFC" entry while an NFC token is already connected
+  (one at a time). Play the connect/disconnect sounds from bundled WAV files
+  via QtMultimedia (Nemo.Ngf was silent on the device). Show an empty title
+  instead of the "(no label)" placeholder for objects without a label.
+
 * Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.4.1-3
 - A connected NFC token now stays in the list as a logical connection: its
   objects snapshot is kept so you can re-open its certificates without holding

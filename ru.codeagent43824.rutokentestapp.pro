@@ -3,7 +3,7 @@ TARGET = ru.codeagent43824.rutokentestapp
 CONFIG += \
     auroraapp
 
-QT += dbus concurrent network
+QT += dbus concurrent network multimedia
 
 PKGCONFIG += \
 
@@ -32,6 +32,14 @@ HEADERS += \
 DISTFILES += \
     rpm/ru.codeagent43824.rutokentestapp.spec \
     README.md \
+
+# Короткие звуки соединения/рассоединения по NFC (проигрываются через
+# QtMultimedia SoundEffect; см. qml/pages/Feedback.qml).
+sounds.files = \
+    sounds/nfc-connect.wav \
+    sounds/nfc-disconnect.wav
+sounds.path = /usr/share/$${TARGET}/sounds
+INSTALLS += sounds
 
 AURORAAPP_ICONS = 86x86 108x108 128x128 172x172
 

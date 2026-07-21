@@ -20,7 +20,7 @@ Page {
             return o.commonName
         if (o.label && o.label.length > 0)
             return o.label
-        return qsTr("(no label)")
+        return ""
     }
 
     SilicaFlickable {
@@ -118,7 +118,7 @@ Page {
                                 width: parent.width - kindBadge.width - Theme.paddingMedium
                                 text: modelData.kind === "certificate"
                                       ? page.certTitle(modelData)
-                                      : (modelData.label.length > 0 ? modelData.label : qsTr("(no label)"))
+                                      : (modelData.label.length > 0 ? modelData.label : "")
                                 color: Theme.highlightColor
                                 font.pixelSize: Theme.fontSizeMedium
                                 truncationMode: TruncationMode.Fade

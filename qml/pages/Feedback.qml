@@ -1,17 +1,28 @@
 import QtQuick 2.0
-import Nemo.Ngf 1.0
+import QtMultimedia 5.6
 
-// Изолированная зависимость Nemo.Ngf (системные звуки/вибрация). Загружается
-// через Loader: если модуль на Авроре недоступен, элемент просто не создастся
-// и звук молча не проиграется — экран NFC при этом работает.
+// Короткие звуки соединения/рассоединения по NFC из вложенных WAV-файлов
+// (через QtMultimedia). Загружается из NfcConnectPage через Loader — если
+// QtMultimedia недоступен на Авроре, элемент просто не создастся и экран NFC
+// продолжит работать без звука.
 Item {
     id: root
+
+    // Раскладка на устройстве: qml/pages/Feedback.qml и sounds/*.wav лежат под
+    // одним каталогом приложения, поэтому путь «../../sounds/…».
     function play(eventName) {
-        ngf.event = eventName
-        ngf.play()
+        if (eventName === "positive")
+            connectFx.play()
+        else
+            disconnectFx.play()
     }
-    NonGraphicalFeedback {
-        id: ngf
-        event: "general"
+
+    SoundEffect {
+        id: connectFx
+        source: Qt.resolvedUrl("../../sounds/nfc-connect.wav")
+    }
+    SoundEffect {
+        id: disconnectFx
+        source: Qt.resolvedUrl("../../sounds/nfc-disconnect.wav")
     }
 }

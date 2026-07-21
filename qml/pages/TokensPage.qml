@@ -251,8 +251,10 @@ Page {
             }
 
             // Эфемерный NFC-токен: не подключён, но «можно подключить». Тап
-            // запускает мастер подключения по NFC.
+            // запускает мастер. Скрыт, если NFC-токен уже логически подключён
+            // (работаем только с одним одновременно).
             BackgroundItem {
+                visible: !tokenSession.nfcConnected
                 width: content.width
                 height: nfcCard.height + Theme.paddingMedium
                 onClicked: {
