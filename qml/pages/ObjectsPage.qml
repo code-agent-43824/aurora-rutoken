@@ -54,7 +54,7 @@ Page {
                         issuer: modelData.issuer ? modelData.issuer : "",
                         expiry: modelData.expiry ? modelData.expiry : "",
                         parsed: modelData.parsed ? modelData.parsed : false,
-                        idHex: modelData.idHex ? modelData.idHex : "",
+                        idText: modelData.idText ? modelData.idText : "",
                         label: modelData.label ? modelData.label : "",
                         source: modelData.source ? modelData.source : "",
                         derB64: modelData.derB64 ? modelData.derB64 : "",
@@ -116,8 +116,8 @@ Page {
                                             parts.push(qsTr("issuer: %1").arg(modelData.issuer))
                                         if (modelData.expiry && modelData.expiry.length > 0)
                                             parts.push(qsTr("expires: %1").arg(modelData.expiry))
-                                    } else if (modelData.idHex && modelData.idHex.length > 0) {
-                                        parts.push(qsTr("ID: %1").arg(modelData.idHex))
+                                    } else if (modelData.idText && modelData.idText.length > 0) {
+                                        parts.push(qsTr("ID: %1").arg(modelData.idText))
                                     }
                                     parts.push(modelData.source)
                                 }
@@ -136,7 +136,7 @@ Page {
                             text: {
                                 var parts = []
                                 if (modelData.kind === "key") {
-                                    parts.push(qsTr("ID: %1").arg(modelData.idHex && modelData.idHex.length > 0 ? modelData.idHex : "—"))
+                                    parts.push(qsTr("ID: %1").arg(modelData.idText && modelData.idText.length > 0 ? modelData.idText : "—"))
                                     if (modelData.keyType && modelData.keyType.length > 0)
                                         parts.push(modelData.keyType)
                                     if (modelData.keyClass && modelData.keyClass.length > 0)

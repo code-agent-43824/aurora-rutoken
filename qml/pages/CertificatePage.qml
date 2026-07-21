@@ -10,7 +10,7 @@ Page {
     property string issuer: ""
     property string expiry: ""
     property bool parsed: false
-    property string idHex: ""
+    property string idText: ""
     property string label: ""
     property string source: ""
     property string derB64: ""
@@ -67,7 +67,7 @@ Page {
             }
             DetailItem {
                 label: qsTr("CKA_ID")
-                value: page.idHex.length > 0 ? page.idHex : "—"
+                value: page.idText.length > 0 ? page.idText : "—"
             }
             DetailItem {
                 label: qsTr("Key on token")

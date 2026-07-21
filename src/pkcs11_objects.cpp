@@ -81,9 +81,38 @@ QString labelOf(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session, CK_OBJE
     return QString::fromUtf8(readByteAttr(fns, session, obj, CKA_LABEL));
 }
 
+// CKA_ID для точного сопоставления сертификата и ключа (всегда hex).
 QString idHexOf(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session, CK_OBJECT_HANDLE obj)
 {
     return QString::fromLatin1(readByteAttr(fns, session, obj, CKA_ID).toHex());
+}
+
+// CKA_ID для показа: если первые (до) 3 байта — печатные ASCII, считаем его
+// текстовым и выводим целиком как текст, заменяя любые непечатные байты на «.»;
+// иначе — hex. По просьбе владельца (часто CKA_ID у Рутокена текстовый).
+QString displayId(const QByteArray &id)
+{
+    if (id.isEmpty())
+        return QString();
+    const int probe = qMin(3, id.size());
+    for (int i = 0; i < probe; ++i) {
+        const unsigned char c = static_cast<unsigned char>(id.at(i));
+        if (c < 0x20 || c > 0x7e)
+            return QString::fromLatin1(id.toHex());
+    }
+    QString text;
+    text.reserve(id.size());
+    for (int i = 0; i < id.size(); ++i) {
+        const unsigned char c = static_cast<unsigned char>(id.at(i));
+        const bool printable = (c >= 0x20 && c <= 0x7e);
+        text.append(QChar(static_cast<ushort>(printable ? c : '.')));
+    }
+    return text;
+}
+
+QString idDisplayOf(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session, CK_OBJECT_HANDLE obj)
+{
+    return displayId(readByteAttr(fns, session, obj, CKA_ID));
 }
 
 QString firstInfo(const QStringList &values)
@@ -115,11 +144,12 @@ bool parseCertificate(const QByteArray &der, QString &commonName, QString &issue
     return !commonName.isEmpty() || !issuer.isEmpty() || notAfter.isValid();
 }
 
-QVariantMap makeKey(const QString &idHex, const QString &label, const QString &keyType,
-                    CK_OBJECT_CLASS cls)
+QVariantMap makeKey(const QString &idHex, const QString &idText, const QString &label,
+                    const QString &keyType, CK_OBJECT_CLASS cls)
 {
     QVariantMap key;
     key.insert(QStringLiteral("idHex"), idHex);
+    key.insert(QStringLiteral("idText"), idText);
     key.insert(QStringLiteral("label"), label);
     key.insert(QStringLiteral("keyType"), keyType);
     key.insert(QStringLiteral("keyClass"),
@@ -153,13 +183,14 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
             for (int i = 0; i < handles.size(); ++i) {
                 const CK_OBJECT_HANDLE obj = handles.at(i);
                 const QString idHex = idHexOf(fns, session, obj);
+                const QString idText = idDisplayOf(fns, session, obj);
                 const QString label = labelOf(fns, session, obj);
                 CK_ULONG keyType = 0;
                 const QString keyTypeStr = readUlongAttr(fns, session, obj, CKA_KEY_TYPE, keyType)
                         ? keyTypeName(keyType) : QString();
                 KeyEntry entry;
                 entry.idHex = idHex;
-                entry.map = makeKey(idHex, label, keyTypeStr, keyClasses[k]);
+                entry.map = makeKey(idHex, idText, label, keyTypeStr, keyClasses[k]);
                 entry.consumed = false;
                 keys.append(entry);
             }
@@ -172,6 +203,7 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
     for (int i = 0; i < certs.size(); ++i) {
         const CK_OBJECT_HANDLE obj = certs.at(i);
         const QString idHex = idHexOf(fns, session, obj);
+        const QString idText = idDisplayOf(fns, session, obj);
         const QString label = labelOf(fns, session, obj);
 
         const QByteArray der = readByteAttr(fns, session, obj, CKA_VALUE);
@@ -195,6 +227,7 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
         cert.insert(QStringLiteral("expiry"), expiry);
         cert.insert(QStringLiteral("parsed"), parsed);
         cert.insert(QStringLiteral("idHex"), idHex);
+        cert.insert(QStringLiteral("idText"), idText);
         cert.insert(QStringLiteral("label"), label);
         cert.insert(QStringLiteral("derB64"), QString::fromLatin1(der.toBase64())); // для экспорта
         cert.insert(QStringLiteral("source"), kSource);

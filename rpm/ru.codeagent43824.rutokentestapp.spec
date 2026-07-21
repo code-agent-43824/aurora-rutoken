@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.4.0
-Release:    2
+Release:    3
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -42,6 +42,10 @@ parsed X.509 body, keys nested by CKA_ID).
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Mon Jul 20 2026 Claude <noreply@anthropic.com> - 0.4.0-3
+- Show CKA_ID as text when its first bytes are printable ASCII (non-printable
+  bytes shown as "."), otherwise hex.
+
 * Mon Jul 20 2026 Claude <noreply@anthropic.com> - 0.4.0-2
 - Certificate detail screen (tap a certificate); export moved to its pull-down
   menu with a chosen format (PEM or DER), file name and folder.
