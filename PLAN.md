@@ -190,7 +190,8 @@
 - [x] `PinPadPage.qml` — цифровая клавиатура (1–9/0, ← стереть, показать/скрыть), переключение в **текстовый режим** (TextField + клавиатура ОС); сигнал `entered(pin)`; переиспользуется USB и NFC — 2026-07-21
 - [x] `TokenSession`: кэш PIN в RAM (`m_cachedPin`+slot, только при успехе через `m_pendingIsLogin`), property `loggedIn`/`loggedInSlot`; `logout()` обнуляет PIN и объекты; `generateKeyPairCached`/`importCertificateCached` по кэшу; `retainUsbSlot()` (из `main.cpp` по `TokenWatcher::tokensChanged`) сбрасывает вход при пропаже USB-слота — 2026-07-21
 - [x] USB-поток: `TokenDetailsPage` → «Ввести PIN» → PinPad → objects; статус + **«Разлогиниться»**; `GenerateKeyPage`/`ImportCertificatePage` без поля PIN (кнопка входа при необходимости, иначе кэш) — 2026-07-21
-- [ ] spec 0.4.1-1, переводы, README, JOURNAL — сделано; **зелёный CI** — ожидается; проверка на USB (цифровой ввод, текстовый режим, запоминание PIN, «Разлогиниться», сброс при отключении USB)
+- [x] spec 0.4.1-1, переводы, README, JOURNAL; **зелёный CI** — 2026-07-21, run #22 (`5598f22`) зелёный с первой попытки: правки `TokenSession` (кэш PIN/`loggedIn`/`retainUsbSlot`), `main.cpp` connect и новый `PinPadPage.qml` собрались на обеих арках; в релизе `ci-latest` 4 голых `.rpm` 0.4.1-1 (старые 0.4.0-5 удалены) + артефакты Actions (2 per-arch)
+- [ ] Проверка на USB на телефоне владельца (цифровой ввод, текстовый режим, показать/скрыть, запоминание PIN, «Разлогиниться», сброс при отключении USB)
 
 **Этап 2 (0.4.1-2) — эфемерный NFC + мастер подключения:**
 - [ ] Главный экран: USB — живой список; **NFC — эфемерный пункт** «Подключить по NFC», тап → мастер
