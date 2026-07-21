@@ -224,7 +224,8 @@
 - [x] `TokenSession`: `changeUserPin` (`C_SetPIN` в R/W-сессии), `changeSoPin` (`C_Login(SO)`→`C_SetPIN`→`C_Logout`), `unblockUserPin` (`C_Login(SO)`→`C_InitPIN`→`C_Logout`); общий helper `runSessionOp`; PIN обнуляются; флаг `m_invalidateUserPin` — при успешной смене/сбросе пользовательского PIN `onFinished` сбрасывает кэш входа — 2026-07-21
 - [x] UI `PinChangePage` (режимы user/so/unblock): текущий/SO + новый + подтверждение нового, ввод через `PinPadPage`; вход из `PullDownMenu` на `TokenDetailsPage` — 2026-07-21
 - [x] Коды `CKR_PIN_*` в понятные сообщения (`pinRvMessage`) — 2026-07-21
-- [ ] spec 0.5.0-1, переводы, README, JOURNAL — сделано; **зелёный CI** — ожидается; проверка на телефоне (смена user PIN, смена SO PIN, разблокировка) — по USB
+- [x] spec 0.5.0-1, переводы, README, JOURNAL; **зелёный CI** — 2026-07-21, run #26 (`502f131`) зелёный с первой попытки: ABI (`C_InitPIN`/`C_SetPIN`) и новые методы `TokenSession` собрались на обеих арках; в релизе `ci-latest` 4 голых `.rpm` 0.5.0-1 (старые 0.4.1-4 удалены)
+- [ ] Проверка на телефоне (по USB): смена PIN пользователя, смена PIN администратора, разблокировка PIN пользователя администратором
 - [ ] (опц., по желанию владельца) те же операции по NFC через мастер поднесения
 
 ### v0.6 — Создание и удаление ключей
