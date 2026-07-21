@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.4.0
-Release:    4
+Release:    5
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -19,10 +19,10 @@ BuildRequires:  pkgconfig(Qt5Network)
 %description
 Test application for working with Rutoken ECP 3.0 hardware tokens over USB
 and NFC on Aurora OS. Version 0.4 adds certificate export (DER and PEM, without
-the private key) and on-token key-pair generation (GOST R 34.10-2012 256/512
-and RSA), and will add certificate import. Builds on the v0.3 two-level object
-browser (certificates described from the parsed X.509 body, keys nested by
-CKA_ID).
+the private key), on-token key-pair generation (GOST R 34.10-2012 256/512 and
+RSA) and certificate import from a file with auto-attachment to the matching
+key pair by public key. Builds on the v0.3 two-level object browser
+(certificates described from the parsed X.509 body, keys nested by CKA_ID).
 
 %prep
 %autosetup
@@ -43,6 +43,12 @@ CKA_ID).
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.4.0-5
+- Import an X.509 certificate from a file (PEM or DER) onto the token via
+  C_CreateObject, reachable from the Objects screen pull-down menu. The
+  certificate is auto-attached to its key pair by matching the public key
+  (its CKA_ID is copied); only the certificate is written, never a private key.
+
 * Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.4.0-4
 - Generate a key pair on the token: choose the algorithm and length (GOST R
   34.10-2012 256/512, RSA 2048/4096), enter the user PIN. Reachable from the

@@ -216,6 +216,10 @@
         <source>Generate key pair</source>
         <translation>Generate key pair</translation>
     </message>
+    <message>
+        <source>Import certificate</source>
+        <translation>Import certificate</translation>
+    </message>
 </context>
 <context>
     <name>CertificatePage</name>
@@ -317,6 +321,68 @@
     <message>
         <source>Save</source>
         <translation>Save</translation>
+    </message>
+</context>
+<context>
+    <name>CertFilePickerPage</name>
+    <message>
+        <source>Choose a certificate</source>
+        <translation>Choose a certificate</translation>
+    </message>
+</context>
+<context>
+    <name>ImportCertificatePage</name>
+    <message>
+        <source>Import certificate</source>
+        <translation>Import certificate</translation>
+    </message>
+    <message>
+        <source>From a file to the token</source>
+        <translation>From a file to the token</translation>
+    </message>
+    <message>
+        <source>Choose a file</source>
+        <translation>Choose a file</translation>
+    </message>
+    <message>
+        <source>Certificate file (PEM or DER)</source>
+        <translation>Certificate file (PEM or DER)</translation>
+    </message>
+    <message>
+        <source>Pick a file or type a path</source>
+        <translation>Pick a file or type a path</translation>
+    </message>
+    <message>
+        <source>Certificate label (optional)</source>
+        <translation>Certificate label (optional)</translation>
+    </message>
+    <message>
+        <source>Taken from Common Name if empty</source>
+        <translation>Taken from Common Name if empty</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>User PIN</translation>
+    </message>
+    <message>
+        <source>Enter user PIN</source>
+        <translation>Enter user PIN</translation>
+    </message>
+    <message>
+        <source>Importing…</source>
+        <translation>Importing…</translation>
+    </message>
+    <message>
+        <source>Import</source>
+        <translation>Import</translation>
+    </message>
+    <message>
+        <source>Swipe back to see the certificate in the list.</source>
+        <translation>Swipe back to see the certificate in the list.</translation>
+    </message>
+    <message>
+        <source>Only the certificate (public) is imported — never a private key. The PIN is not stored.</source>
+        <translation>Only the certificate (public) is imported — never a private key. The PIN is not stored.</translation>
     </message>
 </context>
 <context>

@@ -24,6 +24,12 @@ Page {
 
         PullDownMenu {
             MenuItem {
+                text: qsTr("Import certificate")
+                onClicked: pageStack.push(Qt.resolvedUrl("ImportCertificatePage.qml"), {
+                    slotId: page.slotId
+                })
+            }
+            MenuItem {
                 text: qsTr("Generate key pair")
                 onClicked: pageStack.push(Qt.resolvedUrl("GenerateKeyPage.qml"), {
                     slotId: page.slotId

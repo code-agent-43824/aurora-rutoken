@@ -35,6 +35,11 @@ public:
     // затем перечитывание объектов. algorithm: "gost256"/"gost512"/"rsa2048"/"rsa4096".
     Q_INVOKABLE void generateKeyPair(qulonglong slotId, const QString &pin,
                                      const QString &algorithm, const QString &label);
+    // Импорт X.509-сертификата из файла на токен (вход по PIN, R/W-сессия,
+    // C_CreateObject) с приклеиванием к ключевой паре по открытому ключу; затем
+    // перечитывание объектов.
+    Q_INVOKABLE void importCertificate(qulonglong slotId, const QString &pin,
+                                       const QString &filePath, const QString &label);
     Q_INVOKABLE void clear();
 
     // Экспорт сертификата (тело из derB64, без закрытого ключа) в выбранный

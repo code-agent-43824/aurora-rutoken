@@ -1,4 +1,5 @@
 #include "tokensession.h"
+#include "pkcs11_certimport.h"
 #include "pkcs11_guard.h"
 #include "pkcs11_keygen.h"
 #include "pkcs11_minimal.h"
@@ -9,10 +10,12 @@
 #include <QtCore/QDir>
 #include <QtCore/QFile>
 #include <QtCore/QMutex>
+#include <QtCore/QPair>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringList>
 
 #include <cstring>
+#include <functional>
 
 namespace {
 const QString kLibraryPath = QStringLiteral(
@@ -56,6 +59,86 @@ QString loginErrorMessage(CK_FUNCTION_LIST_PREFIX *fns, CK_SLOT_ID slotId, CK_RV
     if (!hint.isEmpty())
         message += QStringLiteral(" (") + hint + QLatin1Char(')');
     return message;
+}
+
+// Результат операции записи на токен для доставки в UI-поток.
+struct WriteOutcome {
+    int outcome = -1;
+    QString message;
+    QVariantList objects;
+};
+
+// Общий цикл записи на токен под общим мьютексом PKCS#11:
+// C_Initialize → C_OpenSession(R/W) → C_Login(USER) → op → перечитывание
+// объектов → C_Logout → C_CloseSession → C_Finalize. Операцию (генерация ключа,
+// импорт сертификата) выполняет op в залогиненной сессии и возвращает (ok, msg).
+// pinBytes обнуляется сразу после C_Login. Список объектов перечитывается всегда
+// (и при неуспехе op — показать текущее состояние токена).
+WriteOutcome runTokenWrite(QFunctionPointer getFunctionList, qulonglong slotId, QByteArray pinBytes,
+                           const std::function<QPair<bool, QString>(CK_FUNCTION_LIST_PREFIX *, CK_SESSION_HANDLE)> &op)
+{
+    WriteOutcome wo;
+
+    typedef CK_RV (*GetListFn)(CK_FUNCTION_LIST_PREFIX **);
+    GetListFn getList = reinterpret_cast<GetListFn>(getFunctionList);
+    CK_FUNCTION_LIST_PREFIX *fns = nullptr;
+
+    QMutexLocker locker(&pkcs11::globalMutex());
+
+    const bool haveFns = getList(&fns) == CKR_OK && fns && fns->C_Initialize
+            && fns->C_Finalize && fns->C_OpenSession && fns->C_CloseSession
+            && fns->C_Login && fns->C_Logout;
+    if (!haveFns) {
+        pinBytes.fill('\0');
+        wo.message = QStringLiteral("Библиотека не предоставляет функции сессии");
+        return wo;
+    }
+
+    const CK_RV initRv = fns->C_Initialize(nullptr);
+    const bool owns = (initRv == CKR_OK);
+    if (!owns && initRv != CKR_CRYPTOKI_ALREADY_INITIALIZED) {
+        pinBytes.fill('\0');
+        wo.message = QStringLiteral("C_Initialize: ") + rvHex(initRv);
+        return wo;
+    }
+
+    // Запись объектов на токен требует R/W-сессии.
+    CK_SESSION_HANDLE session = 0;
+    CK_RV rv = fns->C_OpenSession(static_cast<CK_SLOT_ID>(slotId),
+                                  CKF_SERIAL_SESSION | CKF_RW_SESSION, nullptr, nullptr, &session);
+    if (rv != CKR_OK) {
+        if (owns)
+            fns->C_Finalize(nullptr);
+        pinBytes.fill('\0');
+        wo.message = QStringLiteral("Не удалось открыть R/W-сессию: ") + rvHex(rv);
+        return wo;
+    }
+
+    rv = fns->C_Login(session, CKU_USER,
+                      reinterpret_cast<CK_UTF8CHAR *>(pinBytes.data()),
+                      static_cast<CK_ULONG>(pinBytes.size()));
+    pinBytes.fill('\0');
+    const bool loggedIn = (rv == CKR_OK || rv == CKR_USER_ALREADY_LOGGED_IN);
+    if (!loggedIn) {
+        wo.message = loginErrorMessage(fns, static_cast<CK_SLOT_ID>(slotId), rv);
+        fns->C_CloseSession(session);
+        if (owns)
+            fns->C_Finalize(nullptr);
+        return wo;
+    }
+
+    const QPair<bool, QString> r = op(fns, session);
+    wo.outcome = r.first ? 1 : -1;
+    wo.message = r.second;
+
+    // Перечитываем объекты в той же залогиненной сессии — результат сразу виден.
+    wo.objects = pkcs11::listTokenObjects(fns, session, /*loggedIn*/ true);
+
+    fns->C_Logout(session);
+    fns->C_CloseSession(session);
+    if (owns)
+        fns->C_Finalize(nullptr);
+    return wo;
 }
 } // namespace
 
@@ -110,73 +193,49 @@ void TokenSession::generateKeyPair(qulonglong slotId, const QString &pin,
     QByteArray pinBytes = pin.toUtf8();
 
     QtConcurrent::run([this, slotId, pinBytes, getFunctionList, algorithm, label]() mutable {
-        QString message;
-        QVariantList objects;
-
-        typedef CK_RV (*GetListFn)(CK_FUNCTION_LIST_PREFIX **);
-        GetListFn getList = reinterpret_cast<GetListFn>(getFunctionList);
-        CK_FUNCTION_LIST_PREFIX *fns = nullptr;
-
-        QMutexLocker locker(&pkcs11::globalMutex());
-
-        const bool haveFns = getList(&fns) == CKR_OK && fns && fns->C_Initialize
-                && fns->C_Finalize && fns->C_OpenSession && fns->C_CloseSession
-                && fns->C_Login && fns->C_Logout && fns->C_GenerateKeyPair;
-        if (!haveFns) {
-            pinBytes.fill('\0');
-            emit finished(-1, QStringLiteral("Библиотека не предоставляет функции генерации"),
-                          QVariantList());
-            return;
-        }
-
-        const CK_RV initRv = fns->C_Initialize(nullptr);
-        const bool owns = (initRv == CKR_OK);
-        if (!owns && initRv != CKR_CRYPTOKI_ALREADY_INITIALIZED) {
-            pinBytes.fill('\0');
-            emit finished(-1, QStringLiteral("C_Initialize: ") + rvHex(initRv), QVariantList());
-            return;
-        }
-
-        // Генерация создаёт объекты на токене → нужна R/W-сессия.
-        CK_SESSION_HANDLE session = 0;
-        CK_RV rv = fns->C_OpenSession(static_cast<CK_SLOT_ID>(slotId),
-                                      CKF_SERIAL_SESSION | CKF_RW_SESSION, nullptr, nullptr, &session);
-        if (rv != CKR_OK) {
-            if (owns)
-                fns->C_Finalize(nullptr);
-            pinBytes.fill('\0');
-            emit finished(-1, QStringLiteral("Не удалось открыть R/W-сессию: ") + rvHex(rv),
-                          QVariantList());
-            return;
-        }
-
-        rv = fns->C_Login(session, CKU_USER,
-                          reinterpret_cast<CK_UTF8CHAR *>(pinBytes.data()),
-                          static_cast<CK_ULONG>(pinBytes.size()));
+        const WriteOutcome wo = runTokenWrite(getFunctionList, slotId, pinBytes,
+            [&algorithm, &label](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session) {
+                if (!fns->C_GenerateKeyPair)
+                    return qMakePair(false, QStringLiteral("Библиотека не предоставляет C_GenerateKeyPair"));
+                const pkcs11::KeygenResult gen = pkcs11::generateKeyPair(fns, session, algorithm, label);
+                return qMakePair(gen.ok, gen.message);
+            });
         pinBytes.fill('\0');
-        const bool loggedIn = (rv == CKR_OK || rv == CKR_USER_ALREADY_LOGGED_IN);
-        if (!loggedIn) {
-            const QString msg = loginErrorMessage(fns, static_cast<CK_SLOT_ID>(slotId), rv);
-            fns->C_CloseSession(session);
-            if (owns)
-                fns->C_Finalize(nullptr);
-            emit finished(-1, msg, QVariantList());
-            return;
-        }
+        emit finished(wo.outcome, wo.message, wo.objects);
+    });
+}
 
-        const pkcs11::KeygenResult gen = pkcs11::generateKeyPair(fns, session, algorithm, label);
-        message = gen.message;
+void TokenSession::importCertificate(qulonglong slotId, const QString &pin,
+                                     const QString &filePath, const QString &label)
+{
+    if (m_busy)
+        return;
+    if (!m_getFunctionList) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        emit changed();
+        return;
+    }
 
-        // После генерации перечитываем объекты в этой же залогиненной сессии —
-        // новая пара сразу видна в списке.
-        objects = pkcs11::listTokenObjects(fns, session, /*loggedIn*/ true);
+    m_busy = true;
+    m_outcome = 0;
+    m_result.clear();
+    emit changed();
 
-        fns->C_Logout(session);
-        fns->C_CloseSession(session);
-        if (owns)
-            fns->C_Finalize(nullptr);
+    const QFunctionPointer getFunctionList = m_getFunctionList;
+    QByteArray pinBytes = pin.toUtf8();
 
-        emit finished(gen.ok ? 1 : -1, message, objects);
+    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, filePath, label]() mutable {
+        const WriteOutcome wo = runTokenWrite(getFunctionList, slotId, pinBytes,
+            [&filePath, &label](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session) {
+                if (!fns->C_CreateObject)
+                    return qMakePair(false, QStringLiteral("Библиотека не предоставляет C_CreateObject"));
+                const pkcs11::ImportResult imp =
+                        pkcs11::importCertificateFromFile(fns, session, filePath, label);
+                return qMakePair(imp.ok, imp.message);
+            });
+        pinBytes.fill('\0');
+        emit finished(wo.outcome, wo.message, wo.objects);
     });
 }
 

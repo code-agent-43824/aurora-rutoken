@@ -216,6 +216,10 @@
         <source>Generate key pair</source>
         <translation>Создать ключевую пару</translation>
     </message>
+    <message>
+        <source>Import certificate</source>
+        <translation>Импорт сертификата</translation>
+    </message>
 </context>
 <context>
     <name>CertificatePage</name>
@@ -317,6 +321,68 @@
     <message>
         <source>Save</source>
         <translation>Сохранить</translation>
+    </message>
+</context>
+<context>
+    <name>CertFilePickerPage</name>
+    <message>
+        <source>Choose a certificate</source>
+        <translation>Выберите сертификат</translation>
+    </message>
+</context>
+<context>
+    <name>ImportCertificatePage</name>
+    <message>
+        <source>Import certificate</source>
+        <translation>Импорт сертификата</translation>
+    </message>
+    <message>
+        <source>From a file to the token</source>
+        <translation>Из файла на токен</translation>
+    </message>
+    <message>
+        <source>Choose a file</source>
+        <translation>Выбрать файл</translation>
+    </message>
+    <message>
+        <source>Certificate file (PEM or DER)</source>
+        <translation>Файл сертификата (PEM или DER)</translation>
+    </message>
+    <message>
+        <source>Pick a file or type a path</source>
+        <translation>Выберите файл или введите путь</translation>
+    </message>
+    <message>
+        <source>Certificate label (optional)</source>
+        <translation>Метка сертификата (необязательно)</translation>
+    </message>
+    <message>
+        <source>Taken from Common Name if empty</source>
+        <translation>Если пусто — из Common Name</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Enter user PIN</source>
+        <translation>Введите PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Importing…</source>
+        <translation>Импорт…</translation>
+    </message>
+    <message>
+        <source>Import</source>
+        <translation>Импортировать</translation>
+    </message>
+    <message>
+        <source>Swipe back to see the certificate in the list.</source>
+        <translation>Проведите назад, чтобы увидеть сертификат в списке.</translation>
+    </message>
+    <message>
+        <source>Only the certificate (public) is imported — never a private key. The PIN is not stored.</source>
+        <translation>Импортируется только сертификат (открытый) — без закрытого ключа. PIN не сохраняется.</translation>
     </message>
 </context>
 <context>

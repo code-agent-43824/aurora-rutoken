@@ -78,15 +78,24 @@ static const CK_ATTRIBUTE_TYPE CKA_TOKEN = 0x00000001UL;
 static const CK_ATTRIBUTE_TYPE CKA_PRIVATE = 0x00000002UL;
 static const CK_ATTRIBUTE_TYPE CKA_LABEL = 0x00000003UL;
 static const CK_ATTRIBUTE_TYPE CKA_VALUE = 0x00000011UL; // тело сертификата (DER X.509)
+static const CK_ATTRIBUTE_TYPE CKA_CERTIFICATE_TYPE = 0x00000080UL;
+static const CK_ATTRIBUTE_TYPE CKA_ISSUER = 0x00000081UL;         // DER Name издателя
+static const CK_ATTRIBUTE_TYPE CKA_SERIAL_NUMBER = 0x00000082UL;  // DER INTEGER серийного №
 static const CK_ATTRIBUTE_TYPE CKA_KEY_TYPE = 0x00000100UL;
+static const CK_ATTRIBUTE_TYPE CKA_SUBJECT = 0x00000101UL;        // DER Name субъекта
 static const CK_ATTRIBUTE_TYPE CKA_ID = 0x00000102UL;
 static const CK_ATTRIBUTE_TYPE CKA_SIGN = 0x00000108UL;
 static const CK_ATTRIBUTE_TYPE CKA_VERIFY = 0x0000010AUL;
 static const CK_ATTRIBUTE_TYPE CKA_DERIVE = 0x0000010CUL;
+static const CK_ATTRIBUTE_TYPE CKA_MODULUS = 0x00000120UL;        // RSA modulus (для сравнения)
 static const CK_ATTRIBUTE_TYPE CKA_MODULUS_BITS = 0x00000121UL;
 static const CK_ATTRIBUTE_TYPE CKA_PUBLIC_EXPONENT = 0x00000122UL;
 static const CK_ATTRIBUTE_TYPE CKA_GOSTR3410_PARAMS = 0x00000250UL;
 static const CK_ATTRIBUTE_TYPE CKA_GOSTR3411_PARAMS = 0x00000251UL;
+
+// Тип сертификата (CKA_CERTIFICATE_TYPE) для импорта X.509 через C_CreateObject.
+typedef CK_ULONG CK_CERTIFICATE_TYPE;
+static const CK_CERTIFICATE_TYPE CKC_X_509 = 0x00000000UL;
 
 // Типы ключей (CKA_KEY_TYPE) — для отображения и для генерации.
 static const CK_KEY_TYPE CKK_RSA = 0x00000000UL;
@@ -168,6 +177,8 @@ typedef CK_RV (*CK_C_OpenSession)(CK_SLOT_ID, CK_FLAGS, CK_VOID_PTR, CK_VOID_PTR
 typedef CK_RV (*CK_C_CloseSession)(CK_SESSION_HANDLE);
 typedef CK_RV (*CK_C_Login)(CK_SESSION_HANDLE, CK_USER_TYPE, CK_UTF8CHAR *, CK_ULONG);
 typedef CK_RV (*CK_C_Logout)(CK_SESSION_HANDLE);
+// C_CreateObject (№21): создание объекта на токене (для импорта сертификата).
+typedef CK_RV (*CK_C_CreateObject)(CK_SESSION_HANDLE, CK_ATTRIBUTE *, CK_ULONG, CK_OBJECT_HANDLE *);
 typedef CK_RV (*CK_C_GetAttributeValue)(CK_SESSION_HANDLE, CK_OBJECT_HANDLE, CK_ATTRIBUTE *, CK_ULONG);
 typedef CK_RV (*CK_C_FindObjectsInit)(CK_SESSION_HANDLE, CK_ATTRIBUTE *, CK_ULONG);
 typedef CK_RV (*CK_C_FindObjects)(CK_SESSION_HANDLE, CK_OBJECT_HANDLE *, CK_ULONG, CK_ULONG *);
@@ -205,7 +216,7 @@ struct CK_FUNCTION_LIST_PREFIX {
     CK_SkippedFn C_SetOperationState;         // 18
     CK_C_Login C_Login;                       // 19
     CK_C_Logout C_Logout;                     // 20
-    CK_SkippedFn C_CreateObject;              // 21
+    CK_C_CreateObject C_CreateObject;         // 21
     CK_SkippedFn C_CopyObject;                // 22
     CK_SkippedFn C_DestroyObject;             // 23
     CK_SkippedFn C_GetObjectSize;             // 24
@@ -289,6 +300,8 @@ static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_Login) == 19 * sizeof(void *),
               "CK_FUNCTION_LIST: C_Login offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_Logout) == 20 * sizeof(void *),
               "CK_FUNCTION_LIST: C_Logout offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_CreateObject) == 21 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_CreateObject offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_GetAttributeValue) == 25 * sizeof(void *),
               "CK_FUNCTION_LIST: C_GetAttributeValue offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_FindObjectsInit) == 27 * sizeof(void *),
