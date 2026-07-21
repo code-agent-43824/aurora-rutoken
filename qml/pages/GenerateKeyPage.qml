@@ -7,6 +7,7 @@ Page {
     allowedOrientations: Orientation.All
 
     property var slotId: 0
+    property string connection: "USB"   // "USB" — по кэшу PIN; "NFC" — через мастер
 
     // Порядок кодов совпадает с пунктами ComboBox и с TokenSession::generateKeyPair.
     property var algoCodes: ["gost256", "gost512", "rsa2048", "rsa4096"]
@@ -14,9 +15,20 @@ Page {
     property bool attempted: false
 
     function doGenerate() {
-        if (tokenSession.busy || !tokenSession.loggedIn)
+        if (tokenSession.busy)
             return
         Qt.inputMethod.commit()
+        if (page.connection === "NFC") {
+            // По NFC — через мастер (взять токен → PIN → поднести → генерация).
+            pageStack.push(Qt.resolvedUrl("NfcConnectPage.qml"), {
+                operation: "generate",
+                algorithm: page.algoCodes[algoCombo.currentIndex],
+                label: labelField.text
+            })
+            return
+        }
+        if (!tokenSession.loggedIn)
+            return
         page.attempted = true
         tokenSession.generateKeyPairCached(page.slotId,
                                            page.algoCodes[algoCombo.currentIndex],
@@ -74,10 +86,10 @@ Page {
                 EnterKey.onClicked: page.doGenerate()
             }
 
-            // Требуется вход по PIN. Если не вошли — открыть цифровой экран PIN;
+            // USB: требуется вход по PIN. Если не вошли — открыть цифровой экран PIN;
             // после входа PIN запоминается и генерация идёт без повторного ввода.
             Button {
-                visible: !tokenSession.loggedIn
+                visible: page.connection !== "NFC" && !tokenSession.loggedIn
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: tokenSession.busy ? qsTr("Checking…") : qsTr("Enter PIN")
                 enabled: !tokenSession.busy
@@ -85,7 +97,7 @@ Page {
             }
 
             Label {
-                visible: tokenSession.loggedIn
+                visible: page.connection !== "NFC" && tokenSession.loggedIn
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 horizontalAlignment: Text.AlignHCenter
@@ -94,10 +106,22 @@ Page {
                 font.pixelSize: Theme.fontSizeExtraSmall
             }
 
+            // NFC: PIN вводится в мастере при поднесении токена.
+            Label {
+                visible: page.connection === "NFC"
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                text: qsTr("Over NFC you will enter the PIN and hold the token in the next step.")
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+            }
+
             Button {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: tokenSession.busy ? qsTr("Generating…") : qsTr("Generate")
-                enabled: !tokenSession.busy && tokenSession.loggedIn
+                enabled: !tokenSession.busy && (page.connection === "NFC" || tokenSession.loggedIn)
                 onClicked: page.doGenerate()
             }
 

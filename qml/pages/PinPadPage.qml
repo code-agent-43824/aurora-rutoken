@@ -67,8 +67,13 @@ Page {
                 color: Theme.highlightColor
             }
 
+            // Всегда занимает своё место в раскладке (visible при цифровом режиме),
+            // а до первой цифры лишь прозрачна — чтобы её появление не сдвигало
+            // клавиатуру вниз (кнопки не «спрыгивают» из-под пальца).
             Button {
-                visible: !page.textMode && page.pin.length > 0
+                visible: !page.textMode
+                opacity: page.pin.length > 0 ? 1.0 : 0.0
+                enabled: page.pin.length > 0
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: page.reveal ? qsTr("Hide") : qsTr("Show")
                 onClicked: page.reveal = !page.reveal

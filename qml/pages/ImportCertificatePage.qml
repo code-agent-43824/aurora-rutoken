@@ -7,13 +7,25 @@ Page {
     allowedOrientations: Orientation.All
 
     property var slotId: 0
+    property string connection: "USB"   // "USB" — по кэшу PIN; "NFC" — через мастер
     // Показывать результат только после попытки на этом экране (outcome общий).
     property bool attempted: false
 
     function doImport() {
-        if (tokenSession.busy || !tokenSession.loggedIn || pathField.text.length === 0)
+        if (tokenSession.busy || pathField.text.length === 0)
             return
         Qt.inputMethod.commit()
+        if (page.connection === "NFC") {
+            // По NFC — через мастер (взять токен → PIN → поднести → импорт).
+            pageStack.push(Qt.resolvedUrl("NfcConnectPage.qml"), {
+                operation: "import",
+                filePath: pathField.text,
+                label: labelField.text
+            })
+            return
+        }
+        if (!tokenSession.loggedIn)
+            return
         page.attempted = true
         tokenSession.importCertificateCached(page.slotId, pathField.text, labelField.text)
     }
@@ -81,10 +93,10 @@ Page {
                 EnterKey.onClicked: page.doImport()
             }
 
-            // Требуется вход по PIN. Если не вошли — открыть цифровой экран PIN;
+            // USB: требуется вход по PIN. Если не вошли — открыть цифровой экран PIN;
             // после входа PIN запоминается и импорт идёт без повторного ввода.
             Button {
-                visible: !tokenSession.loggedIn
+                visible: page.connection !== "NFC" && !tokenSession.loggedIn
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: tokenSession.busy ? qsTr("Checking…") : qsTr("Enter PIN")
                 enabled: !tokenSession.busy
@@ -92,7 +104,7 @@ Page {
             }
 
             Label {
-                visible: tokenSession.loggedIn
+                visible: page.connection !== "NFC" && tokenSession.loggedIn
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 horizontalAlignment: Text.AlignHCenter
@@ -101,10 +113,23 @@ Page {
                 font.pixelSize: Theme.fontSizeExtraSmall
             }
 
+            // NFC: PIN вводится в мастере при поднесении токена.
+            Label {
+                visible: page.connection === "NFC"
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                text: qsTr("Over NFC you will enter the PIN and hold the token in the next step.")
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+            }
+
             Button {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: tokenSession.busy ? qsTr("Importing…") : qsTr("Import")
-                enabled: !tokenSession.busy && tokenSession.loggedIn && pathField.text.length > 0
+                enabled: !tokenSession.busy && pathField.text.length > 0
+                         && (page.connection === "NFC" || tokenSession.loggedIn)
                 onClicked: page.doImport()
             }
 

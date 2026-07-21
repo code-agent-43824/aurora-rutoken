@@ -4,6 +4,26 @@
 <context>
     <name>TokensPage</name>
     <message>
+        <source>USB</source>
+        <translation>USB</translation>
+    </message>
+    <message>
+        <source>Connect a Rutoken over USB — it appears here automatically</source>
+        <translation>Подключите Рутокен по USB — он появится здесь автоматически</translation>
+    </message>
+    <message>
+        <source>NFC</source>
+        <translation>NFC</translation>
+    </message>
+    <message>
+        <source>Connect over NFC</source>
+        <translation>Подключить по NFC</translation>
+    </message>
+    <message>
+        <source>Tap and follow the steps: hold the token to the back cover</source>
+        <translation>Нажмите и следуйте шагам: поднесите токен к задней крышке</translation>
+    </message>
+    <message>
         <source>Diagnostics</source>
         <translation>Диагностика</translation>
     </message>
@@ -345,6 +365,10 @@
 <context>
     <name>ImportCertificatePage</name>
     <message>
+        <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
+        <translation>По NFC на следующем шаге вы введёте PIN и поднесёте токен.</translation>
+    </message>
+    <message>
         <source>Enter PIN</source>
         <translation>Ввести PIN</translation>
     </message>
@@ -414,6 +438,57 @@
     </message>
 </context>
 <context>
+    <name>NfcConnectPage</name>
+    <message>
+        <source>Connect over NFC</source>
+        <translation>Подключить по NFC</translation>
+    </message>
+    <message>
+        <source>Generate a key pair over NFC</source>
+        <translation>Создание ключевой пары по NFC</translation>
+    </message>
+    <message>
+        <source>Import a certificate over NFC</source>
+        <translation>Импорт сертификата по NFC</translation>
+    </message>
+    <message>
+        <source>Take the Rutoken NFC token in your hand. You will hold it to the back of the phone in a moment.</source>
+        <translation>Возьмите NFC-токен Рутокен в руку. Сейчас нужно будет поднести его к задней крышке телефона.</translation>
+    </message>
+    <message>
+        <source>Enter PIN</source>
+        <translation>Ввести PIN</translation>
+    </message>
+    <message>
+        <source>Hold the token to the back cover and keep it there until the operation finishes.</source>
+        <translation>Поднесите токен к задней крышке и держите, пока операция не завершится.</translation>
+    </message>
+    <message>
+        <source>Token detected — working…</source>
+        <translation>Токен обнаружен — выполняется…</translation>
+    </message>
+    <message>
+        <source>Waiting for the token…</source>
+        <translation>Ожидание токена…</translation>
+    </message>
+    <message>
+        <source>You can remove the token now.</source>
+        <translation>Теперь можно убрать токен.</translation>
+    </message>
+    <message>
+        <source>Done</source>
+        <translation>Готово</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>Продолжить</translation>
+    </message>
+</context>
+<context>
     <name>PinPadPage</name>
     <message>
         <source>User PIN</source>
@@ -442,6 +517,10 @@
 </context>
 <context>
     <name>GenerateKeyPage</name>
+    <message>
+        <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
+        <translation>По NFC на следующем шаге вы введёте PIN и поднесёте токен.</translation>
+    </message>
     <message>
         <source>Enter PIN</source>
         <translation>Ввести PIN</translation>

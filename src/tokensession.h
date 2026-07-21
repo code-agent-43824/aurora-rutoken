@@ -41,6 +41,9 @@ public:
     Q_INVOKABLE void login(qulonglong slotId, const QString &pin);
     // Чтение только сертификатов без входа (они видны без PIN).
     Q_INVOKABLE void preview(qulonglong slotId);
+    // Вход по PIN + чтение всех объектов БЕЗ запоминания PIN — для NFC-подключения
+    // (у NFC другая парадигма: PIN вводится в мастере на каждое подключение).
+    Q_INVOKABLE void nfcRead(qulonglong slotId, const QString &pin);
     // Сброс запомненного входа (кнопка «Разлогиниться»): обнуляет PIN и объекты.
     Q_INVOKABLE void logout();
     // Генерация ключевой пары на токене (вход по PIN, R/W-сессия, C_GenerateKeyPair),

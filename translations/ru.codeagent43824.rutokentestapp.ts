@@ -4,6 +4,26 @@
 <context>
     <name>TokensPage</name>
     <message>
+        <source>USB</source>
+        <translation>USB</translation>
+    </message>
+    <message>
+        <source>Connect a Rutoken over USB — it appears here automatically</source>
+        <translation>Connect a Rutoken over USB — it appears here automatically</translation>
+    </message>
+    <message>
+        <source>NFC</source>
+        <translation>NFC</translation>
+    </message>
+    <message>
+        <source>Connect over NFC</source>
+        <translation>Connect over NFC</translation>
+    </message>
+    <message>
+        <source>Tap and follow the steps: hold the token to the back cover</source>
+        <translation>Tap and follow the steps: hold the token to the back cover</translation>
+    </message>
+    <message>
         <source>Diagnostics</source>
         <translation>Diagnostics</translation>
     </message>
@@ -345,6 +365,10 @@
 <context>
     <name>ImportCertificatePage</name>
     <message>
+        <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
+        <translation>Over NFC you will enter the PIN and hold the token in the next step.</translation>
+    </message>
+    <message>
         <source>Enter PIN</source>
         <translation>Enter PIN</translation>
     </message>
@@ -414,6 +438,57 @@
     </message>
 </context>
 <context>
+    <name>NfcConnectPage</name>
+    <message>
+        <source>Connect over NFC</source>
+        <translation>Connect over NFC</translation>
+    </message>
+    <message>
+        <source>Generate a key pair over NFC</source>
+        <translation>Generate a key pair over NFC</translation>
+    </message>
+    <message>
+        <source>Import a certificate over NFC</source>
+        <translation>Import a certificate over NFC</translation>
+    </message>
+    <message>
+        <source>Take the Rutoken NFC token in your hand. You will hold it to the back of the phone in a moment.</source>
+        <translation>Take the Rutoken NFC token in your hand. You will hold it to the back of the phone in a moment.</translation>
+    </message>
+    <message>
+        <source>Enter PIN</source>
+        <translation>Enter PIN</translation>
+    </message>
+    <message>
+        <source>Hold the token to the back cover and keep it there until the operation finishes.</source>
+        <translation>Hold the token to the back cover and keep it there until the operation finishes.</translation>
+    </message>
+    <message>
+        <source>Token detected — working…</source>
+        <translation>Token detected — working…</translation>
+    </message>
+    <message>
+        <source>Waiting for the token…</source>
+        <translation>Waiting for the token…</translation>
+    </message>
+    <message>
+        <source>You can remove the token now.</source>
+        <translation>You can remove the token now.</translation>
+    </message>
+    <message>
+        <source>Done</source>
+        <translation>Done</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>User PIN</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>Continue</translation>
+    </message>
+</context>
+<context>
     <name>PinPadPage</name>
     <message>
         <source>User PIN</source>
@@ -442,6 +517,10 @@
 </context>
 <context>
     <name>GenerateKeyPage</name>
+    <message>
+        <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
+        <translation>Over NFC you will enter the PIN and hold the token in the next step.</translation>
+    </message>
     <message>
         <source>Enter PIN</source>
         <translation>Enter PIN</translation>

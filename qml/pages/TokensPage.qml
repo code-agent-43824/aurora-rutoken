@@ -2,8 +2,21 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 Page {
+    id: page
     objectName: "tokensPage"
     allowedOrientations: Orientation.All
+
+    // Живой список — только USB-токены. NFC подключается отдельным мастером
+    // (эфемерный пункт ниже): у NFC другая парадигма (токен держат недолго).
+    property var usbTokens: {
+        var out = []
+        var ts = tokenWatcher.tokens
+        for (var i = 0; i < ts.length; ++i) {
+            if (ts[i].connection === "USB")
+                out.push(ts[i])
+        }
+        return out
+    }
 
     SilicaFlickable {
         anchors.fill: parent
@@ -30,35 +43,27 @@ Page {
                 description: tokenWatcher.status
             }
 
-            // Пустое состояние: подсказка, что список обновляется сам.
+            SectionHeader { text: qsTr("USB") }
+
+            // Пустое состояние для USB: подсказка, что список обновляется сам.
             Column {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 x: Theme.horizontalPageMargin
-                spacing: Theme.paddingLarge
-                visible: tokenWatcher.tokens.length === 0
-
-                Item { width: 1; height: Theme.itemSizeLarge }
+                spacing: Theme.paddingMedium
+                visible: page.usbTokens.length === 0
 
                 Label {
                     width: parent.width
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.Wrap
-                    text: qsTr("Connect a Rutoken over USB or hold it near the NFC antenna")
+                    text: qsTr("Connect a Rutoken over USB — it appears here automatically")
                     color: Theme.secondaryHighlightColor
-                    font.pixelSize: Theme.fontSizeLarge
-                }
-                Label {
-                    width: parent.width
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.Wrap
-                    text: qsTr("The list updates automatically")
-                    color: Theme.secondaryColor
-                    font.pixelSize: Theme.fontSizeSmall
+                    font.pixelSize: Theme.fontSizeMedium
                 }
             }
 
             Repeater {
-                model: tokenWatcher.tokens
+                model: page.usbTokens
 
                 delegate: BackgroundItem {
                     width: content.width
@@ -157,6 +162,65 @@ Page {
                             color: Theme.secondaryColor
                             font.pixelSize: Theme.fontSizeTiny
                         }
+                    }
+                }
+            }
+
+            SectionHeader { text: qsTr("NFC") }
+
+            // Эфемерный NFC-токен: не подключён, но «можно подключить». Тап
+            // запускает мастер подключения по NFC.
+            BackgroundItem {
+                width: content.width
+                height: nfcCard.height + Theme.paddingMedium
+                onClicked: {
+                    tokenSession.clear()
+                    pageStack.push(Qt.resolvedUrl("NfcConnectPage.qml"), { operation: "connect" })
+                }
+                Column {
+                    id: nfcCard
+                    width: parent.width
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.paddingSmall
+
+                    Row {
+                        x: Theme.horizontalPageMargin
+                        width: nfcCard.width - 2 * Theme.horizontalPageMargin
+                        spacing: Theme.paddingMedium
+
+                        Rectangle {
+                            id: nfcBadge
+                            anchors.verticalCenter: nfcTitle.verticalCenter
+                            width: nfcBadgeLabel.width + 2 * Theme.paddingMedium
+                            height: nfcBadgeLabel.height + Theme.paddingSmall
+                            radius: Theme.paddingSmall
+                            color: "#3949ab"
+                            Label {
+                                id: nfcBadgeLabel
+                                anchors.centerIn: parent
+                                text: qsTr("NFC")
+                                color: "white"
+                                font.pixelSize: Theme.fontSizeExtraSmall
+                                font.bold: true
+                            }
+                        }
+                        Label {
+                            id: nfcTitle
+                            width: parent.width - nfcBadge.width - Theme.paddingMedium
+                            text: qsTr("Connect over NFC")
+                            color: Theme.highlightColor
+                            font.pixelSize: Theme.fontSizeLarge
+                            truncationMode: TruncationMode.Fade
+                        }
+                    }
+
+                    Label {
+                        x: Theme.horizontalPageMargin
+                        width: nfcCard.width - 2 * Theme.horizontalPageMargin
+                        wrapMode: Text.Wrap
+                        text: qsTr("Tap and follow the steps: hold the token to the back cover")
+                        color: Theme.secondaryColor
+                        font.pixelSize: Theme.fontSizeExtraSmall
                     }
                 }
             }

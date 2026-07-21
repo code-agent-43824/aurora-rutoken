@@ -179,6 +179,12 @@ void TokenSession::preview(qulonglong slotId)
     run(slotId, QString(), /*doLogin*/ false);
 }
 
+void TokenSession::nfcRead(qulonglong slotId, const QString &pin)
+{
+    m_pendingIsLogin = false; // NFC не запоминает PIN
+    run(slotId, pin, /*doLogin*/ true);
+}
+
 void TokenSession::logout()
 {
     if (m_busy)

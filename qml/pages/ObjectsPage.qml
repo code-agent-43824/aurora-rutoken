@@ -26,13 +26,15 @@ Page {
             MenuItem {
                 text: qsTr("Import certificate")
                 onClicked: pageStack.push(Qt.resolvedUrl("ImportCertificatePage.qml"), {
-                    slotId: page.slotId
+                    slotId: page.slotId,
+                    connection: page.connection
                 })
             }
             MenuItem {
                 text: qsTr("Generate key pair")
                 onClicked: pageStack.push(Qt.resolvedUrl("GenerateKeyPage.qml"), {
-                    slotId: page.slotId
+                    slotId: page.slotId,
+                    connection: page.connection
                 })
             }
         }

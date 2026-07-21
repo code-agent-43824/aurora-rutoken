@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.4.1
-Release:    1
+Release:    2
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -43,6 +43,14 @@ key pair by public key. Builds on the v0.3 two-level object browser
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.4.1-2
+- NFC connection paradigm: the main screen lists USB tokens live and shows an
+  ephemeral "Connect over NFC" entry. Tapping it runs a wizard — take the token,
+  enter the PIN, hold it to the back cover (with a built-in animation and
+  progress), remove it. Key generation and certificate import over NFC run
+  through the same wizard; the NFC PIN is never remembered. Also fixes the PIN
+  pad so the show/hide button no longer shifts the keypad.
+
 * Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.4.1-1
 - PIN entry moved to a dedicated screen with a numeric keypad and a switch to
   the OS text keyboard. For USB the PIN is remembered in memory after the first
