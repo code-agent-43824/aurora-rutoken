@@ -42,6 +42,7 @@ QString pinAttemptsHint(CK_FLAGS flags)
 // Vendor-функции Рутокена (dlsym-указатели передаём как QFunctionPointer).
 typedef CK_RV (*ExGetTokenInfoExtendedFn)(CK_SLOT_ID, void *);
 typedef CK_RV (*ExSetTokenNameFn)(CK_SESSION_HANDLE, CK_UTF8CHAR *, CK_ULONG);
+typedef CK_RV (*ExUnblockUserPINFn)(CK_SESSION_HANDLE);
 
 // Честный остаток попыток PIN пользователя через C_EX_GetTokenInfoExtended.
 // Размер CK_TOKEN_INFO_EXTENDED различается по архитектурам, поэтому подбираем
@@ -237,6 +238,7 @@ TokenSession::TokenSession(QObject *parent)
         // Vendor-функции Рутокена экспортируются напрямую; их отсутствие не критично.
         m_exGetTokenInfoExtended = m_library.resolve("C_EX_GetTokenInfoExtended");
         m_exSetTokenName = m_library.resolve("C_EX_SetTokenName");
+        m_exUnblockUserPin = m_library.resolve("C_EX_UnblockUserPIN");
     }
 }
 
@@ -464,50 +466,51 @@ void TokenSession::changeSoPin(qulonglong slotId, const QString &oldSoPin, const
     });
 }
 
-void TokenSession::unblockUserPin(qulonglong slotId, const QString &soPin, const QString &newUserPin)
+void TokenSession::unblockUserPin(qulonglong slotId, const QString &soPin)
 {
     if (m_busy)
         return;
-    if (!m_getFunctionList) {
+    if (!m_getFunctionList || !m_exUnblockUserPin) {
         m_outcome = -1;
-        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        m_result = m_getFunctionList ? QStringLiteral("Библиотека не поддерживает разблокировку PIN")
+                                     : QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
         emit changed();
         return;
     }
     m_pendingIsLogin = false;
-    m_invalidateUserPin = true; // PIN пользователя сбрасывается → сбросить кэш при успехе
+    m_invalidateUserPin = false; // PIN пользователя не меняется — кэш входа остаётся валидным
     m_busy = true;
     m_outcome = 0;
     m_result.clear();
     emit changed();
 
     const QFunctionPointer getFunctionList = m_getFunctionList;
+    const QFunctionPointer exUnblock = m_exUnblockUserPin;
     QByteArray soB = soPin.toUtf8();
-    QByteArray newB = newUserPin.toUtf8();
     const QVariantList keepObjects = m_objects;
 
-    QtConcurrent::run([this, slotId, soB, newB, getFunctionList, keepObjects]() mutable {
+    QtConcurrent::run([this, slotId, soB, getFunctionList, exUnblock, keepObjects]() mutable {
         const QPair<int, QString> r = runSessionOp(getFunctionList, slotId,
-            [&soB, &newB](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s) {
-                if (!fns->C_Login || !fns->C_Logout || !fns->C_InitPIN)
-                    return qMakePair(false, QStringLiteral("Библиотека не предоставляет C_InitPIN"));
+            [&soB, exUnblock](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s) {
+                ExUnblockUserPINFn unblock = reinterpret_cast<ExUnblockUserPINFn>(exUnblock);
+                if (!unblock || !fns->C_Login || !fns->C_Logout)
+                    return qMakePair(false, QStringLiteral("Библиотека не предоставляет разблокировку"));
+                // Вход администратора (SO), затем сброс счётчика попыток пользователя.
                 const CK_RV lr = fns->C_Login(s, CKU_SO,
                         reinterpret_cast<CK_UTF8CHAR *>(soB.data()), static_cast<CK_ULONG>(soB.size()));
                 if (lr != CKR_OK && lr != CKR_USER_ALREADY_LOGGED_IN)
                     return qMakePair(false, pinRvMessage(lr));
-                const CK_RV rv = fns->C_InitPIN(s,
-                        reinterpret_cast<CK_UTF8CHAR *>(newB.data()), static_cast<CK_ULONG>(newB.size()));
+                const CK_RV rv = unblock(s);
                 fns->C_Logout(s);
                 return qMakePair(rv == CKR_OK,
                                  rv == CKR_OK ? QStringLiteral("PIN пользователя разблокирован") : pinRvMessage(rv));
             });
         soB.fill('\0');
-        newB.fill('\0');
         emit finished(r.first, r.second, keepObjects);
     });
 }
 
-void TokenSession::changeTokenLabel(qulonglong slotId, const QString &adminPin, const QString &label)
+void TokenSession::changeTokenLabel(qulonglong slotId, const QString &userPin, const QString &label)
 {
     if (m_busy)
         return;
@@ -527,7 +530,7 @@ void TokenSession::changeTokenLabel(qulonglong slotId, const QString &adminPin, 
 
     const QFunctionPointer getFunctionList = m_getFunctionList;
     const QFunctionPointer exSetName = m_exSetTokenName;
-    QByteArray pinB = adminPin.toUtf8();
+    QByteArray pinB = userPin.toUtf8();
     QByteArray labelB = label.toUtf8();
     const QVariantList keepObjects = m_objects;
 
@@ -537,8 +540,8 @@ void TokenSession::changeTokenLabel(qulonglong slotId, const QString &adminPin, 
                 ExSetTokenNameFn setName = reinterpret_cast<ExSetTokenNameFn>(exSetName);
                 if (!setName || !fns->C_Login || !fns->C_Logout)
                     return qMakePair(false, QStringLiteral("Библиотека не предоставляет смену метки"));
-                // Смена метки токена требует входа администратора (SO).
-                const CK_RV lr = fns->C_Login(s, CKU_SO,
+                // C_EX_SetTokenName требует аутентификацию пользователя (не SO).
+                const CK_RV lr = fns->C_Login(s, CKU_USER,
                         reinterpret_cast<CK_UTF8CHAR *>(pinB.data()), static_cast<CK_ULONG>(pinB.size()));
                 if (lr != CKR_OK && lr != CKR_USER_ALREADY_LOGGED_IN)
                     return qMakePair(false, pinRvMessage(lr));

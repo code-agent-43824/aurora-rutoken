@@ -42,7 +42,8 @@ Page {
         return pin2.length > 0 && pin2 === pin2c
     }
     function canApply() {
-        return !tokenSession.busy && pin1.length > 0 && matchOk()
+        // Разблокировка требует только PIN администратора (нового PIN нет).
+        return !tokenSession.busy && pin1.length > 0 && (mode === "unblock" || matchOk())
     }
 
     function openPad(which, heading) {
@@ -64,7 +65,7 @@ Page {
         if (page.mode === "so")
             tokenSession.changeSoPin(page.slotId, page.pin1, page.pin2)
         else if (page.mode === "unblock")
-            tokenSession.unblockUserPin(page.slotId, page.pin1, page.pin2)
+            tokenSession.unblockUserPin(page.slotId, page.pin1)
         else
             tokenSession.changeUserPin(page.slotId, page.pin1, page.pin2)
     }
@@ -90,8 +91,9 @@ Page {
                 onClicked: page.openPad("pin1", page.pin1Label())
             }
 
-            // Новый PIN.
+            // Новый PIN (не нужен при разблокировке — там только сброс счётчика).
             Button {
+                visible: page.mode !== "unblock"
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: page.pin2.length > 0
                       ? page.pin2Label() + ": " + page.dots(page.pin2)
@@ -102,6 +104,7 @@ Page {
 
             // Подтверждение нового PIN.
             Button {
+                visible: page.mode !== "unblock"
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: page.pin2c.length > 0
                       ? qsTr("Confirm new PIN") + ": " + page.dots(page.pin2c)
@@ -115,7 +118,8 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.Wrap
-                visible: page.pin2.length > 0 && page.pin2c.length > 0 && page.pin2 !== page.pin2c
+                visible: page.mode !== "unblock" && page.pin2.length > 0 && page.pin2c.length > 0
+                         && page.pin2 !== page.pin2c
                 text: qsTr("The new PINs do not match")
                 color: "#f44336"
                 font.pixelSize: Theme.fontSizeSmall
@@ -154,7 +158,7 @@ Page {
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
                 text: page.mode === "unblock"
-                      ? qsTr("The administrator sets a new user PIN; the user PIN attempt counter is reset.")
+                      ? qsTr("The administrator resets the user PIN attempt counter; the user PIN itself stays the same.")
                       : qsTr("A wrong current PIN, entered several times, can lock the token.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall

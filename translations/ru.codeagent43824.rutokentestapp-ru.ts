@@ -523,6 +523,18 @@
 <context>
     <name>TokenLabelPage</name>
     <message>
+        <source>User PIN</source>
+        <translation>PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Enter user PIN</source>
+        <translation>Введите PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Changing the label requires the user PIN and does not erase the token.</source>
+        <translation>Смена метки требует PIN пользователя и не стирает токен.</translation>
+    </message>
+    <message>
         <source>Change token label</source>
         <translation>Сменить метку токена</translation>
     </message>
@@ -561,6 +573,10 @@
 </context>
 <context>
     <name>PinChangePage</name>
+    <message>
+        <source>The administrator resets the user PIN attempt counter; the user PIN itself stays the same.</source>
+        <translation>Администратор сбрасывает счётчик попыток PIN пользователя; сам PIN не меняется.</translation>
+    </message>
     <message>
         <source>Change admin PIN</source>
         <translation>Смена PIN администратора</translation>

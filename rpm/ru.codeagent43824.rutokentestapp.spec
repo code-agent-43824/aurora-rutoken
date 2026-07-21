@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.5.0
-Release:    2
+Release:    3
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,13 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.5.0-3
+- Unblock the user PIN through the Rutoken vendor call C_EX_UnblockUserPIN
+  (administrator/SO login, then reset the user PIN attempt counter) instead of
+  C_InitPIN — the user PIN itself is kept, only the zeroed attempt counter is
+  restored. Change the token label with a USER login (C_EX_SetTokenName needs the
+  user, not the SO, so it no longer fails with CKR_USER_NOT_LOGGED_IN / 101).
+
 * Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.5.0-2
 - Fix the user PIN change (Rutoken requires a USER login before C_SetPIN; it was
   failing with CKR_USER_NOT_LOGGED_IN). Show the honest number of remaining PIN

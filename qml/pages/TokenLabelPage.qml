@@ -1,7 +1,7 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 
-// Смена метки токена (vendor C_EX_SetTokenName) — требует PIN администратора (SO).
+// Смена метки токена (vendor C_EX_SetTokenName) — требует PIN пользователя.
 Page {
     id: page
     objectName: "tokenLabelPage"
@@ -9,23 +9,23 @@ Page {
 
     property var slotId: 0
     property string currentLabel: ""
-    property string adminPin: ""
+    property string userPin: ""
     property bool attempted: false
 
     function openPad() {
         var pad = pageStack.push(Qt.resolvedUrl("PinPadPage.qml"), {
-            heading: qsTr("Administrator (SO) PIN"),
+            heading: qsTr("User PIN"),
             acceptText: qsTr("OK")
         })
-        pad.entered.connect(function(value) { page.adminPin = value })
+        pad.entered.connect(function(value) { page.userPin = value })
     }
 
     function doApply() {
-        if (tokenSession.busy || labelField.text.length === 0 || page.adminPin.length === 0)
+        if (tokenSession.busy || labelField.text.length === 0 || page.userPin.length === 0)
             return
         Qt.inputMethod.commit()
         page.attempted = true
-        tokenSession.changeTokenLabel(page.slotId, page.adminPin, labelField.text)
+        tokenSession.changeTokenLabel(page.slotId, page.userPin, labelField.text)
     }
 
     SilicaFlickable {
@@ -53,9 +53,9 @@ Page {
 
             Button {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: page.adminPin.length > 0
-                      ? qsTr("Administrator (SO) PIN") + ": ●●●●"
-                      : qsTr("Enter administrator (SO) PIN")
+                text: page.userPin.length > 0
+                      ? qsTr("User PIN") + ": ●●●●"
+                      : qsTr("Enter user PIN")
                 enabled: !tokenSession.busy
                 onClicked: page.openPad()
             }
@@ -63,7 +63,7 @@ Page {
             Button {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: tokenSession.busy ? qsTr("Applying…") : qsTr("Change label")
-                enabled: !tokenSession.busy && labelField.text.length > 0 && page.adminPin.length > 0
+                enabled: !tokenSession.busy && labelField.text.length > 0 && page.userPin.length > 0
                 onClicked: page.doApply()
             }
 
@@ -91,7 +91,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
-                text: qsTr("Changing the label requires the administrator (SO) PIN and does not erase the token.")
+                text: qsTr("Changing the label requires the user PIN and does not erase the token.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }
