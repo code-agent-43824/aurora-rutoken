@@ -173,7 +173,8 @@
   - [x] Разбор X.509 DER (`pkcs11_certimport`): собственный TLV-парсер достаёт subject/issuer/serial (полные DER TLV) и открытый ключ из SubjectPublicKeyInfo; нормализация (ГОСТ — распаковать OCTET STRING + сравнение в прямом/обратном порядке; RSA — сравнить modulus) — 2026-07-21; **парсер сверен с `openssl asn1parse`/`-modulus`** на реальном сертификате
   - [x] `TokenSession::importCertificate(slot,pin,filePath,label)` через общий `runTokenWrite` (тот же цикл, что генерация): чтение файла (PEM→DER или сырой DER), матч по открытому ключу, `C_CreateObject`, перечитывание объектов — 2026-07-21
   - [x] UI `ImportCertificatePage` (из `PullDownMenu` на `ObjectsPage`): выбор файла (`Sailfish.Pickers`, изолирован в `CertFilePickerPage`) + ручной ввод пути, метка (плейсхолдер CN), PIN, кнопка «Импортировать» — 2026-07-21
-  - [ ] spec 0.4.0-5, переводы, README, JOURNAL — сделано; **зелёный CI** — ожидается; проверка импорта на телефоне (ГОСТ; USB и NFC)
+  - [x] spec 0.4.0-5, переводы, README, JOURNAL; **зелёный CI** — 2026-07-21, run #21 (`efe0c01`) зелёный с первой попытки: новый `pkcs11_certimport.cpp` и QML с `Sailfish.Pickers` собрались на обеих арках; в релизе `ci-latest` 4 голых `.rpm` 0.4.0-5 (старые 0.4.0-4 удалены) + артефакты Actions (2 per-arch)
+  - [ ] Проверка импорта на телефоне владельца (ГОСТ-сертификат PEM/DER из файла; приклеивание к паре; USB и NFC) → после подтверждения закрыть v0.4
 - [ ] Обновлять spec/переводы/README/JOURNAL на каждом этапе; проверка на телефоне (генерация ключа, импорт, экспорт на USB и NFC). Только после этого закрыть v0.4
 
 ### v0.5 — Управление PIN-кодами
