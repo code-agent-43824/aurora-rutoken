@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.4.1
-Release:    2
+Release:    3
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -43,6 +43,14 @@ key pair by public key. Builds on the v0.3 two-level object browser
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.4.1-3
+- A connected NFC token now stays in the list as a logical connection: its
+  objects snapshot is kept so you can re-open its certificates without holding
+  the token again. Every token has a small "Disconnect" button — for NFC it is
+  forgotten, for USB it is hidden until physically reconnected. The NFC hold
+  animation now reacts to detection (token stuck to the back while working, then
+  moved away when done), with best-effort system sounds on connect/disconnect.
+
 * Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.4.1-2
 - NFC connection paradigm: the main screen lists USB tokens live and shows an
   ephemeral "Connect over NFC" entry. Tapping it runs a wizard — take the token,

@@ -8,7 +8,8 @@ import Sailfish.Silica 1.0
 //           появлении NFC-слота выполняется операция;
 //   шаг 4 — убрать токен, результат.
 // operation: "connect" (вход + чтение), "generate", "import". PIN по NFC НЕ
-// запоминается — вводится в мастере на каждое подключение.
+// запоминается. После connect токен «логически подключается» (снимок объектов
+// сохраняется в TokenSession) — к нему можно вернуться без повторного поднесения.
 Page {
     id: page
     objectName: "nfcConnectPage"
@@ -22,7 +23,7 @@ Page {
     property int step: 1
     property string pin: ""
     property bool started: false
-    property var lastSlot: 0
+    property var lastToken: null
 
     function opTitle() {
         if (page.operation === "generate")
@@ -32,29 +33,29 @@ Page {
         return qsTr("Connect over NFC")
     }
 
-    function findNfcSlot() {
+    function findNfcToken() {
         var ts = tokenWatcher.tokens
         for (var i = 0; i < ts.length; ++i) {
             if (ts[i].connection === "NFC")
-                return ts[i].slotId
+                return ts[i]
         }
-        return -1
+        return null
     }
 
     function tryRun() {
         if (page.step !== 3 || page.started || tokenSession.busy)
             return
-        var slot = page.findNfcSlot()
-        if (slot < 0)
+        var tok = page.findNfcToken()
+        if (!tok)
             return
         page.started = true
-        page.lastSlot = slot
+        page.lastToken = tok
         if (page.operation === "generate")
-            tokenSession.generateKeyPair(slot, page.pin, page.algorithm, page.label)
+            tokenSession.generateKeyPair(tok.slotId, page.pin, page.algorithm, page.label)
         else if (page.operation === "import")
-            tokenSession.importCertificate(slot, page.pin, page.filePath, page.label)
+            tokenSession.importCertificate(tok.slotId, page.pin, page.filePath, page.label)
         else
-            tokenSession.nfcRead(slot, page.pin)
+            tokenSession.nfcRead(tok.slotId, page.pin)
     }
 
     function enterPin() {
@@ -71,7 +72,27 @@ Page {
         })
     }
 
-    onStepChanged: if (page.step === 3) page.tryRun()
+    function feedback(ev) {
+        if (feedbackLoader.status === Loader.Ready && feedbackLoader.item)
+            feedbackLoader.item.play(ev)
+    }
+
+    onStepChanged: {
+        if (page.step === 3)
+            page.tryRun()
+        else if (page.step === 4)
+            page.feedback("general")   // звук рассоединения
+    }
+    onStartedChanged: {
+        if (page.started)
+            page.feedback("positive")  // звук соединения (токен обнаружен)
+    }
+
+    // Изолированная зависимость системных звуков (может отсутствовать — тогда тихо).
+    Loader {
+        id: feedbackLoader
+        source: Qt.resolvedUrl("Feedback.qml")
+    }
 
     // Появился NFC-токен — пытаемся выполнить операцию.
     Connections {
@@ -120,6 +141,14 @@ Page {
                 }
             }
 
+            // --- Иллюстрация (шаги 3 и 4), меняется по состоянию ---
+            NfcHoldAnimation {
+                width: parent.width
+                visible: page.step === 3 || page.step === 4
+                animState: page.step === 4 ? "removing"
+                           : (page.started ? "connected" : "searching")
+            }
+
             // --- Шаг 3: поднести токен + прогресс ---
             Column {
                 visible: page.step === 3
@@ -131,14 +160,11 @@ Page {
                     width: parent.width - 2 * Theme.horizontalPageMargin
                     wrapMode: Text.Wrap
                     horizontalAlignment: Text.AlignHCenter
-                    text: qsTr("Hold the token to the back cover and keep it there until the operation finishes.")
+                    text: page.started
+                          ? qsTr("Keep holding the token — the operation is running.")
+                          : qsTr("Hold the token to the back cover and keep it there.")
                     color: Theme.highlightColor
                     font.pixelSize: Theme.fontSizeLarge
-                }
-
-                NfcHoldAnimation {
-                    width: parent.width
-                    visible: page.step === 3
                 }
 
                 BusyIndicator {
@@ -189,13 +215,19 @@ Page {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: qsTr("Done")
                     onClicked: {
-                        if (page.operation === "connect" && tokenSession.outcome === 1)
+                        if (tokenSession.outcome === 1 && page.operation === "connect") {
+                            // Логически подключаем NFC-токен (снимок объектов) и открываем его.
+                            tokenSession.commitNfc(page.lastToken)
                             pageStack.replace(Qt.resolvedUrl("ObjectsPage.qml"), {
-                                slotId: page.lastSlot,
-                                connection: "NFC"
+                                slotId: page.lastToken ? page.lastToken.slotId : 0,
+                                connection: "NFC",
+                                tokenLabel: page.lastToken ? page.lastToken.label : ""
                             })
-                        else
+                        } else {
+                            if (tokenSession.outcome === 1)
+                                tokenSession.updateNfcObjects() // обновить снимок после генерации/импорта
                             pageStack.pop()
+                        }
                     }
                 }
             }

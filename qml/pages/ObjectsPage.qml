@@ -10,6 +10,11 @@ Page {
     property string tokenLabel: ""
     property string connection: ""
 
+    // Для NFC показываем сохранённый снимок объектов (можно вернуться к
+    // сертификатам без повторного поднесения); для USB — живые объекты сессии.
+    property var objectsModel: page.connection === "NFC" ? tokenSession.nfcObjects
+                                                          : tokenSession.objects
+
     function certTitle(o) {
         if (o.parsed && o.commonName && o.commonName.length > 0)
             return o.commonName
@@ -52,7 +57,7 @@ Page {
             Label {
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
-                visible: tokenSession.objects.length === 0
+                visible: page.objectsModel.length === 0
                 wrapMode: Text.Wrap
                 text: qsTr("No certificates or keys found on the token")
                 color: Theme.secondaryHighlightColor
@@ -60,7 +65,7 @@ Page {
             }
 
             Repeater {
-                model: tokenSession.objects
+                model: page.objectsModel
 
                 delegate: BackgroundItem {
                     width: content.width

@@ -5,7 +5,9 @@
 #include <QtCore/QObject>
 #include <QtCore/QLibrary>
 #include <QtCore/QString>
+#include <QtCore/QStringList>
 #include <QtCore/QVariantList>
+#include <QtCore/QVariantMap>
 
 // Проверка PIN пользователя на конкретном слоте. Операция выполняется одним
 // изолированным циклом в рабочем потоке под общим мьютексом PKCS#11:
@@ -14,7 +16,7 @@
 //
 // Запоминание PIN (для USB): после успешного login() PIN хранится в оперативной
 // памяти (m_cachedPin) и переиспользуется генерацией/импортом без повторного
-// ввода — до logout(), отключения слота (retainUsbSlot) или закрытия приложения.
+// ввода — до logout(), отключения слота (syncWithTokens) или закрытия приложения.
 // PIN не логируется и обнуляется в памяти при сбросе кэша.
 class TokenSession : public QObject
 {
@@ -25,6 +27,12 @@ class TokenSession : public QObject
     Q_PROPERTY(QVariantList objects READ objects NOTIFY changed)
     Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY changed)
     Q_PROPERTY(qulonglong loggedInSlot READ loggedInSlot NOTIFY changed)
+    // Логически подключённый NFC-токен и его снимок объектов (см. ниже).
+    Q_PROPERTY(QVariantMap nfcToken READ nfcToken NOTIFY changed)
+    Q_PROPERTY(QVariantList nfcObjects READ nfcObjects NOTIFY changed)
+    Q_PROPERTY(bool nfcConnected READ nfcConnected NOTIFY changed)
+    // Серийники USB-токенов, логически отключённых (скрыты из списка).
+    Q_PROPERTY(QStringList suppressedUsb READ suppressedUsb NOTIFY changed)
 
 public:
     explicit TokenSession(QObject *parent = nullptr);
@@ -35,6 +43,10 @@ public:
     QVariantList objects() const { return m_objects; }
     bool loggedIn() const { return m_loggedIn; }
     qulonglong loggedInSlot() const { return m_cachedSlot; }
+    QVariantMap nfcToken() const { return m_nfcToken; }
+    QVariantList nfcObjects() const { return m_nfcObjects; }
+    bool nfcConnected() const { return !m_nfcToken.isEmpty(); }
+    QStringList suppressedUsb() const { return m_suppressedUsb; }
 
     // Вход по PIN + чтение всех объектов (сертификаты и ключи). При успехе PIN
     // запоминается (loggedIn=true) для последующих операций без повторного ввода.
@@ -61,9 +73,17 @@ public:
     // То же с запомненным PIN (USB, после login на этом же слоте).
     Q_INVOKABLE void importCertificateCached(qulonglong slotId, const QString &filePath,
                                              const QString &label);
-    // Сбросить запомненный вход, если слот больше не присутствует среди tokens
-    // (отключение USB-токена). Вызывается при изменении списка TokenWatcher.
-    Q_INVOKABLE void retainUsbSlot(const QVariantList &tokens);
+    // Логически подключённый NFC-токен: снимок объектов сохраняется, чтобы
+    // вернуться к его сертификатам без повторного поднесения.
+    Q_INVOKABLE void commitNfc(const QVariantMap &token); // токен + снимок текущих объектов
+    Q_INVOKABLE void updateNfcObjects();                  // обновить снимок после операции по NFC
+    Q_INVOKABLE void disconnectNfc();                     // логически отключить NFC-токен
+    // Логически отключить USB-токен: скрыть из списка до физического переподключения.
+    Q_INVOKABLE void suppressUsb(const QString &serial);
+    // Синхронизация со списком TokenWatcher: сброс входа при пропаже USB-слота и
+    // снятие подавления с серийников, которых больше нет. Вызывается при изменении
+    // списка TokenWatcher.
+    Q_INVOKABLE void syncWithTokens(const QVariantList &tokens);
     Q_INVOKABLE void clear();
 
     // Экспорт сертификата (тело из derB64, без закрытого ключа) в выбранный
@@ -97,6 +117,12 @@ private:
     QByteArray m_pendingPin;
     qulonglong m_pendingSlot = 0;
     bool m_pendingIsLogin = false;
+
+    // Логически подключённый NFC-токен: дескриптор и снимок объектов.
+    QVariantMap m_nfcToken;
+    QVariantList m_nfcObjects;
+    // Серийники логически отключённых USB-токенов (скрыты до переподключения).
+    QStringList m_suppressedUsb;
 };
 
 #endif // TOKENSESSION_H

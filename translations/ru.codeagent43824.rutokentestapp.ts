@@ -4,6 +4,14 @@
 <context>
     <name>TokensPage</name>
     <message>
+        <source>Disconnect</source>
+        <translation>Disconnect</translation>
+    </message>
+    <message>
+        <source>connected via NFC — tap to open</source>
+        <translation>connected via NFC — tap to open</translation>
+    </message>
+    <message>
         <source>USB</source>
         <translation>USB</translation>
     </message>
@@ -439,6 +447,14 @@
 </context>
 <context>
     <name>NfcConnectPage</name>
+    <message>
+        <source>Keep holding the token — the operation is running.</source>
+        <translation>Keep holding the token — the operation is running.</translation>
+    </message>
+    <message>
+        <source>Hold the token to the back cover and keep it there.</source>
+        <translation>Hold the token to the back cover and keep it there.</translation>
+    </message>
     <message>
         <source>Connect over NFC</source>
         <translation>Connect over NFC</translation>

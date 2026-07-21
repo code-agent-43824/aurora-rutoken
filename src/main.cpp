@@ -15,9 +15,10 @@ int main(int argc, char *argv[])
     TokenSession tokenSession;
     Diagnostics diagnostics;
 
-    // Отключение USB-токена сбрасывает запомненный вход (кэш PIN).
+    // Изменение набора токенов: сброс входа при пропаже USB-слота и снятие
+    // подавления с отключённых USB-токенов.
     QObject::connect(&tokenWatcher, &TokenWatcher::tokensChanged, &tokenSession, [&]() {
-        tokenSession.retainUsbSlot(tokenWatcher.tokens());
+        tokenSession.syncWithTokens(tokenWatcher.tokens());
     });
 
     QScopedPointer<QQuickView> view(Aurora::Application::createView());

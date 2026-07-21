@@ -6,13 +6,14 @@ Page {
     objectName: "tokensPage"
     allowedOrientations: Orientation.All
 
-    // Живой список — только USB-токены. NFC подключается отдельным мастером
-    // (эфемерный пункт ниже): у NFC другая парадигма (токен держат недолго).
+    // Живой список — только USB-токены, кроме логически отключённых (по серийнику).
+    // NFC подключается отдельным мастером (эфемерный пункт ниже).
     property var usbTokens: {
         var out = []
         var ts = tokenWatcher.tokens
+        var sup = tokenSession.suppressedUsb
         for (var i = 0; i < ts.length; ++i) {
-            if (ts[i].connection === "USB")
+            if (ts[i].connection === "USB" && sup.indexOf(ts[i].serial) < 0)
                 out.push(ts[i])
         }
         return out
@@ -162,11 +163,92 @@ Page {
                             color: Theme.secondaryColor
                             font.pixelSize: Theme.fontSizeTiny
                         }
+
+                        // Логически отключить USB-токен: скрыть из списка до
+                        // физического переподключения (кнопка не мешает тапу по карточке).
+                        Button {
+                            anchors.right: parent.right
+                            anchors.rightMargin: Theme.horizontalPageMargin
+                            text: qsTr("Disconnect")
+                            onClicked: {
+                                if (tokenSession.loggedInSlot === modelData.slotId)
+                                    tokenSession.logout()
+                                tokenSession.suppressUsb(modelData.serial)
+                            }
+                        }
                     }
                 }
             }
 
             SectionHeader { text: qsTr("NFC") }
+
+            // Логически подключённый NFC-токен: снимок объектов сохранён — можно
+            // вернуться к его сертификатам без повторного поднесения.
+            BackgroundItem {
+                visible: tokenSession.nfcConnected
+                width: content.width
+                height: nfcTokCol.height + Theme.paddingMedium
+                onClicked: pageStack.push(Qt.resolvedUrl("ObjectsPage.qml"), {
+                    connection: "NFC",
+                    slotId: tokenSession.nfcToken.slotId ? tokenSession.nfcToken.slotId : 0,
+                    tokenLabel: (tokenSession.nfcToken.label && tokenSession.nfcToken.label.length > 0)
+                                ? tokenSession.nfcToken.label : ""
+                })
+                Column {
+                    id: nfcTokCol
+                    width: parent.width
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.paddingSmall
+
+                    Row {
+                        x: Theme.horizontalPageMargin
+                        width: nfcTokCol.width - 2 * Theme.horizontalPageMargin
+                        spacing: Theme.paddingMedium
+
+                        Rectangle {
+                            id: connBadge
+                            anchors.verticalCenter: connTitle.verticalCenter
+                            width: connBadgeLabel.width + 2 * Theme.paddingMedium
+                            height: connBadgeLabel.height + Theme.paddingSmall
+                            radius: Theme.paddingSmall
+                            color: "#3949ab"
+                            Label {
+                                id: connBadgeLabel
+                                anchors.centerIn: parent
+                                text: qsTr("NFC")
+                                color: "white"
+                                font.pixelSize: Theme.fontSizeExtraSmall
+                                font.bold: true
+                            }
+                        }
+                        Label {
+                            id: connTitle
+                            width: parent.width - connBadge.width - Theme.paddingMedium
+                            text: (tokenSession.nfcToken.label && tokenSession.nfcToken.label.length > 0)
+                                  ? tokenSession.nfcToken.label : qsTr("Rutoken")
+                            color: Theme.highlightColor
+                            font.pixelSize: Theme.fontSizeLarge
+                            truncationMode: TruncationMode.Fade
+                        }
+                    }
+
+                    Label {
+                        x: Theme.horizontalPageMargin
+                        width: nfcTokCol.width - 2 * Theme.horizontalPageMargin
+                        textFormat: Text.PlainText
+                        text: qsTr("connected via NFC — tap to open")
+                        color: Theme.secondaryColor
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                    }
+
+                    Button {
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.horizontalPageMargin
+                        text: qsTr("Disconnect")
+                        onClicked: tokenSession.disconnectNfc()
+                    }
+                }
+            }
 
             // Эфемерный NFC-токен: не подключён, но «можно подключить». Тап
             // запускает мастер подключения по NFC.

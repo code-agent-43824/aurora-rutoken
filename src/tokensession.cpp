@@ -223,19 +223,67 @@ void TokenSession::importCertificateCached(qulonglong slotId, const QString &fil
     importCertificate(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()), filePath, label);
 }
 
-void TokenSession::retainUsbSlot(const QVariantList &tokens)
+void TokenSession::syncWithTokens(const QVariantList &tokens)
 {
-    if (!m_loggedIn || m_busy)
-        return;
-    bool present = false;
-    for (int i = 0; i < tokens.size(); ++i) {
-        if (tokens.at(i).toMap().value(QStringLiteral("slotId")).toULongLong() == m_cachedSlot) {
-            present = true;
-            break;
+    // 1) Сброс запомненного входа при пропаже залогиненного USB-слота.
+    if (m_loggedIn && !m_busy) {
+        bool present = false;
+        for (int i = 0; i < tokens.size(); ++i) {
+            if (tokens.at(i).toMap().value(QStringLiteral("slotId")).toULongLong() == m_cachedSlot) {
+                present = true;
+                break;
+            }
         }
+        if (!present)
+            logout();
     }
-    if (!present)
-        logout();
+
+    // 2) Снятие подавления с USB-токенов, которых больше нет (физически отключены)
+    //    — чтобы после переподключения токен снова появился в списке.
+    if (!m_suppressedUsb.isEmpty()) {
+        QStringList presentSerials;
+        for (int i = 0; i < tokens.size(); ++i)
+            presentSerials << tokens.at(i).toMap().value(QStringLiteral("serial")).toString();
+        bool pruned = false;
+        for (int i = m_suppressedUsb.size() - 1; i >= 0; --i) {
+            if (!presentSerials.contains(m_suppressedUsb.at(i))) {
+                m_suppressedUsb.removeAt(i);
+                pruned = true;
+            }
+        }
+        if (pruned)
+            emit changed();
+    }
+}
+
+void TokenSession::commitNfc(const QVariantMap &token)
+{
+    m_nfcToken = token;
+    m_nfcObjects = m_objects; // снимок только что прочитанных объектов
+    emit changed();
+}
+
+void TokenSession::updateNfcObjects()
+{
+    if (m_nfcToken.isEmpty())
+        return;
+    m_nfcObjects = m_objects;
+    emit changed();
+}
+
+void TokenSession::disconnectNfc()
+{
+    m_nfcToken.clear();
+    m_nfcObjects.clear();
+    emit changed();
+}
+
+void TokenSession::suppressUsb(const QString &serial)
+{
+    if (serial.isEmpty() || m_suppressedUsb.contains(serial))
+        return;
+    m_suppressedUsb.append(serial);
+    emit changed();
 }
 
 void TokenSession::generateKeyPair(qulonglong slotId, const QString &pin,
