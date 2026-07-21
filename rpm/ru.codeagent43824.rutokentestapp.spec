@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.4.0
-Release:    3
+Release:    4
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -19,9 +19,10 @@ BuildRequires:  pkgconfig(Qt5Network)
 %description
 Test application for working with Rutoken ECP 3.0 hardware tokens over USB
 and NFC on Aurora OS. Version 0.4 adds certificate export (DER and PEM, without
-the private key), and will add key-pair generation and certificate import.
-Builds on the v0.3 two-level object browser (certificates described from the
-parsed X.509 body, keys nested by CKA_ID).
+the private key) and on-token key-pair generation (GOST R 34.10-2012 256/512
+and RSA), and will add certificate import. Builds on the v0.3 two-level object
+browser (certificates described from the parsed X.509 body, keys nested by
+CKA_ID).
 
 %prep
 %autosetup
@@ -42,6 +43,11 @@ parsed X.509 body, keys nested by CKA_ID).
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.4.0-4
+- Generate a key pair on the token: choose the algorithm and length (GOST R
+  34.10-2012 256/512, RSA 2048/4096), enter the user PIN. Reachable from the
+  Objects screen pull-down menu; the object list refreshes after generation.
+
 * Mon Jul 20 2026 Claude <noreply@anthropic.com> - 0.4.0-3
 - Show CKA_ID as text when its first bytes are printable ASCII (non-printable
   bytes shown as "."), otherwise hex.

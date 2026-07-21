@@ -74,16 +74,31 @@ static const CK_OBJECT_CLASS CKO_PUBLIC_KEY = 0x00000002UL;
 static const CK_OBJECT_CLASS CKO_PRIVATE_KEY = 0x00000003UL;
 
 static const CK_ATTRIBUTE_TYPE CKA_CLASS = 0x00000000UL;
+static const CK_ATTRIBUTE_TYPE CKA_TOKEN = 0x00000001UL;
+static const CK_ATTRIBUTE_TYPE CKA_PRIVATE = 0x00000002UL;
 static const CK_ATTRIBUTE_TYPE CKA_LABEL = 0x00000003UL;
 static const CK_ATTRIBUTE_TYPE CKA_VALUE = 0x00000011UL; // тело сертификата (DER X.509)
 static const CK_ATTRIBUTE_TYPE CKA_KEY_TYPE = 0x00000100UL;
 static const CK_ATTRIBUTE_TYPE CKA_ID = 0x00000102UL;
+static const CK_ATTRIBUTE_TYPE CKA_SIGN = 0x00000108UL;
+static const CK_ATTRIBUTE_TYPE CKA_VERIFY = 0x0000010AUL;
+static const CK_ATTRIBUTE_TYPE CKA_DERIVE = 0x0000010CUL;
+static const CK_ATTRIBUTE_TYPE CKA_MODULUS_BITS = 0x00000121UL;
+static const CK_ATTRIBUTE_TYPE CKA_PUBLIC_EXPONENT = 0x00000122UL;
+static const CK_ATTRIBUTE_TYPE CKA_GOSTR3410_PARAMS = 0x00000250UL;
+static const CK_ATTRIBUTE_TYPE CKA_GOSTR3411_PARAMS = 0x00000251UL;
 
-// Типы ключей (CKA_KEY_TYPE) — для человекочитаемого отображения.
+// Типы ключей (CKA_KEY_TYPE) — для отображения и для генерации.
 static const CK_KEY_TYPE CKK_RSA = 0x00000000UL;
 static const CK_KEY_TYPE CKK_EC = 0x00000003UL;
-static const CK_KEY_TYPE CKK_GOSTR3410 = 0x00000030UL;
-static const CK_KEY_TYPE CKK_GOSTR3410_512 = 0x00000032UL;
+static const CK_KEY_TYPE CKK_GOSTR3410 = 0x00000030UL;          // ГОСТ 2012-256
+static const CK_KEY_TYPE CKK_GOSTR3410_512 = 0xD4321003UL;      // ГОСТ 2012-512 (vendor Актив)
+
+// Механизмы генерации ключевой пары (C_GenerateKeyPair).
+typedef CK_ULONG CK_MECHANISM_TYPE;
+static const CK_MECHANISM_TYPE CKM_RSA_PKCS_KEY_PAIR_GEN = 0x00000000UL;
+static const CK_MECHANISM_TYPE CKM_GOSTR3410_KEY_PAIR_GEN = 0x00001200UL;       // 2012-256
+static const CK_MECHANISM_TYPE CKM_GOSTR3410_512_KEY_PAIR_GEN = 0xD4321005UL;   // 2012-512 (vendor)
 
 struct CK_VERSION {
     CK_BYTE major;
@@ -134,6 +149,13 @@ struct CK_ATTRIBUTE {
     CK_ULONG ulValueLen;
 };
 
+// Механизм для C_GenerateKeyPair (та же раскладка, что и CK_ATTRIBUTE).
+struct CK_MECHANISM {
+    CK_MECHANISM_TYPE mechanism;
+    CK_VOID_PTR pParameter;
+    CK_ULONG ulParameterLen;
+};
+
 struct CK_FUNCTION_LIST_PREFIX;
 typedef CK_RV (*CK_C_Initialize)(CK_VOID_PTR);
 typedef CK_RV (*CK_C_Finalize)(CK_VOID_PTR);
@@ -150,12 +172,17 @@ typedef CK_RV (*CK_C_GetAttributeValue)(CK_SESSION_HANDLE, CK_OBJECT_HANDLE, CK_
 typedef CK_RV (*CK_C_FindObjectsInit)(CK_SESSION_HANDLE, CK_ATTRIBUTE *, CK_ULONG);
 typedef CK_RV (*CK_C_FindObjects)(CK_SESSION_HANDLE, CK_OBJECT_HANDLE *, CK_ULONG, CK_ULONG *);
 typedef CK_RV (*CK_C_FindObjectsFinal)(CK_SESSION_HANDLE);
+// C_GenerateKeyPair (№60): генерация ключевой пары на токене.
+typedef CK_RV (*CK_C_GenerateKeyPair)(CK_SESSION_HANDLE, CK_MECHANISM *,
+                                      CK_ATTRIBUTE *, CK_ULONG,
+                                      CK_ATTRIBUTE *, CK_ULONG,
+                                      CK_OBJECT_HANDLE *, CK_OBJECT_HANDLE *);
 // Заглушка для точек входа PKCS#11, которые нам не нужны, но обязаны занимать
 // свою позицию в таблице ради правильных смещений последующих функций.
 typedef CK_RV (*CK_SkippedFn)(void);
 
 // Реальный CK_FUNCTION_LIST продолжается остальными точками входа PKCS#11.
-// Порядок функций фиксирован стандартом; нам нужен префикс до C_FindObjectsFinal (№29).
+// Порядок функций фиксирован стандартом; нам нужен префикс до C_GenerateKeyPair (№60).
 struct CK_FUNCTION_LIST_PREFIX {
     CK_VERSION version;
     CK_C_Initialize C_Initialize;             // 1
@@ -187,6 +214,37 @@ struct CK_FUNCTION_LIST_PREFIX {
     CK_C_FindObjectsInit C_FindObjectsInit;   // 27
     CK_C_FindObjects C_FindObjects;           // 28
     CK_C_FindObjectsFinal C_FindObjectsFinal; // 29
+    CK_SkippedFn C_EncryptInit;               // 30
+    CK_SkippedFn C_Encrypt;                   // 31
+    CK_SkippedFn C_EncryptUpdate;             // 32
+    CK_SkippedFn C_EncryptFinal;              // 33
+    CK_SkippedFn C_DecryptInit;               // 34
+    CK_SkippedFn C_Decrypt;                   // 35
+    CK_SkippedFn C_DecryptUpdate;             // 36
+    CK_SkippedFn C_DecryptFinal;              // 37
+    CK_SkippedFn C_DigestInit;                // 38
+    CK_SkippedFn C_Digest;                    // 39
+    CK_SkippedFn C_DigestUpdate;              // 40
+    CK_SkippedFn C_DigestKey;                 // 41
+    CK_SkippedFn C_DigestFinal;               // 42
+    CK_SkippedFn C_SignInit;                  // 43
+    CK_SkippedFn C_Sign;                      // 44
+    CK_SkippedFn C_SignUpdate;                // 45
+    CK_SkippedFn C_SignFinal;                 // 46
+    CK_SkippedFn C_SignRecoverInit;           // 47
+    CK_SkippedFn C_SignRecover;               // 48
+    CK_SkippedFn C_VerifyInit;                // 49
+    CK_SkippedFn C_Verify;                    // 50
+    CK_SkippedFn C_VerifyUpdate;              // 51
+    CK_SkippedFn C_VerifyFinal;               // 52
+    CK_SkippedFn C_VerifyRecoverInit;         // 53
+    CK_SkippedFn C_VerifyRecover;             // 54
+    CK_SkippedFn C_DigestEncryptUpdate;       // 55
+    CK_SkippedFn C_DecryptDigestUpdate;       // 56
+    CK_SkippedFn C_SignEncryptUpdate;         // 57
+    CK_SkippedFn C_DecryptVerifyUpdate;       // 58
+    CK_SkippedFn C_GenerateKey;               // 59
+    CK_C_GenerateKeyPair C_GenerateKeyPair;   // 60
 };
 
 // Контроль естественного выравнивания на обеих архитектурах Авроры.
@@ -237,9 +295,16 @@ static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_FindObjectsInit) == 27 * sizeo
               "CK_FUNCTION_LIST: C_FindObjectsInit offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_FindObjectsFinal) == 29 * sizeof(void *),
               "CK_FUNCTION_LIST: C_FindObjectsFinal offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_GenerateKeyPair) == 60 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_GenerateKeyPair offset");
 
 static_assert(offsetof(CK_ATTRIBUTE, pValue) == sizeof(void *), "CK_ATTRIBUTE.pValue offset");
 static_assert(offsetof(CK_ATTRIBUTE, ulValueLen) == 2 * sizeof(void *), "CK_ATTRIBUTE.ulValueLen offset");
 static_assert(sizeof(CK_ATTRIBUTE) == 3 * sizeof(void *), "CK_ATTRIBUTE size");
+
+// CK_MECHANISM повторяет раскладку CK_ATTRIBUTE (тип, указатель, длина).
+static_assert(offsetof(CK_MECHANISM, pParameter) == sizeof(void *), "CK_MECHANISM.pParameter offset");
+static_assert(offsetof(CK_MECHANISM, ulParameterLen) == 2 * sizeof(void *), "CK_MECHANISM.ulParameterLen offset");
+static_assert(sizeof(CK_MECHANISM) == 3 * sizeof(void *), "CK_MECHANISM size");
 
 #endif // PKCS11_MINIMAL_H

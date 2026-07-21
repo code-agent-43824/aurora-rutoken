@@ -112,6 +112,7 @@ Page {
                 visible: !tokenSession.busy && tokenSession.objects.length > 0
                 text: qsTr("Token objects (%1)").arg(tokenSession.objects.length)
                 onClicked: pageStack.push(Qt.resolvedUrl("ObjectsPage.qml"), {
+                    slotId: page.slotId,
                     tokenLabel: page.tokenLabel,
                     connection: page.connection
                 })

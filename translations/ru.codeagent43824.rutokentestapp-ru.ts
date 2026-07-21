@@ -212,6 +212,10 @@
         <source>certificate without a key (standalone)</source>
         <translation>сертификат без ключа (сам по себе)</translation>
     </message>
+    <message>
+        <source>Generate key pair</source>
+        <translation>Создать ключевую пару</translation>
+    </message>
 </context>
 <context>
     <name>CertificatePage</name>
@@ -313,6 +317,69 @@
     <message>
         <source>Save</source>
         <translation>Сохранить</translation>
+    </message>
+</context>
+<context>
+    <name>GenerateKeyPage</name>
+    <message>
+        <source>New key pair</source>
+        <translation>Новая ключевая пара</translation>
+    </message>
+    <message>
+        <source>Generated on the token</source>
+        <translation>Создаётся на токене</translation>
+    </message>
+    <message>
+        <source>Algorithm and length</source>
+        <translation>Алгоритм и длина</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2012, 256 bit</source>
+        <translation>ГОСТ Р 34.10-2012, 256 бит</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2012, 512 bit</source>
+        <translation>ГОСТ Р 34.10-2012, 512 бит</translation>
+    </message>
+    <message>
+        <source>RSA 2048</source>
+        <translation>RSA 2048</translation>
+    </message>
+    <message>
+        <source>RSA 4096</source>
+        <translation>RSA 4096</translation>
+    </message>
+    <message>
+        <source>Key label</source>
+        <translation>Метка ключа</translation>
+    </message>
+    <message>
+        <source>For example, My GOST key</source>
+        <translation>Например, Мой ГОСТ-ключ</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Enter user PIN</source>
+        <translation>Введите PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Generating…</source>
+        <translation>Создание…</translation>
+    </message>
+    <message>
+        <source>Generate</source>
+        <translation>Создать</translation>
+    </message>
+    <message>
+        <source>Swipe back to see the new key in the list.</source>
+        <translation>Проведите назад, чтобы увидеть новый ключ в списке.</translation>
+    </message>
+    <message>
+        <source>The private key never leaves the token. The PIN is not stored.</source>
+        <translation>Закрытый ключ не покидает токен. PIN не сохраняется.</translation>
     </message>
 </context>
 <context>

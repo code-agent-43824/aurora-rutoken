@@ -31,6 +31,10 @@ public:
     Q_INVOKABLE void login(qulonglong slotId, const QString &pin);
     // Чтение только сертификатов без входа (они видны без PIN).
     Q_INVOKABLE void preview(qulonglong slotId);
+    // Генерация ключевой пары на токене (вход по PIN, R/W-сессия, C_GenerateKeyPair),
+    // затем перечитывание объектов. algorithm: "gost256"/"gost512"/"rsa2048"/"rsa4096".
+    Q_INVOKABLE void generateKeyPair(qulonglong slotId, const QString &pin,
+                                     const QString &algorithm, const QString &label);
     Q_INVOKABLE void clear();
 
     // Экспорт сертификата (тело из derB64, без закрытого ключа) в выбранный

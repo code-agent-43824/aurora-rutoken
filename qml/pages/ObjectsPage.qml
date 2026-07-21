@@ -6,6 +6,7 @@ Page {
     objectName: "objectsPage"
     allowedOrientations: Orientation.All
 
+    property var slotId: 0
     property string tokenLabel: ""
     property string connection: ""
 
@@ -20,6 +21,15 @@ Page {
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: content.height
+
+        PullDownMenu {
+            MenuItem {
+                text: qsTr("Generate key pair")
+                onClicked: pageStack.push(Qt.resolvedUrl("GenerateKeyPage.qml"), {
+                    slotId: page.slotId
+                })
+            }
+        }
 
         Column {
             id: content

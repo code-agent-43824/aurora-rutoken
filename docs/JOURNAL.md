@@ -2,6 +2,22 @@
 
 Хронология действий. Новые записи добавляются **сверху**. Формат записи: дата — автор — что сделано — почему — коммиты.
 
+## 2026-07-21 — Claude (кодинг-агент), сессия 5: генерация ключевой пары на токене (этап C, 0.4.0-4)
+
+**Событие:** владелец подтвердил экспорт и CKA_ID-текст, дал команду «приступай к 4C». Замечания владельца (артефакты снова зазипованы, CKA_ID в бинарном виде) обработаны ранее: артефакты — закрытый вопрос (GitHub всегда зипует, владелец выбрал оставить); текстовость CKA_ID — уже сделано в B3 (`0.4.0-3`, CI зелёный). Этап C — по ТЗ «создание ключей на Рутокене (выбор алгоритма и длины)».
+
+**ABI (`pkcs11_minimal.h`):** добавлены `CK_MECHANISM` (та же раскладка, что `CK_ATTRIBUTE`), typedef `CK_C_GenerateKeyPair`, расширен `CK_FUNCTION_LIST_PREFIX` заглушками №30–59 (encrypt/decrypt/digest/sign/verify) и реальной `C_GenerateKeyPair` (№60); константы атрибутов (`CKA_TOKEN`/`CKA_PRIVATE`/`CKA_SIGN`/`CKA_VERIFY`/`CKA_DERIVE`/`CKA_MODULUS_BITS`/`CKA_PUBLIC_EXPONENT`/`CKA_GOSTR3410_PARAMS`/`CKA_GOSTR3411_PARAMS`), механизмы `CKM_RSA_PKCS_KEY_PAIR_GEN`/`CKM_GOSTR3410_KEY_PAIR_GEN`/`CKM_GOSTR3410_512_KEY_PAIR_GEN`, тип `CKK_GOSTR3410_512` (vendor Актив `0xD4321003`). static_assert смещения №60 и раскладки `CK_MECHANISM` для обеих арок. **Сверено с реальной библиотекой** (x86_64, harness `abi_keygen`): `C_GenerateKeyPair` по смещению 60·ptr на битой сессии → `0xB3` (CKR_SESSION_HANDLE_INVALID); `CK_MECHANISM` size24, pParameter@8.
+
+**Генерация (`pkcs11_keygen.{h,cpp}`):** `generateKeyPair(fns, session, algorithm, label)` строит публичный/приватный шаблоны по параметрам RESEARCH.md §5в (ГОСТ 256/512: `CKA_GOSTR3410_PARAMS`+`CKA_GOSTR3411_PARAMS`; RSA: `CKA_MODULUS_BITS`+`CKA_PUBLIC_EXPONENT`=01 00 01). Обе части получают общий случайный `CKA_ID` (16 байт из `QUuid::toRfc4122`) и одну метку — по `CKA_ID` этап D «приклеит» сертификат. `algorithm`: `gost256`/`gost512`/`rsa2048`/`rsa4096`.
+
+**Сессия (`TokenSession::generateKeyPair`):** отдельный рабочий цикл под общим мьютексом: `C_Initialize → C_OpenSession(CKF_RW_SESSION) → C_Login(USER) → pkcs11::generateKeyPair → listTokenObjects(loggedIn) → C_Logout → C_CloseSession → C_Finalize`. Нужна **R/W-сессия** (создаём токен-объекты). PIN обнуляется сразу после `C_Login`. Ошибки логина — общий helper `loginErrorMessage` (вынесен из `run()`).
+
+**UI (`GenerateKeyPage.qml`):** меню-шторка на `ObjectsPage` → «Создать ключевую пару». ComboBox алгоритм/длина (4 варианта), поле метки, поле PIN (password), кнопка «Создать», BusyIndicator, результат (зелёный/красный). `slotId` проброшен `TokenDetailsPage → ObjectsPage → GenerateKeyPage`. После успеха `tokenSession.objects` обновляется → список за экраном показывает новый ключ. Переводы en/ru (контекст `GenerateKeyPage` + «Generate key pair» в `ObjectsPage`). `topPadding` не используется (Qt 5.6).
+
+**Проверки на хосте:** `pkcs11_minimal.h` компилируется, все static_assert проходят (LP64); Qt-модули (`pkcs11_keygen.cpp`, `tokensession.cpp`) собирает CI (Qt на хосте нет); XML переводов валиден; скобки QML сбалансированы. spec 0.4.0-4.
+
+**Следующий шаг:** зелёный CI → проверка генерации на телефоне (USB и NFC) → этап D (импорт сертификата).
+
 ## 2026-07-20 — Claude (кодинг-агент), сессия 4: CKA_ID текстом (этап B3) + вопрос по артефактам
 
 **Событие:** владелец подтвердил экспорт (B2) и дал два замечания перед этапом C: (1) артефакты Actions снова зазипованы; (2) CKA_ID выводится в hex, хотя обычно текстовый.

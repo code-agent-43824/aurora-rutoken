@@ -212,6 +212,10 @@
         <source>certificate without a key (standalone)</source>
         <translation>certificate without a key (standalone)</translation>
     </message>
+    <message>
+        <source>Generate key pair</source>
+        <translation>Generate key pair</translation>
+    </message>
 </context>
 <context>
     <name>CertificatePage</name>
@@ -313,6 +317,69 @@
     <message>
         <source>Save</source>
         <translation>Save</translation>
+    </message>
+</context>
+<context>
+    <name>GenerateKeyPage</name>
+    <message>
+        <source>New key pair</source>
+        <translation>New key pair</translation>
+    </message>
+    <message>
+        <source>Generated on the token</source>
+        <translation>Generated on the token</translation>
+    </message>
+    <message>
+        <source>Algorithm and length</source>
+        <translation>Algorithm and length</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2012, 256 bit</source>
+        <translation>GOST R 34.10-2012, 256 bit</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2012, 512 bit</source>
+        <translation>GOST R 34.10-2012, 512 bit</translation>
+    </message>
+    <message>
+        <source>RSA 2048</source>
+        <translation>RSA 2048</translation>
+    </message>
+    <message>
+        <source>RSA 4096</source>
+        <translation>RSA 4096</translation>
+    </message>
+    <message>
+        <source>Key label</source>
+        <translation>Key label</translation>
+    </message>
+    <message>
+        <source>For example, My GOST key</source>
+        <translation>For example, My GOST key</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>User PIN</translation>
+    </message>
+    <message>
+        <source>Enter user PIN</source>
+        <translation>Enter user PIN</translation>
+    </message>
+    <message>
+        <source>Generating…</source>
+        <translation>Generating…</translation>
+    </message>
+    <message>
+        <source>Generate</source>
+        <translation>Generate</translation>
+    </message>
+    <message>
+        <source>Swipe back to see the new key in the list.</source>
+        <translation>Swipe back to see the new key in the list.</translation>
+    </message>
+    <message>
+        <source>The private key never leaves the token. The PIN is not stored.</source>
+        <translation>The private key never leaves the token. The PIN is not stored.</translation>
     </message>
 </context>
 <context>
