@@ -134,6 +134,18 @@
 <context>
     <name>TokenDetailsPage</name>
     <message>
+        <source>Unblock user PIN</source>
+        <translation>Разблокировать PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Change admin PIN</source>
+        <translation>Смена PIN администратора</translation>
+    </message>
+    <message>
+        <source>Change user PIN</source>
+        <translation>Смена PIN пользователя</translation>
+    </message>
+    <message>
         <source>Enter PIN</source>
         <translation>Ввести PIN</translation>
     </message>
@@ -502,6 +514,73 @@
     <message>
         <source>Continue</source>
         <translation>Продолжить</translation>
+    </message>
+</context>
+<context>
+    <name>PinChangePage</name>
+    <message>
+        <source>Change admin PIN</source>
+        <translation>Смена PIN администратора</translation>
+    </message>
+    <message>
+        <source>Unblock user PIN</source>
+        <translation>Разблокировать PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Change user PIN</source>
+        <translation>Смена PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Current admin PIN</source>
+        <translation>Текущий PIN администратора</translation>
+    </message>
+    <message>
+        <source>Administrator (SO) PIN</source>
+        <translation>PIN администратора (SO)</translation>
+    </message>
+    <message>
+        <source>Current user PIN</source>
+        <translation>Текущий PIN пользователя</translation>
+    </message>
+    <message>
+        <source>New admin PIN</source>
+        <translation>Новый PIN администратора</translation>
+    </message>
+    <message>
+        <source>New user PIN</source>
+        <translation>Новый PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Confirm new PIN</source>
+        <translation>Подтвердите новый PIN</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>The new PINs do not match</source>
+        <translation>Новые PIN не совпадают</translation>
+    </message>
+    <message>
+        <source>Applying…</source>
+        <translation>Применение…</translation>
+    </message>
+    <message>
+        <source>Unblock</source>
+        <translation>Разблокировать</translation>
+    </message>
+    <message>
+        <source>Change PIN</source>
+        <translation>Сменить PIN</translation>
+    </message>
+    <message>
+        <source>The administrator sets a new user PIN; the user PIN attempt counter is reset.</source>
+        <translation>Администратор задаёт новый PIN пользователя; счётчик попыток PIN пользователя сбрасывается.</translation>
+    </message>
+    <message>
+        <source>A wrong current PIN, entered several times, can lock the token.</source>
+        <translation>Несколько неверных вводов текущего PIN могут заблокировать токен.</translation>
     </message>
 </context>
 <context>

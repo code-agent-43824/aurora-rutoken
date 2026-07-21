@@ -43,10 +43,13 @@ static const CK_RV CKR_OK = 0x00000000UL;
 static const CK_RV CKR_CRYPTOKI_ALREADY_INITIALIZED = 0x00000191UL;
 static const CK_RV CKR_BUFFER_TOO_SMALL = 0x00000150UL;
 static const CK_RV CKR_PIN_INCORRECT = 0x000000A0UL;
+static const CK_RV CKR_PIN_INVALID = 0x000000A1UL;
+static const CK_RV CKR_PIN_LEN_RANGE = 0x000000A2UL;
 static const CK_RV CKR_PIN_LOCKED = 0x000000A4UL;
 static const CK_RV CKR_USER_ALREADY_LOGGED_IN = 0x00000100UL;
 static const CK_RV CKR_USER_PIN_NOT_INITIALIZED = 0x00000102UL;
 
+static const CK_USER_TYPE CKU_SO = 0;    // администратор (Security Officer)
 static const CK_USER_TYPE CKU_USER = 1;
 
 // Флаги открытия сессии (C_OpenSession).
@@ -177,6 +180,10 @@ typedef CK_RV (*CK_C_OpenSession)(CK_SLOT_ID, CK_FLAGS, CK_VOID_PTR, CK_VOID_PTR
 typedef CK_RV (*CK_C_CloseSession)(CK_SESSION_HANDLE);
 typedef CK_RV (*CK_C_Login)(CK_SESSION_HANDLE, CK_USER_TYPE, CK_UTF8CHAR *, CK_ULONG);
 typedef CK_RV (*CK_C_Logout)(CK_SESSION_HANDLE);
+// C_InitPIN (№11): администратор задаёт/сбрасывает PIN пользователя (SO-сессия).
+typedef CK_RV (*CK_C_InitPIN)(CK_SESSION_HANDLE, CK_UTF8CHAR *, CK_ULONG);
+// C_SetPIN (№12): смена PIN (пользователя в R/W-сессии или SO в SO-сессии).
+typedef CK_RV (*CK_C_SetPIN)(CK_SESSION_HANDLE, CK_UTF8CHAR *, CK_ULONG, CK_UTF8CHAR *, CK_ULONG);
 // C_CreateObject (№21): создание объекта на токене (для импорта сертификата).
 typedef CK_RV (*CK_C_CreateObject)(CK_SESSION_HANDLE, CK_ATTRIBUTE *, CK_ULONG, CK_OBJECT_HANDLE *);
 typedef CK_RV (*CK_C_GetAttributeValue)(CK_SESSION_HANDLE, CK_OBJECT_HANDLE, CK_ATTRIBUTE *, CK_ULONG);
@@ -206,8 +213,8 @@ struct CK_FUNCTION_LIST_PREFIX {
     CK_SkippedFn C_GetMechanismList;          // 8
     CK_SkippedFn C_GetMechanismInfo;          // 9
     CK_SkippedFn C_InitToken;                 // 10
-    CK_SkippedFn C_InitPIN;                   // 11
-    CK_SkippedFn C_SetPIN;                    // 12
+    CK_C_InitPIN C_InitPIN;                   // 11
+    CK_C_SetPIN C_SetPIN;                     // 12
     CK_C_OpenSession C_OpenSession;           // 13
     CK_C_CloseSession C_CloseSession;         // 14
     CK_SkippedFn C_CloseAllSessions;          // 15
@@ -296,6 +303,10 @@ static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_OpenSession) == 13 * sizeof(vo
               "CK_FUNCTION_LIST: C_OpenSession offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_CloseSession) == 14 * sizeof(void *),
               "CK_FUNCTION_LIST: C_CloseSession offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_InitPIN) == 11 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_InitPIN offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_SetPIN) == 12 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_SetPIN offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_Login) == 19 * sizeof(void *),
               "CK_FUNCTION_LIST: C_Login offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_Logout) == 20 * sizeof(void *),

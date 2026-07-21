@@ -86,6 +86,15 @@ public:
     Q_INVOKABLE void syncWithTokens(const QVariantList &tokens);
     Q_INVOKABLE void clear();
 
+    // Управление PIN (v0.5), изолированный цикл под общим мьютексом:
+    //  - смена PIN пользователя: C_SetPIN(old,new) в R/W-сессии;
+    //  - смена PIN администратора (SO): C_Login(SO,old) → C_SetPIN(old,new) → C_Logout;
+    //  - разблокировка PIN пользователя: C_Login(SO) → C_InitPIN(newUser) → C_Logout.
+    // Успешная смена/сброс пользовательского PIN сбрасывает запомненный вход.
+    Q_INVOKABLE void changeUserPin(qulonglong slotId, const QString &oldPin, const QString &newPin);
+    Q_INVOKABLE void changeSoPin(qulonglong slotId, const QString &oldSoPin, const QString &newSoPin);
+    Q_INVOKABLE void unblockUserPin(qulonglong slotId, const QString &soPin, const QString &newUserPin);
+
     // Экспорт сертификата (тело из derB64, без закрытого ключа) в выбранный
     // пользователем формат ("pem"/"der"), каталог и имя файла. Возвращает
     // человекочитаемое сообщение (путь или ошибку). Синхронно — файл небольшой.
@@ -123,6 +132,8 @@ private:
     QVariantList m_nfcObjects;
     // Серийники логически отключённых USB-токенов (скрыты до переподключения).
     QStringList m_suppressedUsb;
+    // Текущая операция изменила пользовательский PIN → при успехе сбросить кэш входа.
+    bool m_invalidateUserPin = false;
 };
 
 #endif // TOKENSESSION_H

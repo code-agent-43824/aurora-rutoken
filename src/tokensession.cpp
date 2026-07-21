@@ -140,6 +140,57 @@ WriteOutcome runTokenWrite(QFunctionPointer getFunctionList, qulonglong slotId, 
         fns->C_Finalize(nullptr);
     return wo;
 }
+
+// Понятное сообщение по коду PIN-операции (смена/разблокировка).
+QString pinRvMessage(CK_RV rv)
+{
+    switch (rv) {
+    case CKR_PIN_INCORRECT: return QStringLiteral("Неверный текущий PIN");
+    case CKR_PIN_LOCKED: return QStringLiteral("PIN заблокирован");
+    case CKR_PIN_INVALID: return QStringLiteral("Недопустимый PIN");
+    case CKR_PIN_LEN_RANGE: return QStringLiteral("Недопустимая длина нового PIN");
+    default: return QStringLiteral("Ошибка: ") + rvHex(rv);
+    }
+}
+
+// Изолированный цикл операции в R/W-сессии БЕЗ входа/чтения объектов
+// (для управления PIN): C_Initialize → C_OpenSession(R/W) → op → C_CloseSession
+// → C_Finalize под общим мьютексом. Вход/смену PIN делает op и возвращает (ok, msg).
+QPair<int, QString> runSessionOp(QFunctionPointer getFunctionList, qulonglong slotId,
+                                 const std::function<QPair<bool, QString>(CK_FUNCTION_LIST_PREFIX *, CK_SESSION_HANDLE)> &op)
+{
+    typedef CK_RV (*GetListFn)(CK_FUNCTION_LIST_PREFIX **);
+    GetListFn getList = reinterpret_cast<GetListFn>(getFunctionList);
+    CK_FUNCTION_LIST_PREFIX *fns = nullptr;
+
+    QMutexLocker locker(&pkcs11::globalMutex());
+
+    const bool haveFns = getList(&fns) == CKR_OK && fns && fns->C_Initialize
+            && fns->C_Finalize && fns->C_OpenSession && fns->C_CloseSession;
+    if (!haveFns)
+        return qMakePair(-1, QStringLiteral("Библиотека не предоставляет функции сессии"));
+
+    const CK_RV initRv = fns->C_Initialize(nullptr);
+    const bool owns = (initRv == CKR_OK);
+    if (!owns && initRv != CKR_CRYPTOKI_ALREADY_INITIALIZED)
+        return qMakePair(-1, QStringLiteral("C_Initialize: ") + rvHex(initRv));
+
+    CK_SESSION_HANDLE session = 0;
+    CK_RV rv = fns->C_OpenSession(static_cast<CK_SLOT_ID>(slotId),
+                                  CKF_SERIAL_SESSION | CKF_RW_SESSION, nullptr, nullptr, &session);
+    if (rv != CKR_OK) {
+        if (owns)
+            fns->C_Finalize(nullptr);
+        return qMakePair(-1, QStringLiteral("Не удалось открыть R/W-сессию: ") + rvHex(rv));
+    }
+
+    const QPair<bool, QString> r = op(fns, session);
+
+    fns->C_CloseSession(session);
+    if (owns)
+        fns->C_Finalize(nullptr);
+    return qMakePair(r.first ? 1 : -1, r.second);
+}
 } // namespace
 
 TokenSession::TokenSession(QObject *parent)
@@ -284,6 +335,132 @@ void TokenSession::suppressUsb(const QString &serial)
         return;
     m_suppressedUsb.append(serial);
     emit changed();
+}
+
+void TokenSession::changeUserPin(qulonglong slotId, const QString &oldPin, const QString &newPin)
+{
+    if (m_busy)
+        return;
+    if (!m_getFunctionList) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        emit changed();
+        return;
+    }
+    m_pendingIsLogin = false;
+    m_invalidateUserPin = true; // меняется PIN пользователя → сбросить кэш при успехе
+    m_busy = true;
+    m_outcome = 0;
+    m_result.clear();
+    emit changed();
+
+    const QFunctionPointer getFunctionList = m_getFunctionList;
+    QByteArray oldB = oldPin.toUtf8();
+    QByteArray newB = newPin.toUtf8();
+    const QVariantList keepObjects = m_objects;
+
+    QtConcurrent::run([this, slotId, oldB, newB, getFunctionList, keepObjects]() mutable {
+        const QPair<int, QString> r = runSessionOp(getFunctionList, slotId,
+            [&oldB, &newB](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s) {
+                if (!fns->C_SetPIN)
+                    return qMakePair(false, QStringLiteral("Библиотека не предоставляет C_SetPIN"));
+                const CK_RV rv = fns->C_SetPIN(s,
+                        reinterpret_cast<CK_UTF8CHAR *>(oldB.data()), static_cast<CK_ULONG>(oldB.size()),
+                        reinterpret_cast<CK_UTF8CHAR *>(newB.data()), static_cast<CK_ULONG>(newB.size()));
+                return qMakePair(rv == CKR_OK,
+                                 rv == CKR_OK ? QStringLiteral("PIN пользователя изменён") : pinRvMessage(rv));
+            });
+        oldB.fill('\0');
+        newB.fill('\0');
+        emit finished(r.first, r.second, keepObjects);
+    });
+}
+
+void TokenSession::changeSoPin(qulonglong slotId, const QString &oldSoPin, const QString &newSoPin)
+{
+    if (m_busy)
+        return;
+    if (!m_getFunctionList) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        emit changed();
+        return;
+    }
+    m_pendingIsLogin = false;
+    m_invalidateUserPin = false; // меняется PIN администратора → кэш пользователя не трогаем
+    m_busy = true;
+    m_outcome = 0;
+    m_result.clear();
+    emit changed();
+
+    const QFunctionPointer getFunctionList = m_getFunctionList;
+    QByteArray oldB = oldSoPin.toUtf8();
+    QByteArray newB = newSoPin.toUtf8();
+    const QVariantList keepObjects = m_objects;
+
+    QtConcurrent::run([this, slotId, oldB, newB, getFunctionList, keepObjects]() mutable {
+        const QPair<int, QString> r = runSessionOp(getFunctionList, slotId,
+            [&oldB, &newB](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s) {
+                if (!fns->C_Login || !fns->C_Logout || !fns->C_SetPIN)
+                    return qMakePair(false, QStringLiteral("Библиотека не предоставляет функции SO"));
+                const CK_RV lr = fns->C_Login(s, CKU_SO,
+                        reinterpret_cast<CK_UTF8CHAR *>(oldB.data()), static_cast<CK_ULONG>(oldB.size()));
+                if (lr != CKR_OK && lr != CKR_USER_ALREADY_LOGGED_IN)
+                    return qMakePair(false, pinRvMessage(lr));
+                const CK_RV rv = fns->C_SetPIN(s,
+                        reinterpret_cast<CK_UTF8CHAR *>(oldB.data()), static_cast<CK_ULONG>(oldB.size()),
+                        reinterpret_cast<CK_UTF8CHAR *>(newB.data()), static_cast<CK_ULONG>(newB.size()));
+                fns->C_Logout(s);
+                return qMakePair(rv == CKR_OK,
+                                 rv == CKR_OK ? QStringLiteral("PIN администратора изменён") : pinRvMessage(rv));
+            });
+        oldB.fill('\0');
+        newB.fill('\0');
+        emit finished(r.first, r.second, keepObjects);
+    });
+}
+
+void TokenSession::unblockUserPin(qulonglong slotId, const QString &soPin, const QString &newUserPin)
+{
+    if (m_busy)
+        return;
+    if (!m_getFunctionList) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        emit changed();
+        return;
+    }
+    m_pendingIsLogin = false;
+    m_invalidateUserPin = true; // PIN пользователя сбрасывается → сбросить кэш при успехе
+    m_busy = true;
+    m_outcome = 0;
+    m_result.clear();
+    emit changed();
+
+    const QFunctionPointer getFunctionList = m_getFunctionList;
+    QByteArray soB = soPin.toUtf8();
+    QByteArray newB = newUserPin.toUtf8();
+    const QVariantList keepObjects = m_objects;
+
+    QtConcurrent::run([this, slotId, soB, newB, getFunctionList, keepObjects]() mutable {
+        const QPair<int, QString> r = runSessionOp(getFunctionList, slotId,
+            [&soB, &newB](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s) {
+                if (!fns->C_Login || !fns->C_Logout || !fns->C_InitPIN)
+                    return qMakePair(false, QStringLiteral("Библиотека не предоставляет C_InitPIN"));
+                const CK_RV lr = fns->C_Login(s, CKU_SO,
+                        reinterpret_cast<CK_UTF8CHAR *>(soB.data()), static_cast<CK_ULONG>(soB.size()));
+                if (lr != CKR_OK && lr != CKR_USER_ALREADY_LOGGED_IN)
+                    return qMakePair(false, pinRvMessage(lr));
+                const CK_RV rv = fns->C_InitPIN(s,
+                        reinterpret_cast<CK_UTF8CHAR *>(newB.data()), static_cast<CK_ULONG>(newB.size()));
+                fns->C_Logout(s);
+                return qMakePair(rv == CKR_OK,
+                                 rv == CKR_OK ? QStringLiteral("PIN пользователя разблокирован") : pinRvMessage(rv));
+            });
+        soB.fill('\0');
+        newB.fill('\0');
+        emit finished(r.first, r.second, keepObjects);
+    });
 }
 
 void TokenSession::generateKeyPair(qulonglong slotId, const QString &pin,
@@ -470,6 +647,17 @@ void TokenSession::onFinished(int outcome, const QString &message, const QVarian
         m_pendingPin.fill('\0');
         m_pendingPin.clear();
         m_pendingIsLogin = false;
+    }
+
+    // Успешная смена/сброс пользовательского PIN делает запомненный вход невалидным.
+    if (m_invalidateUserPin) {
+        m_invalidateUserPin = false;
+        if (outcome == 1) {
+            m_cachedPin.fill('\0');
+            m_cachedPin.clear();
+            m_cachedSlot = 0;
+            m_loggedIn = false;
+        }
     }
 
     emit changed();

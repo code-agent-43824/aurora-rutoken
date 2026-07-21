@@ -37,6 +37,26 @@ Page {
         anchors.fill: parent
         contentHeight: col.height + Theme.paddingLarge
 
+        // Управление PIN (v0.5): смена PIN пользователя/администратора и
+        // разблокировка PIN пользователя администратором.
+        PullDownMenu {
+            MenuItem {
+                text: qsTr("Unblock user PIN")
+                onClicked: pageStack.push(Qt.resolvedUrl("PinChangePage.qml"),
+                                          { slotId: page.slotId, mode: "unblock" })
+            }
+            MenuItem {
+                text: qsTr("Change admin PIN")
+                onClicked: pageStack.push(Qt.resolvedUrl("PinChangePage.qml"),
+                                          { slotId: page.slotId, mode: "so" })
+            }
+            MenuItem {
+                text: qsTr("Change user PIN")
+                onClicked: pageStack.push(Qt.resolvedUrl("PinChangePage.qml"),
+                                          { slotId: page.slotId, mode: "user" })
+            }
+        }
+
         Column {
             id: col
             width: parent.width

@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    0.4.1
-Release:    4
+Version:    0.5.0
+Release:    1
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -19,11 +19,11 @@ BuildRequires:  pkgconfig(Qt5Multimedia)
 
 %description
 Test application for working with Rutoken ECP 3.0 hardware tokens over USB
-and NFC on Aurora OS. Version 0.4 adds certificate export (DER and PEM, without
-the private key), on-token key-pair generation (GOST R 34.10-2012 256/512 and
-RSA) and certificate import from a file with auto-attachment to the matching
-key pair by public key. Builds on the v0.3 two-level object browser
-(certificates described from the parsed X.509 body, keys nested by CKA_ID).
+and NFC on Aurora OS. It shows connected tokens, logs in with the user PIN
+(numeric pad), browses objects, generates key pairs (GOST R 34.10-2012 and
+RSA), imports and exports certificates, and manages PINs (change user/admin
+PIN, unblock the user PIN). NFC uses a guided connect wizard; the certificate
+is auto-attached to its key pair by public key on import.
 
 %prep
 %autosetup
@@ -44,6 +44,13 @@ key pair by public key. Builds on the v0.3 two-level object browser
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.5.0-1
+- PIN management: change the user PIN (C_SetPIN), change the administrator (SO)
+  PIN, and unblock the user PIN with the administrator PIN (C_Login as SO +
+  C_InitPIN). Reachable from the token details pull-down menu; PINs are entered
+  on the numeric pad with confirmation of the new PIN. C_InitPIN (#11) and
+  C_SetPIN (#12) offsets were verified against the real library.
+
 * Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.4.1-4
 - Hide the "Connect over NFC" entry while an NFC token is already connected
   (one at a time). Play the connect/disconnect sounds from bundled WAV files

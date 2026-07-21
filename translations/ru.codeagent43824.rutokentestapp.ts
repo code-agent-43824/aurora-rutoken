@@ -134,6 +134,18 @@
 <context>
     <name>TokenDetailsPage</name>
     <message>
+        <source>Unblock user PIN</source>
+        <translation>Unblock user PIN</translation>
+    </message>
+    <message>
+        <source>Change admin PIN</source>
+        <translation>Change admin PIN</translation>
+    </message>
+    <message>
+        <source>Change user PIN</source>
+        <translation>Change user PIN</translation>
+    </message>
+    <message>
         <source>Enter PIN</source>
         <translation>Enter PIN</translation>
     </message>
@@ -502,6 +514,73 @@
     <message>
         <source>Continue</source>
         <translation>Continue</translation>
+    </message>
+</context>
+<context>
+    <name>PinChangePage</name>
+    <message>
+        <source>Change admin PIN</source>
+        <translation>Change admin PIN</translation>
+    </message>
+    <message>
+        <source>Unblock user PIN</source>
+        <translation>Unblock user PIN</translation>
+    </message>
+    <message>
+        <source>Change user PIN</source>
+        <translation>Change user PIN</translation>
+    </message>
+    <message>
+        <source>Current admin PIN</source>
+        <translation>Current admin PIN</translation>
+    </message>
+    <message>
+        <source>Administrator (SO) PIN</source>
+        <translation>Administrator (SO) PIN</translation>
+    </message>
+    <message>
+        <source>Current user PIN</source>
+        <translation>Current user PIN</translation>
+    </message>
+    <message>
+        <source>New admin PIN</source>
+        <translation>New admin PIN</translation>
+    </message>
+    <message>
+        <source>New user PIN</source>
+        <translation>New user PIN</translation>
+    </message>
+    <message>
+        <source>Confirm new PIN</source>
+        <translation>Confirm new PIN</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>The new PINs do not match</source>
+        <translation>The new PINs do not match</translation>
+    </message>
+    <message>
+        <source>Applying…</source>
+        <translation>Applying…</translation>
+    </message>
+    <message>
+        <source>Unblock</source>
+        <translation>Unblock</translation>
+    </message>
+    <message>
+        <source>Change PIN</source>
+        <translation>Change PIN</translation>
+    </message>
+    <message>
+        <source>The administrator sets a new user PIN; the user PIN attempt counter is reset.</source>
+        <translation>The administrator sets a new user PIN; the user PIN attempt counter is reset.</translation>
+    </message>
+    <message>
+        <source>A wrong current PIN, entered several times, can lock the token.</source>
+        <translation>A wrong current PIN, entered several times, can lock the token.</translation>
     </message>
 </context>
 <context>
