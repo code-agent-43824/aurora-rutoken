@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    0.4.0
-Release:    5
+Version:    0.4.1
+Release:    1
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -43,6 +43,13 @@ key pair by public key. Builds on the v0.3 two-level object browser
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.4.1-1
+- PIN entry moved to a dedicated screen with a numeric keypad and a switch to
+  the OS text keyboard. For USB the PIN is remembered in memory after the first
+  successful login (reused by key generation and certificate import without
+  re-typing) until you log out, unplug the USB token, or close the app; a
+  "Log out" button clears it. (NFC connection wizard follows in 0.4.1-2.)
+
 * Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.4.0-5
 - Import an X.509 certificate from a file (PEM or DER) onto the token via
   C_CreateObject, reachable from the Objects screen pull-down menu. The

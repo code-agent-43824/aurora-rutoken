@@ -17,11 +17,17 @@ Page {
     property string flags: ""
     property string slotName: ""
 
-    function doLogin() {
-        if (tokenSession.busy || pinField.text.length === 0)
+    function openPinPad() {
+        if (tokenSession.busy)
             return
-        Qt.inputMethod.commit()
-        tokenSession.login(page.slotId, pinField.text)
+        var pad = pageStack.push(Qt.resolvedUrl("PinPadPage.qml"), {
+            heading: qsTr("User PIN"),
+            subtitle: page.tokenLabel.length > 0 ? page.tokenLabel : qsTr("Rutoken"),
+            acceptText: qsTr("Log in")
+        })
+        pad.entered.connect(function(pin) {
+            tokenSession.login(page.slotId, pin)
+        })
     }
 
     // Сертификаты видны без входа — читаем их сразу при открытии деталей.
@@ -69,23 +75,33 @@ Page {
 
             SectionHeader { text: qsTr("User PIN login") }
 
-            TextField {
-                id: pinField
-                width: parent.width
-                label: qsTr("User PIN")
-                placeholderText: qsTr("Enter user PIN")
-                echoMode: TextInput.Password
-                inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
+            // Не вошли — открыть отдельный экран ввода PIN (цифровая клавиатура).
+            Button {
+                visible: !tokenSession.loggedIn
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: tokenSession.busy ? qsTr("Checking…") : qsTr("Enter PIN")
                 enabled: !tokenSession.busy
-                EnterKey.iconSource: "image://theme/icon-m-enter-accept"
-                EnterKey.onClicked: page.doLogin()
+                onClicked: page.openPinPad()
+            }
+
+            // Вошли — статус и выход.
+            Label {
+                visible: tokenSession.loggedIn
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                text: qsTr("Logged in — the PIN is remembered")
+                color: "#4caf50"
+                font.pixelSize: Theme.fontSizeMedium
             }
 
             Button {
+                visible: tokenSession.loggedIn
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: tokenSession.busy ? qsTr("Checking…") : qsTr("Log in")
-                enabled: !tokenSession.busy && pinField.text.length > 0
-                onClicked: page.doLogin()
+                text: qsTr("Log out")
+                enabled: !tokenSession.busy
+                onClicked: tokenSession.logout()
             }
 
             BusyIndicator {
@@ -123,7 +139,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
-                text: qsTr("The PIN is sent only to the token and is not stored.")
+                text: qsTr("The PIN is kept in memory until you log out, unplug the USB token, or close the app.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }

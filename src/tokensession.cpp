@@ -164,12 +164,72 @@ void TokenSession::clear()
 
 void TokenSession::login(qulonglong slotId, const QString &pin)
 {
+    if (m_busy)
+        return;
+    // Запоминаем PIN как ожидающий; onFinished закэширует его только при успехе.
+    m_pendingPin = pin.toUtf8();
+    m_pendingSlot = slotId;
+    m_pendingIsLogin = true;
     run(slotId, pin, /*doLogin*/ true);
 }
 
 void TokenSession::preview(qulonglong slotId)
 {
+    m_pendingIsLogin = false;
     run(slotId, QString(), /*doLogin*/ false);
+}
+
+void TokenSession::logout()
+{
+    if (m_busy)
+        return;
+    m_cachedPin.fill('\0');
+    m_cachedPin.clear();
+    m_cachedSlot = 0;
+    m_loggedIn = false;
+    m_outcome = 0;
+    m_result.clear();
+    m_objects.clear();
+    emit changed();
+}
+
+void TokenSession::generateKeyPairCached(qulonglong slotId, const QString &algorithm,
+                                         const QString &label)
+{
+    if (!m_loggedIn || m_cachedSlot != slotId || m_cachedPin.isEmpty()) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Сначала войдите по PIN");
+        emit changed();
+        return;
+    }
+    generateKeyPair(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()), algorithm, label);
+}
+
+void TokenSession::importCertificateCached(qulonglong slotId, const QString &filePath,
+                                           const QString &label)
+{
+    if (!m_loggedIn || m_cachedSlot != slotId || m_cachedPin.isEmpty()) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Сначала войдите по PIN");
+        emit changed();
+        return;
+    }
+    importCertificate(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()), filePath, label);
+}
+
+void TokenSession::retainUsbSlot(const QVariantList &tokens)
+{
+    if (!m_loggedIn || m_busy)
+        return;
+    bool present = false;
+    for (int i = 0; i < tokens.size(); ++i) {
+        if (tokens.at(i).toMap().value(QStringLiteral("slotId")).toULongLong() == m_cachedSlot) {
+            present = true;
+            break;
+        }
+    }
+    if (!present)
+        logout();
 }
 
 void TokenSession::generateKeyPair(qulonglong slotId, const QString &pin,
@@ -177,6 +237,7 @@ void TokenSession::generateKeyPair(qulonglong slotId, const QString &pin,
 {
     if (m_busy)
         return;
+    m_pendingIsLogin = false; // не вход — не кэшировать PIN по завершении
     if (!m_getFunctionList) {
         m_outcome = -1;
         m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
@@ -210,6 +271,7 @@ void TokenSession::importCertificate(qulonglong slotId, const QString &pin,
 {
     if (m_busy)
         return;
+    m_pendingIsLogin = false; // не вход — не кэшировать PIN по завершении
     if (!m_getFunctionList) {
         m_outcome = -1;
         m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
@@ -244,6 +306,7 @@ void TokenSession::run(qulonglong slotId, const QString &pin, bool doLogin)
     if (m_busy)
         return;
     if (!m_getFunctionList) {
+        m_pendingIsLogin = false; // вход не состоится — не кэшировать
         if (doLogin) {
             m_outcome = -1;
             m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
@@ -342,6 +405,19 @@ void TokenSession::onFinished(int outcome, const QString &message, const QVarian
     m_outcome = outcome;
     m_result = message;
     m_objects = objects;
+
+    // Кэшируем PIN только для успешного входа (login), не для генерации/импорта.
+    if (m_pendingIsLogin) {
+        if (outcome == 1) {
+            m_cachedPin = m_pendingPin;
+            m_cachedSlot = m_pendingSlot;
+            m_loggedIn = true;
+        }
+        m_pendingPin.fill('\0');
+        m_pendingPin.clear();
+        m_pendingIsLogin = false;
+    }
+
     emit changed();
 }
 

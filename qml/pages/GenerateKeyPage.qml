@@ -14,13 +14,26 @@ Page {
     property bool attempted: false
 
     function doGenerate() {
-        if (tokenSession.busy || pinField.text.length === 0)
+        if (tokenSession.busy || !tokenSession.loggedIn)
             return
         Qt.inputMethod.commit()
         page.attempted = true
-        tokenSession.generateKeyPair(page.slotId, pinField.text,
-                                     page.algoCodes[algoCombo.currentIndex],
-                                     labelField.text)
+        tokenSession.generateKeyPairCached(page.slotId,
+                                           page.algoCodes[algoCombo.currentIndex],
+                                           labelField.text)
+    }
+
+    // Вход по PIN (цифровой экран); используется запомненный PIN для генерации.
+    function openPinPad() {
+        if (tokenSession.busy)
+            return
+        var pad = pageStack.push(Qt.resolvedUrl("PinPadPage.qml"), {
+            heading: qsTr("User PIN"),
+            acceptText: qsTr("Log in")
+        })
+        pad.entered.connect(function(pin) {
+            tokenSession.login(page.slotId, pin)
+        })
     }
 
     SilicaFlickable {
@@ -57,26 +70,34 @@ Page {
                 placeholderText: qsTr("For example, My GOST key")
                 inputMethodHints: Qt.ImhNoPredictiveText
                 enabled: !tokenSession.busy
-                EnterKey.iconSource: "image://theme/icon-m-enter-next"
-                EnterKey.onClicked: pinField.focus = true
-            }
-
-            TextField {
-                id: pinField
-                width: parent.width
-                label: qsTr("User PIN")
-                placeholderText: qsTr("Enter user PIN")
-                echoMode: TextInput.Password
-                inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
-                enabled: !tokenSession.busy
                 EnterKey.iconSource: "image://theme/icon-m-enter-accept"
                 EnterKey.onClicked: page.doGenerate()
+            }
+
+            // Требуется вход по PIN. Если не вошли — открыть цифровой экран PIN;
+            // после входа PIN запоминается и генерация идёт без повторного ввода.
+            Button {
+                visible: !tokenSession.loggedIn
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: tokenSession.busy ? qsTr("Checking…") : qsTr("Enter PIN")
+                enabled: !tokenSession.busy
+                onClicked: page.openPinPad()
+            }
+
+            Label {
+                visible: tokenSession.loggedIn
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                horizontalAlignment: Text.AlignHCenter
+                text: qsTr("PIN is remembered")
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
             }
 
             Button {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: tokenSession.busy ? qsTr("Generating…") : qsTr("Generate")
-                enabled: !tokenSession.busy && pinField.text.length > 0
+                enabled: !tokenSession.busy && tokenSession.loggedIn
                 onClicked: page.doGenerate()
             }
 
@@ -115,7 +136,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
-                text: qsTr("The private key never leaves the token. The PIN is not stored.")
+                text: qsTr("The private key never leaves the token.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }

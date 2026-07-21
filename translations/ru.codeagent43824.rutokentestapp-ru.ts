@@ -106,6 +106,18 @@
 <context>
     <name>TokenDetailsPage</name>
     <message>
+        <source>Enter PIN</source>
+        <translation>Ввести PIN</translation>
+    </message>
+    <message>
+        <source>Logged in — the PIN is remembered</source>
+        <translation>Вход выполнен — PIN запомнен</translation>
+    </message>
+    <message>
+        <source>Log out</source>
+        <translation>Разлогиниться</translation>
+    </message>
+    <message>
         <source>Rutoken</source>
         <translation>Рутокен</translation>
     </message>
@@ -158,8 +170,8 @@
         <translation>Войти</translation>
     </message>
     <message>
-        <source>The PIN is sent only to the token and is not stored.</source>
-        <translation>PIN передаётся только в токен и нигде не сохраняется.</translation>
+        <source>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</source>
+        <translation>PIN хранится в памяти до выхода, отключения USB-токена или закрытия приложения.</translation>
     </message>
     <message>
         <source>Token objects (%1)</source>
@@ -333,6 +345,22 @@
 <context>
     <name>ImportCertificatePage</name>
     <message>
+        <source>Enter PIN</source>
+        <translation>Ввести PIN</translation>
+    </message>
+    <message>
+        <source>PIN is remembered</source>
+        <translation>PIN запомнен</translation>
+    </message>
+    <message>
+        <source>Checking…</source>
+        <translation>Проверка…</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Войти</translation>
+    </message>
+    <message>
         <source>Import certificate</source>
         <translation>Импорт сертификата</translation>
     </message>
@@ -381,12 +409,55 @@
         <translation>Проведите назад, чтобы увидеть сертификат в списке.</translation>
     </message>
     <message>
-        <source>Only the certificate (public) is imported — never a private key. The PIN is not stored.</source>
-        <translation>Импортируется только сертификат (открытый) — без закрытого ключа. PIN не сохраняется.</translation>
+        <source>Only the certificate (public) is imported — never a private key.</source>
+        <translation>Импортируется только сертификат (открытый) — без закрытого ключа.</translation>
+    </message>
+</context>
+<context>
+    <name>PinPadPage</name>
+    <message>
+        <source>User PIN</source>
+        <translation>PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Войти</translation>
+    </message>
+    <message>
+        <source>Enter user PIN</source>
+        <translation>Введите PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Show</source>
+        <translation>Показать</translation>
+    </message>
+    <message>
+        <source>Hide</source>
+        <translation>Скрыть</translation>
+    </message>
+    <message>
+        <source>Numeric keypad</source>
+        <translation>Цифровая клавиатура</translation>
     </message>
 </context>
 <context>
     <name>GenerateKeyPage</name>
+    <message>
+        <source>Enter PIN</source>
+        <translation>Ввести PIN</translation>
+    </message>
+    <message>
+        <source>PIN is remembered</source>
+        <translation>PIN запомнен</translation>
+    </message>
+    <message>
+        <source>Checking…</source>
+        <translation>Проверка…</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Войти</translation>
+    </message>
     <message>
         <source>New key pair</source>
         <translation>Новая ключевая пара</translation>
@@ -444,8 +515,8 @@
         <translation>Проведите назад, чтобы увидеть новый ключ в списке.</translation>
     </message>
     <message>
-        <source>The private key never leaves the token. The PIN is not stored.</source>
-        <translation>Закрытый ключ не покидает токен. PIN не сохраняется.</translation>
+        <source>The private key never leaves the token.</source>
+        <translation>Закрытый ключ не покидает токен.</translation>
     </message>
 </context>
 <context>

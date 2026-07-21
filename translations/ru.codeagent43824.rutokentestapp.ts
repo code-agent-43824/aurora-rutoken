@@ -106,6 +106,18 @@
 <context>
     <name>TokenDetailsPage</name>
     <message>
+        <source>Enter PIN</source>
+        <translation>Enter PIN</translation>
+    </message>
+    <message>
+        <source>Logged in — the PIN is remembered</source>
+        <translation>Logged in — the PIN is remembered</translation>
+    </message>
+    <message>
+        <source>Log out</source>
+        <translation>Log out</translation>
+    </message>
+    <message>
         <source>Rutoken</source>
         <translation>Rutoken</translation>
     </message>
@@ -158,8 +170,8 @@
         <translation>Log in</translation>
     </message>
     <message>
-        <source>The PIN is sent only to the token and is not stored.</source>
-        <translation>The PIN is sent only to the token and is not stored.</translation>
+        <source>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</source>
+        <translation>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</translation>
     </message>
     <message>
         <source>Token objects (%1)</source>
@@ -333,6 +345,22 @@
 <context>
     <name>ImportCertificatePage</name>
     <message>
+        <source>Enter PIN</source>
+        <translation>Enter PIN</translation>
+    </message>
+    <message>
+        <source>PIN is remembered</source>
+        <translation>PIN is remembered</translation>
+    </message>
+    <message>
+        <source>Checking…</source>
+        <translation>Checking…</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Log in</translation>
+    </message>
+    <message>
         <source>Import certificate</source>
         <translation>Import certificate</translation>
     </message>
@@ -381,12 +409,55 @@
         <translation>Swipe back to see the certificate in the list.</translation>
     </message>
     <message>
-        <source>Only the certificate (public) is imported — never a private key. The PIN is not stored.</source>
-        <translation>Only the certificate (public) is imported — never a private key. The PIN is not stored.</translation>
+        <source>Only the certificate (public) is imported — never a private key.</source>
+        <translation>Only the certificate (public) is imported — never a private key.</translation>
+    </message>
+</context>
+<context>
+    <name>PinPadPage</name>
+    <message>
+        <source>User PIN</source>
+        <translation>User PIN</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Log in</translation>
+    </message>
+    <message>
+        <source>Enter user PIN</source>
+        <translation>Enter user PIN</translation>
+    </message>
+    <message>
+        <source>Show</source>
+        <translation>Show</translation>
+    </message>
+    <message>
+        <source>Hide</source>
+        <translation>Hide</translation>
+    </message>
+    <message>
+        <source>Numeric keypad</source>
+        <translation>Numeric keypad</translation>
     </message>
 </context>
 <context>
     <name>GenerateKeyPage</name>
+    <message>
+        <source>Enter PIN</source>
+        <translation>Enter PIN</translation>
+    </message>
+    <message>
+        <source>PIN is remembered</source>
+        <translation>PIN is remembered</translation>
+    </message>
+    <message>
+        <source>Checking…</source>
+        <translation>Checking…</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Log in</translation>
+    </message>
     <message>
         <source>New key pair</source>
         <translation>New key pair</translation>
@@ -444,8 +515,8 @@
         <translation>Swipe back to see the new key in the list.</translation>
     </message>
     <message>
-        <source>The private key never leaves the token. The PIN is not stored.</source>
-        <translation>The private key never leaves the token. The PIN is not stored.</translation>
+        <source>The private key never leaves the token.</source>
+        <translation>The private key never leaves the token.</translation>
     </message>
 </context>
 <context>

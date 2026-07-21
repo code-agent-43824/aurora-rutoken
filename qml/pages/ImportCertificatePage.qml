@@ -11,11 +11,24 @@ Page {
     property bool attempted: false
 
     function doImport() {
-        if (tokenSession.busy || pathField.text.length === 0 || pinField.text.length === 0)
+        if (tokenSession.busy || !tokenSession.loggedIn || pathField.text.length === 0)
             return
         Qt.inputMethod.commit()
         page.attempted = true
-        tokenSession.importCertificate(page.slotId, pinField.text, pathField.text, labelField.text)
+        tokenSession.importCertificateCached(page.slotId, pathField.text, labelField.text)
+    }
+
+    // Вход по PIN (цифровой экран); используется запомненный PIN для импорта.
+    function openPinPad() {
+        if (tokenSession.busy)
+            return
+        var pad = pageStack.push(Qt.resolvedUrl("PinPadPage.qml"), {
+            heading: qsTr("User PIN"),
+            acceptText: qsTr("Log in")
+        })
+        pad.entered.connect(function(pin) {
+            tokenSession.login(page.slotId, pin)
+        })
     }
 
     SilicaFlickable {
@@ -64,26 +77,34 @@ Page {
                 placeholderText: qsTr("Taken from Common Name if empty")
                 inputMethodHints: Qt.ImhNoPredictiveText
                 enabled: !tokenSession.busy
-                EnterKey.iconSource: "image://theme/icon-m-enter-next"
-                EnterKey.onClicked: pinField.focus = true
-            }
-
-            TextField {
-                id: pinField
-                width: parent.width
-                label: qsTr("User PIN")
-                placeholderText: qsTr("Enter user PIN")
-                echoMode: TextInput.Password
-                inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
-                enabled: !tokenSession.busy
                 EnterKey.iconSource: "image://theme/icon-m-enter-accept"
                 EnterKey.onClicked: page.doImport()
+            }
+
+            // Требуется вход по PIN. Если не вошли — открыть цифровой экран PIN;
+            // после входа PIN запоминается и импорт идёт без повторного ввода.
+            Button {
+                visible: !tokenSession.loggedIn
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: tokenSession.busy ? qsTr("Checking…") : qsTr("Enter PIN")
+                enabled: !tokenSession.busy
+                onClicked: page.openPinPad()
+            }
+
+            Label {
+                visible: tokenSession.loggedIn
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                horizontalAlignment: Text.AlignHCenter
+                text: qsTr("PIN is remembered")
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
             }
 
             Button {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: tokenSession.busy ? qsTr("Importing…") : qsTr("Import")
-                enabled: !tokenSession.busy && pathField.text.length > 0 && pinField.text.length > 0
+                enabled: !tokenSession.busy && tokenSession.loggedIn && pathField.text.length > 0
                 onClicked: page.doImport()
             }
 
@@ -122,7 +143,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
-                text: qsTr("Only the certificate (public) is imported — never a private key. The PIN is not stored.")
+                text: qsTr("Only the certificate (public) is imported — never a private key.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }
