@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.5.0
-Release:    3
+Release:    4
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,14 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.5.0-4
+- PIN change (user / admin / unblock) is now collected as a sequence of screens:
+  opening the operation asks for each PIN on its own numeric pad in turn (current
+  -> new -> confirm), then shows a summary with the apply button. Re-read the
+  token label after changing it: the token-set signature now includes the label
+  and the details/list refresh, so the new label shows up immediately instead of
+  the old one.
+
 * Tue Jul 21 2026 Claude <noreply@anthropic.com> - 0.5.0-3
 - Unblock the user PIN through the Rutoken vendor call C_EX_UnblockUserPIN
   (administrator/SO login, then reset the user PIN attempt counter) instead of

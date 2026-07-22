@@ -14,6 +14,8 @@ const QString kLibraryPath = QStringLiteral(
     "/usr/lib/3rdparty/ru.rutoken.librtpkcs11ecp/librtpkcs11ecp.so");
 
 // Сигнатура набора токенов для сравнения (чтобы не обновлять UI без изменений).
+// Метка входит в сигнатуру: её смена (C_EX_SetTokenName) должна обновлять список
+// и детали, иначе набор считается неизменным и UI показывает старую метку.
 QString signatureOf(const QVariantList &cards)
 {
     QStringList parts;
@@ -21,7 +23,8 @@ QString signatureOf(const QVariantList &cards)
         const QVariantMap m = v.toMap();
         parts << m.value(QStringLiteral("slotId")).toString()
                  + QLatin1Char('|') + m.value(QStringLiteral("serial")).toString()
-                 + QLatin1Char('|') + m.value(QStringLiteral("connection")).toString();
+                 + QLatin1Char('|') + m.value(QStringLiteral("connection")).toString()
+                 + QLatin1Char('|') + m.value(QStringLiteral("label")).toString();
     }
     parts.sort();
     return parts.join(QLatin1Char(';'));

@@ -17,12 +17,24 @@ Page {
     property string flags: ""
     property string slotName: ""
 
+    // Живая метка: ищем токен по slotId в списке TokenWatcher и берём его метку.
+    // Привязка перевычисляется по tokensChanged, поэтому после смены метки
+    // (C_EX_SetTokenName + refresh) заголовок и дочерние экраны показывают новую.
+    property string curLabel: {
+        var ts = tokenWatcher.tokens
+        for (var i = 0; i < ts.length; ++i) {
+            if (ts[i].slotId === page.slotId)
+                return ts[i].label
+        }
+        return page.tokenLabel
+    }
+
     function openPinPad() {
         if (tokenSession.busy)
             return
         var pad = pageStack.push(Qt.resolvedUrl("PinPadPage.qml"), {
             heading: qsTr("User PIN"),
-            subtitle: page.tokenLabel.length > 0 ? page.tokenLabel : qsTr("Rutoken"),
+            subtitle: page.curLabel.length > 0 ? page.curLabel : qsTr("Rutoken"),
             acceptText: qsTr("Log in")
         })
         pad.entered.connect(function(pin) {
@@ -43,7 +55,7 @@ Page {
             MenuItem {
                 text: qsTr("Change token label")
                 onClicked: pageStack.push(Qt.resolvedUrl("TokenLabelPage.qml"),
-                                          { slotId: page.slotId, currentLabel: page.tokenLabel })
+                                          { slotId: page.slotId, currentLabel: page.curLabel })
             }
             MenuItem {
                 text: qsTr("Unblock user PIN")
@@ -68,7 +80,7 @@ Page {
             spacing: Theme.paddingMedium
 
             PageHeader {
-                title: page.tokenLabel.length > 0 ? page.tokenLabel : qsTr("Rutoken")
+                title: page.curLabel.length > 0 ? page.curLabel : qsTr("Rutoken")
                 description: page.connection.length > 0 ? page.connection : qsTr("token")
             }
 
@@ -154,7 +166,7 @@ Page {
                 text: qsTr("Token objects (%1)").arg(tokenSession.objects.length)
                 onClicked: pageStack.push(Qt.resolvedUrl("ObjectsPage.qml"), {
                     slotId: page.slotId,
-                    tokenLabel: page.tokenLabel,
+                    tokenLabel: page.curLabel,
                     connection: page.connection
                 })
             }

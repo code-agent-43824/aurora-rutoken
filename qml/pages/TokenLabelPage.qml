@@ -11,6 +11,21 @@ Page {
     property string currentLabel: ""
     property string userPin: ""
     property bool attempted: false
+    property bool refreshed: false
+
+    // После успешной смены метки перечитываем список токенов, чтобы новая метка
+    // появилась в деталях и в списке (TokenWatcher теперь учитывает метку в
+    // сигнатуре, поэтому refresh обновляет UI). Делаем это один раз.
+    Connections {
+        target: tokenSession
+        onChanged: {
+            if (page.attempted && !page.refreshed && !tokenSession.busy && tokenSession.outcome === 1) {
+                page.refreshed = true
+                page.currentLabel = labelField.text
+                tokenWatcher.refresh()
+            }
+        }
+    }
 
     function openPad() {
         var pad = pageStack.push(Qt.resolvedUrl("PinPadPage.qml"), {

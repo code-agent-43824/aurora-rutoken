@@ -4,8 +4,12 @@ import Sailfish.Silica 1.0
 // Управление PIN. mode:
 //   "user"    — смена PIN пользователя (текущий + новый);
 //   "so"      — смена PIN администратора/SO (текущий SO + новый SO);
-//   "unblock" — разблокировка PIN пользователя администратором (SO + новый user).
-// PIN вводится тем же цифровым экраном PinPadPage; у нового PIN — подтверждение.
+//   "unblock" — разблокировка PIN пользователя администратором (только SO PIN).
+// Сбор данных — последовательностью экранов: при активации страницы открывается
+// следующий незаполненный PIN отдельным PinPadPage (старый → новый → повтор),
+// затем итоговый экран с кнопкой применения. Переиспользуем проверенный
+// PinPadPage; переход к следующему шагу — только когда страница снова активна
+// (без гонок push/pop). Ручное перевведение — теми же кнопками.
 Page {
     id: page
     objectName: "pinChangePage"
@@ -18,6 +22,11 @@ Page {
     property string pin2: ""   // новый PIN
     property string pin2c: ""  // подтверждение нового PIN
     property bool attempted: false
+    // Пока true — автопродвигаемся к следующему шагу по мере ввода.
+    // Выключается, когда все шаги собраны или после нажатия «Применить».
+    property bool autoCollecting: true
+    property bool started: false        // первый показ уже открыл первый шаг
+    property bool pendingAdvance: false // только что ввели значение — продвинуться
 
     function titleText() {
         if (mode === "so") return qsTr("Change admin PIN")
@@ -46,6 +55,20 @@ Page {
         return !tokenSession.busy && pin1.length > 0 && (mode === "unblock" || matchOk())
     }
 
+    // Следующий незаполненный шаг сбора ("" — всё собрано).
+    function nextStep() {
+        if (pin1.length === 0) return "pin1"
+        if (mode === "unblock") return ""
+        if (pin2.length === 0) return "pin2"
+        if (pin2c.length === 0) return "pin2c"
+        return ""
+    }
+    function stepHeading(step) {
+        if (step === "pin1") return pin1Label()
+        if (step === "pin2") return pin2Label()
+        return qsTr("Confirm new PIN")
+    }
+
     function openPad(which, heading) {
         var pad = pageStack.push(Qt.resolvedUrl("PinPadPage.qml"), {
             heading: heading,
@@ -55,12 +78,26 @@ Page {
             if (which === "pin1") page.pin1 = value
             else if (which === "pin2") page.pin2 = value
             else page.pin2c = value
+            // Продвижение делаем не здесь (PinPadPage сам вызовет pop() после
+            // entered — push следующего экрана тут привёл бы к гонке), а когда
+            // страница снова станет активной (onStatusChanged).
+            page.pendingAdvance = true
         })
+    }
+
+    // Открыть экран для следующего незаполненного шага ("" — всё собрано).
+    function advance() {
+        var step = page.nextStep()
+        if (step === "")
+            page.autoCollecting = false
+        else
+            page.openPad(step, page.stepHeading(step))
     }
 
     function doApply() {
         if (!page.canApply())
             return
+        page.autoCollecting = false
         page.attempted = true
         if (page.mode === "so")
             tokenSession.changeSoPin(page.slotId, page.pin1, page.pin2)
@@ -68,6 +105,27 @@ Page {
             tokenSession.unblockUserPin(page.slotId, page.pin1)
         else
             tokenSession.changeUserPin(page.slotId, page.pin1, page.pin2)
+    }
+
+    // Автопродвижение по мере ввода. Срабатывает, когда страница снова активна
+    // (очередной PinPadPage закрылся): при первом показе открываем первый шаг;
+    // затем — следующий шаг, но только если значение действительно ввели
+    // (pendingAdvance). Возврат «назад» из PinPadPage значение не вводит —
+    // тогда просто показываем итог, не открывая экран заново (не запираем).
+    onStatusChanged: {
+        if (status !== PageStatus.Active || page.attempted || tokenSession.busy)
+            return
+        if (!page.started) {
+            page.started = true
+            if (page.autoCollecting)
+                page.advance()
+            return
+        }
+        if (page.pendingAdvance) {
+            page.pendingAdvance = false
+            if (page.autoCollecting)
+                page.advance()
+        }
     }
 
     SilicaFlickable {
