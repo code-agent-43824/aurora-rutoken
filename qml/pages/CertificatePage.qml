@@ -11,11 +11,14 @@ Page {
     property string expiry: ""
     property bool parsed: false
     property string idText: ""
+    property string idHex: ""
     property string label: ""
     property string source: ""
     property string derB64: ""
     property bool hasKey: false
     property bool keysKnown: false
+    property var slotId: 0
+    property string connection: ""
 
     function title() {
         if (page.parsed && page.commonName.length > 0)
@@ -25,11 +28,30 @@ Page {
         return qsTr("Certificate")
     }
 
+    // Удаление сертификата: всегда спрашиваем область (только сертификат /
+    // сертификат+ключи). После удаления закрываем детали — объект удалён.
+    function doDelete() {
+        var dlg = pageStack.push(Qt.resolvedUrl("DeleteCertPage.qml"), {
+            certName: page.title(),
+            hasKey: page.hasKey
+        })
+        dlg.chosen.connect(function(keysToo) {
+            tokenSession.deleteObjectsCached(page.slotId, page.idHex, keysToo)
+            pageStack.pop()
+        })
+    }
+
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: col.height
 
         PullDownMenu {
+            // Удаление — пока по USB (приватные ключи видны только после входа).
+            MenuItem {
+                visible: page.connection !== "NFC" && page.idHex.length > 0
+                text: qsTr("Delete certificate")
+                onClicked: page.doDelete()
+            }
             MenuItem {
                 text: qsTr("Export certificate")
                 onClicked: pageStack.push(Qt.resolvedUrl("ExportCertificatePage.qml"), {

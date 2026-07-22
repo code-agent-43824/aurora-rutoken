@@ -359,6 +359,10 @@
         <source>Export certificate</source>
         <translation>Export certificate</translation>
     </message>
+    <message>
+        <source>Delete certificate</source>
+        <translation>Delete certificate</translation>
+    </message>
 </context>
 <context>
     <name>ExportCertificatePage</name>
@@ -856,6 +860,33 @@
     <message>
         <source>Unblock user PIN</source>
         <translation>Unblock user PIN</translation>
+    </message>
+</context>
+<context>
+    <name>DeleteCertPage</name>
+    <message>
+        <source>Delete certificate</source>
+        <translation>Delete certificate</translation>
+    </message>
+    <message>
+        <source>Delete “%1” — what should be removed?</source>
+        <translation>Delete “%1” — what should be removed?</translation>
+    </message>
+    <message>
+        <source>What should be removed?</source>
+        <translation>What should be removed?</translation>
+    </message>
+    <message>
+        <source>Only the certificate</source>
+        <translation>Only the certificate</translation>
+    </message>
+    <message>
+        <source>Certificate and its keys</source>
+        <translation>Certificate and its keys</translation>
+    </message>
+    <message>
+        <source>Deleting the keys is irreversible — the private key cannot be recovered.</source>
+        <translation>Deleting the keys is irreversible — the private key cannot be recovered.</translation>
     </message>
 </context>
 </TS>

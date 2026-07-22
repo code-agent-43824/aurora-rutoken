@@ -216,12 +216,23 @@ Page {
                     text: qsTr("Done")
                     onClicked: {
                         if (tokenSession.outcome === 1 && page.operation === "connect") {
-                            // Логически подключаем NFC-токен (снимок объектов) и открываем его.
+                            // Логически подключаем NFC-токен (снимок объектов) и
+                            // открываем ЕГО СВОЙСТВА (как у USB). Сертификаты уже
+                            // считаны при подключении — из деталей их видно без
+                            // повторного поднесения.
                             tokenSession.commitNfc(page.lastToken)
-                            pageStack.replace(Qt.resolvedUrl("ObjectsPage.qml"), {
-                                slotId: page.lastToken ? page.lastToken.slotId : 0,
+                            var t = page.lastToken
+                            pageStack.replace(Qt.resolvedUrl("TokenDetailsPage.qml"), {
                                 connection: "NFC",
-                                tokenLabel: page.lastToken ? page.lastToken.label : ""
+                                slotId: (t && t.slotId) ? t.slotId : 0,
+                                tokenLabel: (t && t.label) ? t.label : "",
+                                serial: (t && t.serial) ? t.serial : "",
+                                tokenModel: (t && t.model) ? t.model : "",
+                                manufacturer: (t && t.manufacturer) ? t.manufacturer : "",
+                                firmware: (t && t.firmware) ? t.firmware : "",
+                                hardware: (t && t.hardware) ? t.hardware : "",
+                                flags: (t && t.flags) ? t.flags : "",
+                                slotName: (t && t.slotName) ? t.slotName : ""
                             })
                         } else {
                             if (tokenSession.outcome === 1)

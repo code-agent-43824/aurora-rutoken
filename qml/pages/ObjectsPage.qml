@@ -24,21 +24,30 @@ Page {
         return ""
     }
 
-    // Удаление записи (сертификат + его ключи / отдельный ключ) по CKA_ID —
-    // долгим нажатием, с отсрочкой RemorsePopup. Пока по USB: нужен запомненный
-    // вход (приватные ключи видны только после входа). По NFC — следующий этап.
+    // Удаление записи долгим нажатием (пока по USB: приватные ключи видны только
+    // после входа). Сертификат — всегда спрашиваем область (только сертификат /
+    // сертификат+ключи) через DeleteCertPage. Ключ — сразу, с отсрочкой RemorsePopup.
     function confirmDelete(m) {
         if (page.connection === "NFC")
             return
         if (!m.idHex || m.idHex.length === 0)
             return
-        var what = m.kind === "certificate"
-                ? qsTr("Deleting the certificate and its keys")
-                : qsTr("Deleting the key")
-        remorse.execute(what, function() {
-            page.deleteAttempted = true
-            tokenSession.deleteObjectsCached(page.slotId, m.idHex)
-        })
+        if (m.kind === "certificate") {
+            var id = m.idHex
+            var dlg = pageStack.push(Qt.resolvedUrl("DeleteCertPage.qml"), {
+                certName: page.certTitle(m),
+                hasKey: m.hasKey ? true : false
+            })
+            dlg.chosen.connect(function(keysToo) {
+                page.deleteAttempted = true
+                tokenSession.deleteObjectsCached(page.slotId, id, keysToo)
+            })
+        } else {
+            remorse.execute(qsTr("Deleting the key"), function() {
+                page.deleteAttempted = true
+                tokenSession.deleteObjectsCached(page.slotId, m.idHex, true)
+            })
+        }
     }
 
     RemorsePopup { id: remorse }
@@ -129,11 +138,14 @@ Page {
                                 expiry: modelData.expiry ? modelData.expiry : "",
                                 parsed: modelData.parsed ? modelData.parsed : false,
                                 idText: modelData.idText ? modelData.idText : "",
+                                idHex: modelData.idHex ? modelData.idHex : "",
                                 label: modelData.label ? modelData.label : "",
                                 source: modelData.source ? modelData.source : "",
                                 derB64: modelData.derB64 ? modelData.derB64 : "",
                                 hasKey: modelData.hasKey ? modelData.hasKey : false,
-                                keysKnown: modelData.keysKnown ? modelData.keysKnown : false
+                                keysKnown: modelData.keysKnown ? modelData.keysKnown : false,
+                                slotId: page.slotId,
+                                connection: page.connection
                             })
                     }
                     onPressAndHold: page.confirmDelete(modelData)

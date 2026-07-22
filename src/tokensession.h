@@ -73,11 +73,13 @@ public:
     // То же с запомненным PIN (USB, после login на этом же слоте).
     Q_INVOKABLE void importCertificateCached(qulonglong slotId, const QString &filePath,
                                              const QString &label);
-    // Удаление объектов по CKA_ID (сертификат + его ключи «записью целиком»): вход
-    // по PIN, R/W-сессия, C_DestroyObject; затем перечитывание объектов.
-    Q_INVOKABLE void deleteObjects(qulonglong slotId, const QString &pin, const QString &idHex);
+    // Удаление объектов по CKA_ID: вход по PIN, R/W-сессия, C_DestroyObject; затем
+    // перечитывание объектов. keysToo=true — сертификат и его ключи (всё по id);
+    // false — только объект-сертификат (ключи остаются).
+    Q_INVOKABLE void deleteObjects(qulonglong slotId, const QString &pin,
+                                   const QString &idHex, bool keysToo);
     // То же с запомненным PIN (USB, после login на этом же слоте).
-    Q_INVOKABLE void deleteObjectsCached(qulonglong slotId, const QString &idHex);
+    Q_INVOKABLE void deleteObjectsCached(qulonglong slotId, const QString &idHex, bool keysToo);
     // Логически подключённый NFC-токен: снимок объектов сохраняется, чтобы
     // вернуться к его сертификатам без повторного поднесения.
     Q_INVOKABLE void commitNfc(const QVariantMap &token); // токен + снимок текущих объектов

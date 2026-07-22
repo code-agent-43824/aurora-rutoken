@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.6.0
-Release:    1
+Release:    2
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,15 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.6.0-2
+- After connecting an NFC token the wizard now opens the token properties screen
+  (like USB) instead of jumping straight to the certificates; the objects were
+  already read during the connect, so they open from the details without holding
+  the token again. Deleting a certificate now always asks whether to remove only
+  the certificate or the certificate together with its keys (new DeleteCertPage),
+  and a "Delete certificate" item was added to the certificate card's pull-down
+  menu in addition to the long-press on the objects list.
+
 * Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.6.0-1
 - Delete objects from the token (USB): press and hold a certificate or a key on
   the objects screen to remove it together with its key pair (everything sharing

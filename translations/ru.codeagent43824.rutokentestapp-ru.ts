@@ -359,6 +359,10 @@
         <source>Export certificate</source>
         <translation>Экспорт сертификата</translation>
     </message>
+    <message>
+        <source>Delete certificate</source>
+        <translation>Удалить сертификат</translation>
+    </message>
 </context>
 <context>
     <name>ExportCertificatePage</name>
@@ -856,6 +860,33 @@
     <message>
         <source>Unblock user PIN</source>
         <translation>Разблокировать PIN пользователя</translation>
+    </message>
+</context>
+<context>
+    <name>DeleteCertPage</name>
+    <message>
+        <source>Delete certificate</source>
+        <translation>Удаление сертификата</translation>
+    </message>
+    <message>
+        <source>Delete “%1” — what should be removed?</source>
+        <translation>Удалить «%1»: что удаляем?</translation>
+    </message>
+    <message>
+        <source>What should be removed?</source>
+        <translation>Что удаляем?</translation>
+    </message>
+    <message>
+        <source>Only the certificate</source>
+        <translation>Только сертификат</translation>
+    </message>
+    <message>
+        <source>Certificate and its keys</source>
+        <translation>Сертификат и его ключи</translation>
+    </message>
+    <message>
+        <source>Deleting the keys is irreversible — the private key cannot be recovered.</source>
+        <translation>Удаление ключей необратимо — закрытый ключ восстановить нельзя.</translation>
     </message>
 </context>
 </TS>

@@ -313,7 +313,8 @@ void TokenSession::importCertificateCached(qulonglong slotId, const QString &fil
     importCertificate(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()), filePath, label);
 }
 
-void TokenSession::deleteObjects(qulonglong slotId, const QString &pin, const QString &idHex)
+void TokenSession::deleteObjects(qulonglong slotId, const QString &pin,
+                                 const QString &idHex, bool keysToo)
 {
     if (m_busy)
         return;
@@ -334,13 +335,14 @@ void TokenSession::deleteObjects(qulonglong slotId, const QString &pin, const QS
     const QFunctionPointer exTok = m_exGetTokenInfoExtended;
     QByteArray pinBytes = pin.toUtf8();
     const QByteArray idBytes = QByteArray::fromHex(idHex.toLatin1());
+    const bool onlyCertificate = !keysToo;
 
-    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, exTok, idBytes]() mutable {
+    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, exTok, idBytes, onlyCertificate]() mutable {
         const WriteOutcome wo = runTokenWrite(getFunctionList, slotId, pinBytes, exTok,
-            [&idBytes](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session) {
+            [&idBytes, onlyCertificate](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session) {
                 if (idBytes.isEmpty())
                     return qMakePair(false, QStringLiteral("У объекта нет CKA_ID — удаление недоступно"));
-                const int n = pkcs11::destroyByCkaId(fns, session, idBytes);
+                const int n = pkcs11::destroyByCkaId(fns, session, idBytes, onlyCertificate);
                 if (n > 0)
                     return qMakePair(true, QStringLiteral("Удалено объектов: %1").arg(n));
                 return qMakePair(false, QStringLiteral("Объекты не найдены (уже удалены?)"));
@@ -350,7 +352,7 @@ void TokenSession::deleteObjects(qulonglong slotId, const QString &pin, const QS
     });
 }
 
-void TokenSession::deleteObjectsCached(qulonglong slotId, const QString &idHex)
+void TokenSession::deleteObjectsCached(qulonglong slotId, const QString &idHex, bool keysToo)
 {
     if (!m_loggedIn || m_cachedSlot != slotId || m_cachedPin.isEmpty()) {
         m_outcome = -1;
@@ -358,7 +360,7 @@ void TokenSession::deleteObjectsCached(qulonglong slotId, const QString &idHex)
         emit changed();
         return;
     }
-    deleteObjects(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()), idHex);
+    deleteObjects(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()), idHex, keysToo);
 }
 
 void TokenSession::syncWithTokens(const QVariantList &tokens)

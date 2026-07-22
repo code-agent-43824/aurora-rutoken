@@ -65,18 +65,24 @@ QVector<CK_OBJECT_HANDLE> findByClass(CK_FUNCTION_LIST_PREFIX *fns,
     return result;
 }
 
-// Все объекты (любого класса) с заданным CKA_ID.
-QVector<CK_OBJECT_HANDLE> findByCkaId(CK_FUNCTION_LIST_PREFIX *fns,
-                                     CK_SESSION_HANDLE session, const QByteArray &id)
+// Объекты с заданным CKA_ID. Если onlyCertificate — дополнительно фильтруем по
+// CKA_CLASS=CKO_CERTIFICATE (шаблон из двух атрибутов), иначе — любой класс.
+QVector<CK_OBJECT_HANDLE> findByCkaId(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session,
+                                     const QByteArray &id, bool onlyCertificate)
 {
     QVector<CK_OBJECT_HANDLE> result;
     if (id.isEmpty())
         return result;
-    CK_ATTRIBUTE tmpl;
-    tmpl.type = CKA_ID;
-    tmpl.pValue = const_cast<char *>(id.constData());
-    tmpl.ulValueLen = static_cast<CK_ULONG>(id.size());
-    if (fns->C_FindObjectsInit(session, &tmpl, 1) != CKR_OK)
+    CK_OBJECT_CLASS certClass = CKO_CERTIFICATE;
+    CK_ATTRIBUTE tmpl[2];
+    tmpl[0].type = CKA_ID;
+    tmpl[0].pValue = const_cast<char *>(id.constData());
+    tmpl[0].ulValueLen = static_cast<CK_ULONG>(id.size());
+    tmpl[1].type = CKA_CLASS;
+    tmpl[1].pValue = &certClass;
+    tmpl[1].ulValueLen = sizeof(certClass);
+    const CK_ULONG count = onlyCertificate ? 2 : 1;
+    if (fns->C_FindObjectsInit(session, tmpl, count) != CKR_OK)
         return result;
 
     CK_OBJECT_HANDLE batch[32];
@@ -275,11 +281,12 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
     return out;
 }
 
-int destroyByCkaId(CK_FUNCTION_LIST_PREFIX *fns, unsigned long session, const QByteArray &idBytes)
+int destroyByCkaId(CK_FUNCTION_LIST_PREFIX *fns, unsigned long session,
+                   const QByteArray &idBytes, bool onlyCertificate)
 {
     if (!fns || !fns->C_DestroyObject || !fns->C_FindObjectsInit || idBytes.isEmpty())
         return 0;
-    const QVector<CK_OBJECT_HANDLE> objs = findByCkaId(fns, session, idBytes);
+    const QVector<CK_OBJECT_HANDLE> objs = findByCkaId(fns, session, idBytes, onlyCertificate);
     int destroyed = 0;
     for (int i = 0; i < objs.size(); ++i) {
         if (fns->C_DestroyObject(session, objs[i]) == CKR_OK)

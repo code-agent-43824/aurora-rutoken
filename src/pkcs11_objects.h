@@ -18,10 +18,12 @@ namespace pkcs11 {
 // Каждый элемент несёт source="PKCS#11" (пока единственный способ чтения).
 QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *functions, unsigned long session, bool loggedIn);
 
-// Удалить все объекты с заданным CKA_ID (сертификат + его ключи по общему id) —
-// «удаление записи целиком». Требует R/W-сессии и входа (приватные ключи). Пустой
-// id игнорируется (защита от массового удаления). Возвращает число удалённых.
-int destroyByCkaId(CK_FUNCTION_LIST_PREFIX *functions, unsigned long session, const QByteArray &idBytes);
+// Удалить объекты с заданным CKA_ID. onlyCertificate=false — всё по этому id
+// (сертификат + его ключи, «запись целиком»); true — только объект-сертификат
+// (CKO_CERTIFICATE), ключи остаются. Требует R/W-сессии и входа (приватные ключи).
+// Пустой id игнорируется (защита от массового удаления). Возвращает число удалённых.
+int destroyByCkaId(CK_FUNCTION_LIST_PREFIX *functions, unsigned long session,
+                   const QByteArray &idBytes, bool onlyCertificate);
 
 } // namespace pkcs11
 
