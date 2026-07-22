@@ -39,9 +39,12 @@ Page {
                 idHex: id,
                 slotId: page.slotId
             })
-            dlg.chosen.connect(function(keysToo) {
+            dlg.chosen.connect(function(keysToo, noLogin) {
                 page.deleteAttempted = true
-                tokenSession.deleteObjectsCached(page.slotId, id, keysToo)
+                if (noLogin)
+                    tokenSession.deleteCertPublic(page.slotId, id)
+                else
+                    tokenSession.deleteObjectsCached(page.slotId, id, keysToo)
             })
         } else {
             remorse.execute(qsTr("Deleting the key"), function() {

@@ -112,11 +112,13 @@ Page {
         target: tokenWatcher
         onTokensChanged: page.tryRun()
     }
-    // Операция завершилась — переходим к «уберите токен».
+    // Операция завершилась — переходим к «уберите токен». Для чтения без входа
+    // (preview) outcome остаётся 0, поэтому там ориентируемся только на busy.
     Connections {
         target: tokenSession
         onChanged: {
-            if (page.step === 3 && page.started && !tokenSession.busy && tokenSession.outcome !== 0)
+            if (page.step === 3 && page.started && !tokenSession.busy
+                    && (tokenSession.outcome !== 0 || page.noPin))
                 page.step = 4
         }
     }
@@ -235,11 +237,12 @@ Page {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: qsTr("Done")
                     onClicked: {
-                        if (tokenSession.outcome === 1 && page.operation === "connect") {
+                        if ((tokenSession.outcome === 1 || page.noPin) && page.operation === "connect") {
                             // Логически подключаем NFC-токен (снимок объектов) и
                             // открываем ЕГО СВОЙСТВА (как у USB). Сертификаты уже
-                            // считаны при подключении — из деталей их видно без
-                            // повторного поднесения.
+                            // считаны при подключении (по PIN-коду — с ключами,
+                            // без PIN-кода — только публичные) — из деталей их видно
+                            // без повторного поднесения.
                             tokenSession.commitNfc(page.lastToken)
                             var t = page.lastToken
                             pageStack.replace(Qt.resolvedUrl("TokenDetailsPage.qml"), {

@@ -36,8 +36,11 @@ Page {
             idHex: page.idHex,
             slotId: page.slotId
         })
-        dlg.chosen.connect(function(keysToo) {
-            tokenSession.deleteObjectsCached(page.slotId, page.idHex, keysToo)
+        dlg.chosen.connect(function(keysToo, noLogin) {
+            if (noLogin)
+                tokenSession.deleteCertPublic(page.slotId, page.idHex)
+            else
+                tokenSession.deleteObjectsCached(page.slotId, page.idHex, keysToo)
             pageStack.pop()
         })
     }

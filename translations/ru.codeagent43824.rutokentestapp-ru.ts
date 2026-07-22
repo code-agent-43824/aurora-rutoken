@@ -912,5 +912,9 @@
         <source>This certificate may have a private key that stays hidden until you enter the PIN. Enter the PIN to see and remove it too.</source>
         <translation>У этого сертификата может быть закрытый ключ — он не виден, пока не введён PIN-код. Введите PIN-код, чтобы увидеть и удалить и его.</translation>
     </message>
+    <message>
+        <source>Delete only the certificate</source>
+        <translation>Удалить только сертификат</translation>
+    </message>
 </context>
 </TS>

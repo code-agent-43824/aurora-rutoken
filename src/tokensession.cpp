@@ -363,6 +363,72 @@ void TokenSession::deleteObjectsCached(qulonglong slotId, const QString &idHex, 
     deleteObjects(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()), idHex, keysToo);
 }
 
+void TokenSession::deleteCertPublic(qulonglong slotId, const QString &idHex)
+{
+    if (m_busy)
+        return;
+    m_pendingIsLogin = false;
+    if (!m_getFunctionList) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        emit changed();
+        return;
+    }
+
+    m_busy = true;
+    m_outcome = 0;
+    m_result.clear();
+    emit changed();
+
+    const QFunctionPointer getFunctionList = m_getFunctionList;
+    const QByteArray idBytes = QByteArray::fromHex(idHex.toLatin1());
+    const QVariantList keepObjects = m_objects;
+
+    QtConcurrent::run([this, slotId, getFunctionList, idBytes, keepObjects]() {
+        QMutexLocker locker(&pkcs11::globalMutex());
+
+        typedef CK_RV (*GetListFn)(CK_FUNCTION_LIST_PREFIX **);
+        GetListFn getList = reinterpret_cast<GetListFn>(getFunctionList);
+        CK_FUNCTION_LIST_PREFIX *fns = nullptr;
+        const bool haveFns = getList(&fns) == CKR_OK && fns && fns->C_Initialize
+                && fns->C_Finalize && fns->C_OpenSession && fns->C_CloseSession && fns->C_DestroyObject;
+        if (!haveFns) {
+            emit finished(-1, QStringLiteral("Библиотека не предоставляет функции сессии"), keepObjects);
+            return;
+        }
+
+        const CK_RV initRv = fns->C_Initialize(nullptr);
+        const bool owns = (initRv == CKR_OK);
+        if (!owns && initRv != CKR_CRYPTOKI_ALREADY_INITIALIZED) {
+            emit finished(-1, QStringLiteral("C_Initialize: ") + rvHex(initRv), keepObjects);
+            return;
+        }
+
+        CK_SESSION_HANDLE session = 0;
+        CK_RV rv = fns->C_OpenSession(static_cast<CK_SLOT_ID>(slotId),
+                                      CKF_SERIAL_SESSION | CKF_RW_SESSION, nullptr, nullptr, &session);
+        if (rv != CKR_OK) {
+            if (owns)
+                fns->C_Finalize(nullptr);
+            emit finished(-1, QStringLiteral("Не удалось открыть R/W-сессию: ") + rvHex(rv), keepObjects);
+            return;
+        }
+
+        const int n = pkcs11::destroyByCkaId(fns, session, idBytes, /*onlyCertificate*/ true);
+        // Без входа читаем только публичные объекты.
+        const QVariantList objs = pkcs11::listTokenObjects(fns, session, /*loggedIn*/ false);
+
+        fns->C_CloseSession(session);
+        if (owns)
+            fns->C_Finalize(nullptr);
+
+        if (n > 0)
+            emit finished(1, QStringLiteral("Сертификат удалён"), objs);
+        else
+            emit finished(-1, QStringLiteral("Не удалось удалить сертификат без входа — введите PIN-код"), objs);
+    });
+}
+
 void TokenSession::syncWithTokens(const QVariantList &tokens)
 {
     // 1) Сброс запомненного входа при пропаже залогиненного USB-слота.

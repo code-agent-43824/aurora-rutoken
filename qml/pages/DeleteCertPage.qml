@@ -28,10 +28,11 @@ Page {
         return false
     }
 
-    signal chosen(bool keysToo)
+    // noLogin=true — удалить только публичный сертификат без входа (deleteCertPublic).
+    signal chosen(bool keysToo, bool noLogin)
 
-    function pick(keysToo) {
-        page.chosen(keysToo)
+    function pick(keysToo, noLogin) {
+        page.chosen(keysToo, noLogin)
         pageStack.pop()
     }
 
@@ -75,14 +76,14 @@ Page {
                 visible: tokenSession.loggedIn
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: qsTr("Only the certificate")
-                onClicked: page.pick(false)
+                onClicked: page.pick(false, false)
             }
 
             Button {
                 visible: tokenSession.loggedIn && page.hasKey
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: qsTr("Certificate and its keys")
-                onClicked: page.pick(true)
+                onClicked: page.pick(true, false)
             }
 
             Label {
@@ -106,6 +107,16 @@ Page {
                 text: qsTr("This certificate may have a private key that stays hidden until you enter the PIN. Enter the PIN to see and remove it too.")
                 color: Theme.highlightColor
                 font.pixelSize: Theme.fontSizeMedium
+            }
+
+            // Удалить только публичный сертификат без входа (ключ, если он есть,
+            // останется — он не виден без PIN-кода).
+            Button {
+                visible: !tokenSession.loggedIn
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Delete only the certificate")
+                enabled: !tokenSession.busy
+                onClicked: page.pick(false, true)
             }
 
             Button {

@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.6.0
-Release:    3
+Release:    4
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,15 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.6.0-4
+- Fix the NFC "Continue without PIN" connect that hung forever: a no-login read
+  (preview) leaves outcome at 0, so the wizard never advanced — it now finishes on
+  the no-PIN path by watching busy instead of the outcome. Add a "Delete only the
+  certificate" button to the not-logged-in delete screen: it removes just the
+  public certificate object without a login (new TokenSession::deleteCertPublic —
+  R/W session, no C_Login, destroy the CKO_CERTIFICATE by CKA_ID); any key stays
+  since it is invisible without the PIN.
+
 * Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.6.0-3
 - When deleting a certificate while not logged in, the chooser now warns that the
   certificate may have a private key hidden until the PIN is entered and offers an
