@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.5.0
-Release:    6
+Release:    7
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,15 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.5.0-7
+- Manage the NFC token from its own overview, like USB: tapping the connected
+  NFC token now opens the token details with the same pull-down menu (change
+  user / admin PIN, unblock, change label) instead of a separate card. The
+  operations run over NFC (collect the data, then one hold). The extra "Manage
+  PIN over NFC" card was removed, so there is a single virtual NFC token. Also:
+  drop the "can lock the token" warning that flashed before the PIN screens, and
+  show the real application version in the diagnostics header.
+
 * Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.5.0-6
 - PIN operations over NFC: change the user PIN, change the admin PIN and unblock
   the user PIN with the token held only once. A new "Manage PIN over NFC" entry

@@ -361,6 +361,16 @@ void TokenSession::updateNfcObjects()
     emit changed();
 }
 
+void TokenSession::setNfcLabel(const QString &label)
+{
+    // После смены метки по NFC токен уже убран (живого чтения нет), поэтому
+    // обновляем метку прямо в снимке — она подхватится в деталях и в списке.
+    if (m_nfcToken.isEmpty())
+        return;
+    m_nfcToken.insert(QStringLiteral("label"), label);
+    emit changed();
+}
+
 void TokenSession::disconnectNfc()
 {
     m_nfcToken.clear();

@@ -41,7 +41,7 @@ Page {
             PageHeader {
                 objectName: "pageHeader"
                 title: qsTr("Diagnostics")
-                description: qsTr("PC/SC, NFC and PKCS#11 — v0.1")
+                description: qsTr("Application %1 · PC/SC, NFC, PKCS#11").arg(appVersion)
             }
 
             BusyIndicator {

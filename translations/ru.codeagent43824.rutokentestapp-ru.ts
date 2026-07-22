@@ -138,6 +138,10 @@
         <source>Pull down to refresh</source>
         <translation>Потяните вниз для обновления</translation>
     </message>
+    <message>
+        <source>Application %1 · PC/SC, NFC, PKCS#11</source>
+        <translation>Приложение %1 · PC/SC, NFC, PKCS#11</translation>
+    </message>
 </context>
 <context>
     <name>TokenDetailsPage</name>
@@ -577,6 +581,26 @@
     <message>
         <source>Changing the label requires the administrator (SO) PIN and does not erase the token.</source>
         <translation>Смена метки требует PIN администратора (SO) и не стирает токен.</translation>
+    </message>
+    <message>
+        <source>Done</source>
+        <translation>Готово</translation>
+    </message>
+    <message>
+        <source>Hold the token to the back cover and keep it there.</source>
+        <translation>Поднесите токен к задней крышке и держите.</translation>
+    </message>
+    <message>
+        <source>Keep holding the token — the operation is running.</source>
+        <translation>Держите токен — идёт операция.</translation>
+    </message>
+    <message>
+        <source>Start over</source>
+        <translation>Начать заново</translation>
+    </message>
+    <message>
+        <source>You can remove the token now.</source>
+        <translation>Теперь можно убрать токен.</translation>
     </message>
 </context>
 <context>

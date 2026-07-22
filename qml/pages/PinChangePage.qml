@@ -282,20 +282,6 @@ Page {
                 text: page.connection === "NFC" ? qsTr("Start over") : qsTr("Try again")
                 onClicked: page.retry()
             }
-
-            // Подсказка на время сбора (базовый экран мелькает между шагами).
-            Label {
-                x: Theme.horizontalPageMargin
-                width: parent.width - 2 * Theme.horizontalPageMargin
-                wrapMode: Text.Wrap
-                horizontalAlignment: Text.AlignHCenter
-                visible: !page.attempted
-                text: page.mode === "unblock"
-                      ? qsTr("The administrator resets the user PIN attempt counter; the user PIN itself stays the same.")
-                      : qsTr("A wrong current PIN, entered several times, can lock the token.")
-                color: Theme.secondaryColor
-                font.pixelSize: Theme.fontSizeExtraSmall
-            }
         }
 
         VerticalScrollDecorator {}

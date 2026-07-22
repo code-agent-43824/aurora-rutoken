@@ -188,12 +188,24 @@ Page {
                 visible: tokenSession.nfcConnected
                 width: content.width
                 height: nfcTokCol.height + Theme.paddingMedium
-                onClicked: pageStack.push(Qt.resolvedUrl("ObjectsPage.qml"), {
-                    connection: "NFC",
-                    slotId: tokenSession.nfcToken.slotId ? tokenSession.nfcToken.slotId : 0,
-                    tokenLabel: (tokenSession.nfcToken.label && tokenSession.nfcToken.label.length > 0)
-                                ? tokenSession.nfcToken.label : ""
-                })
+                // Обзор NFC-токена — как у USB (детали + то же меню-шторка). Данные
+                // берём из снимка nfcToken; PIN-операции по NFC потребуют ещё одного
+                // поднесения (собранные данные → короткая сессия).
+                onClicked: {
+                    var t = tokenSession.nfcToken
+                    pageStack.push(Qt.resolvedUrl("TokenDetailsPage.qml"), {
+                        connection: "NFC",
+                        slotId: t.slotId ? t.slotId : 0,
+                        tokenLabel: t.label ? t.label : "",
+                        serial: t.serial ? t.serial : "",
+                        tokenModel: t.model ? t.model : "",
+                        manufacturer: t.manufacturer ? t.manufacturer : "",
+                        firmware: t.firmware ? t.firmware : "",
+                        hardware: t.hardware ? t.hardware : "",
+                        flags: t.flags ? t.flags : "",
+                        slotName: t.slotName ? t.slotName : ""
+                    })
+                }
                 Column {
                     id: nfcTokCol
                     width: parent.width
@@ -303,63 +315,6 @@ Page {
                         width: nfcCard.width - 2 * Theme.horizontalPageMargin
                         wrapMode: Text.Wrap
                         text: qsTr("Tap and follow the steps: hold the token to the back cover")
-                        color: Theme.secondaryColor
-                        font.pixelSize: Theme.fontSizeExtraSmall
-                    }
-                }
-            }
-
-            // Управление PIN по NFC (не требует предварительного подключения):
-            // все PIN собираются на экранах, затем всё выполняется за одно поднесение.
-            BackgroundItem {
-                width: content.width
-                height: nfcPinCard.height + Theme.paddingMedium
-                onClicked: {
-                    tokenSession.clear()
-                    pageStack.push(Qt.resolvedUrl("NfcPinMenuPage.qml"))
-                }
-                Column {
-                    id: nfcPinCard
-                    width: parent.width
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: Theme.paddingSmall
-
-                    Row {
-                        x: Theme.horizontalPageMargin
-                        width: nfcPinCard.width - 2 * Theme.horizontalPageMargin
-                        spacing: Theme.paddingMedium
-
-                        Rectangle {
-                            id: nfcPinBadge
-                            anchors.verticalCenter: nfcPinTitle.verticalCenter
-                            width: nfcPinBadgeLabel.width + 2 * Theme.paddingMedium
-                            height: nfcPinBadgeLabel.height + Theme.paddingSmall
-                            radius: Theme.paddingSmall
-                            color: "#3949ab"
-                            Label {
-                                id: nfcPinBadgeLabel
-                                anchors.centerIn: parent
-                                text: qsTr("NFC")
-                                color: "white"
-                                font.pixelSize: Theme.fontSizeExtraSmall
-                                font.bold: true
-                            }
-                        }
-                        Label {
-                            id: nfcPinTitle
-                            width: parent.width - nfcPinBadge.width - Theme.paddingMedium
-                            text: qsTr("Manage PIN over NFC")
-                            color: Theme.highlightColor
-                            font.pixelSize: Theme.fontSizeLarge
-                            truncationMode: TruncationMode.Fade
-                        }
-                    }
-
-                    Label {
-                        x: Theme.horizontalPageMargin
-                        width: nfcPinCard.width - 2 * Theme.horizontalPageMargin
-                        wrapMode: Text.Wrap
-                        text: qsTr("Change or unblock a PIN: enter the PINs, then hold the token once")
                         color: Theme.secondaryColor
                         font.pixelSize: Theme.fontSizeExtraSmall
                     }

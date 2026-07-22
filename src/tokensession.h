@@ -77,6 +77,7 @@ public:
     // вернуться к его сертификатам без повторного поднесения.
     Q_INVOKABLE void commitNfc(const QVariantMap &token); // токен + снимок текущих объектов
     Q_INVOKABLE void updateNfcObjects();                  // обновить снимок после операции по NFC
+    Q_INVOKABLE void setNfcLabel(const QString &label);   // обновить метку в снимке (после смены по NFC)
     Q_INVOKABLE void disconnectNfc();                     // логически отключить NFC-токен
     // Логически отключить USB-токен: скрыть из списка до физического переподключения.
     Q_INVOKABLE void suppressUsb(const QString &serial);

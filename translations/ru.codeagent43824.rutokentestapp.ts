@@ -138,6 +138,10 @@
         <source>Pull down to refresh</source>
         <translation>Pull down to refresh</translation>
     </message>
+    <message>
+        <source>Application %1 · PC/SC, NFC, PKCS#11</source>
+        <translation>Application %1 · PC/SC, NFC, PKCS#11</translation>
+    </message>
 </context>
 <context>
     <name>TokenDetailsPage</name>
@@ -577,6 +581,26 @@
     <message>
         <source>Changing the label requires the administrator (SO) PIN and does not erase the token.</source>
         <translation>Changing the label requires the administrator (SO) PIN and does not erase the token.</translation>
+    </message>
+    <message>
+        <source>Done</source>
+        <translation>Done</translation>
+    </message>
+    <message>
+        <source>Hold the token to the back cover and keep it there.</source>
+        <translation>Hold the token to the back cover and keep it there.</translation>
+    </message>
+    <message>
+        <source>Keep holding the token — the operation is running.</source>
+        <translation>Keep holding the token — the operation is running.</translation>
+    </message>
+    <message>
+        <source>Start over</source>
+        <translation>Start over</translation>
+    </message>
+    <message>
+        <source>You can remove the token now.</source>
+        <translation>You can remove the token now.</translation>
     </message>
 </context>
 <context>

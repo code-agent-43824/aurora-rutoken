@@ -5,6 +5,10 @@
 #include "tokensession.h"
 #include "tokenwatcher.h"
 
+// Версия приложения (для показа в диагностике). Держать синхронной с
+// rpm/*.spec (Version-Release).
+static const char *const kAppVersion = "0.5.0-7";
+
 int main(int argc, char *argv[])
 {
     QScopedPointer<QGuiApplication> application(Aurora::Application::application(argc, argv));
@@ -25,6 +29,7 @@ int main(int argc, char *argv[])
     view->rootContext()->setContextProperty(QStringLiteral("tokenWatcher"), &tokenWatcher);
     view->rootContext()->setContextProperty(QStringLiteral("tokenSession"), &tokenSession);
     view->rootContext()->setContextProperty(QStringLiteral("diag"), &diagnostics);
+    view->rootContext()->setContextProperty(QStringLiteral("appVersion"), QString::fromLatin1(kAppVersion));
     view->setSource(Aurora::Application::pathTo(QStringLiteral("qml/rutokentestapp.qml")));
     view->show();
 

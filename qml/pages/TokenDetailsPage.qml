@@ -17,10 +17,15 @@ Page {
     property string flags: ""
     property string slotName: ""
 
-    // Живая метка: ищем токен по slotId в списке TokenWatcher и берём его метку.
-    // Привязка перевычисляется по tokensChanged, поэтому после смены метки
-    // (C_EX_SetTokenName + refresh) заголовок и дочерние экраны показывают новую.
+    // Живая метка. USB: ищем токен по slotId в списке TokenWatcher (перевычисляется
+    // по tokensChanged — после смены метки + refresh заголовок обновляется). NFC:
+    // берём метку из снимка nfcToken (после смены по NFC она обновляется через
+    // setNfcLabel — токен уже убран, живого чтения нет).
     property string curLabel: {
+        if (page.connection === "NFC") {
+            return (tokenSession.nfcToken.label && tokenSession.nfcToken.label.length > 0)
+                   ? tokenSession.nfcToken.label : page.tokenLabel
+        }
         var ts = tokenWatcher.tokens
         for (var i = 0; i < ts.length; ++i) {
             if (ts[i].slotId === page.slotId)
@@ -28,6 +33,10 @@ Page {
         }
         return page.tokenLabel
     }
+
+    // Число объектов: USB — живые из сессии, NFC — снимок (nfcObjects).
+    property int objectCount: page.connection === "NFC"
+            ? tokenSession.nfcObjects.length : tokenSession.objects.length
 
     function openPinPad() {
         if (tokenSession.busy)
@@ -42,8 +51,9 @@ Page {
         })
     }
 
-    // Сертификаты видны без входа — читаем их сразу при открытии деталей.
-    Component.onCompleted: tokenSession.preview(page.slotId)
+    // Сертификаты видны без входа — читаем их сразу при открытии деталей (USB).
+    // Для NFC живого чтения нет (токен не поднесён) — показываем снимок объектов.
+    Component.onCompleted: if (page.connection !== "NFC") tokenSession.preview(page.slotId)
 
     SilicaFlickable {
         anchors.fill: parent
@@ -51,26 +61,32 @@ Page {
 
         // Управление PIN (v0.5): смена PIN пользователя/администратора и
         // разблокировка PIN пользователя администратором; смена метки токена.
+        // Одно меню для USB и NFC (у NFC операции идут через доп. поднесение —
+        // connection пробрасывается в целевые экраны).
         PullDownMenu {
             MenuItem {
                 text: qsTr("Change token label")
                 onClicked: pageStack.push(Qt.resolvedUrl("TokenLabelPage.qml"),
-                                          { slotId: page.slotId, currentLabel: page.curLabel })
+                                          { slotId: page.slotId, currentLabel: page.curLabel,
+                                            connection: page.connection })
             }
             MenuItem {
                 text: qsTr("Unblock user PIN")
                 onClicked: pageStack.push(Qt.resolvedUrl("PinChangePage.qml"),
-                                          { slotId: page.slotId, mode: "unblock" })
+                                          { slotId: page.slotId, mode: "unblock",
+                                            connection: page.connection })
             }
             MenuItem {
                 text: qsTr("Change admin PIN")
                 onClicked: pageStack.push(Qt.resolvedUrl("PinChangePage.qml"),
-                                          { slotId: page.slotId, mode: "so" })
+                                          { slotId: page.slotId, mode: "so",
+                                            connection: page.connection })
             }
             MenuItem {
                 text: qsTr("Change user PIN")
                 onClicked: pageStack.push(Qt.resolvedUrl("PinChangePage.qml"),
-                                          { slotId: page.slotId, mode: "user" })
+                                          { slotId: page.slotId, mode: "user",
+                                            connection: page.connection })
             }
         }
 
@@ -110,11 +126,16 @@ Page {
                 value: page.flags.length > 0 ? page.flags : "—"
             }
 
-            SectionHeader { text: qsTr("User PIN login") }
+            // Вход по PIN — только для USB (у NFC нет постоянного входа; объекты
+            // берутся из снимка, а операции идут через доп. поднесение).
+            SectionHeader {
+                visible: page.connection !== "NFC"
+                text: qsTr("User PIN login")
+            }
 
             // Не вошли — открыть отдельный экран ввода PIN (цифровая клавиатура).
             Button {
-                visible: !tokenSession.loggedIn
+                visible: page.connection !== "NFC" && !tokenSession.loggedIn
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: tokenSession.busy ? qsTr("Checking…") : qsTr("Enter PIN")
                 enabled: !tokenSession.busy
@@ -123,7 +144,7 @@ Page {
 
             // Вошли — статус и выход.
             Label {
-                visible: tokenSession.loggedIn
+                visible: page.connection !== "NFC" && tokenSession.loggedIn
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 horizontalAlignment: Text.AlignHCenter
@@ -134,7 +155,7 @@ Page {
             }
 
             Button {
-                visible: tokenSession.loggedIn
+                visible: page.connection !== "NFC" && tokenSession.loggedIn
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: qsTr("Log out")
                 enabled: !tokenSession.busy
@@ -144,7 +165,7 @@ Page {
             BusyIndicator {
                 anchors.horizontalCenter: parent.horizontalCenter
                 running: tokenSession.busy
-                visible: tokenSession.busy
+                visible: page.connection !== "NFC" && tokenSession.busy
                 size: BusyIndicatorSize.Medium
             }
 
@@ -154,16 +175,17 @@ Page {
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
                 textFormat: Text.PlainText
-                visible: !tokenSession.busy && tokenSession.outcome !== 0
+                visible: page.connection !== "NFC" && !tokenSession.busy && tokenSession.outcome !== 0
                 text: tokenSession.result
                 color: tokenSession.outcome === 1 ? "#4caf50" : "#f44336"
                 font.pixelSize: Theme.fontSizeMedium
             }
 
+            // Объекты токена: для USB — живые (после входа), для NFC — снимок.
             Button {
                 anchors.horizontalCenter: parent.horizontalCenter
-                visible: !tokenSession.busy && tokenSession.objects.length > 0
-                text: qsTr("Token objects (%1)").arg(tokenSession.objects.length)
+                visible: !tokenSession.busy && page.objectCount > 0
+                text: qsTr("Token objects (%1)").arg(page.objectCount)
                 onClicked: pageStack.push(Qt.resolvedUrl("ObjectsPage.qml"), {
                     slotId: page.slotId,
                     tokenLabel: page.curLabel,
@@ -176,6 +198,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
+                visible: page.connection !== "NFC"
                 text: qsTr("The PIN is kept in memory until you log out, unplug the USB token, or close the app.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
