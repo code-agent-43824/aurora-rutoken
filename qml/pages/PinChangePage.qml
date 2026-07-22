@@ -1,15 +1,20 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 
-// Управление PIN. mode:
-//   "user"    — смена PIN пользователя (текущий + новый);
-//   "so"      — смена PIN администратора/SO (текущий SO + новый SO);
-//   "unblock" — разблокировка PIN пользователя администратором (только SO PIN).
-// Сбор данных — последовательностью экранов: при активации страницы открывается
-// следующий незаполненный PIN отдельным PinPadPage (старый → новый → повтор),
-// затем итоговый экран с кнопкой применения. Переиспользуем проверенный
-// PinPadPage; переход к следующему шагу — только когда страница снова активна
-// (без гонок push/pop). Ручное перевведение — теми же кнопками.
+// Управление PIN. mode: "user" | "so" | "unblock".
+// Поток — прямая цепочка отдельных экранов ввода PIN, БЕЗ возврата к этому
+// экрану между шагами и без списка введённых значений:
+//   смена:  старый PIN → новый PIN → повтор нового; как только введён повтор —
+//           сразу выполняем операцию (если новые совпали; иначе просим новый и
+//           повтор заново, с подсказкой);
+//   разблок.: один экран (PIN администратора) → сразу операция.
+// Экраны ввода — PinPadPage с autoPop=false: PinPadPage сам не закрывается,
+// навигацию ведёт этот контроллер. Первый шаг кладётся поверх этого экрана
+// (push), каждый следующий ЗАМЕНЯЕТ предыдущий (pageStack.replace) — этот экран
+// между шагами не показывается, и над ним всегда ровно один экран ввода, поэтому
+// возврат за результатом — простой pageStack.pop() (без неоднозначности pop(page)).
+// Жест «назад» с экрана ввода отменяет весь поток (см. onStatusChanged).
+// Сам этот экран показывается только в конце — индикатор и результат.
 Page {
     id: page
     objectName: "pinChangePage"
@@ -18,113 +23,112 @@ Page {
     property var slotId: 0
     property string mode: "user"
 
-    property string pin1: ""   // текущий user PIN / текущий SO PIN / SO PIN
-    property string pin2: ""   // новый PIN
-    property string pin2c: ""  // подтверждение нового PIN
-    property bool attempted: false
-    // Пока true — автопродвигаемся к следующему шагу по мере ввода.
-    // Выключается, когда все шаги собраны или после нажатия «Применить».
-    property bool autoCollecting: true
-    property bool started: false        // первый показ уже открыл первый шаг
-    property bool pendingAdvance: false // только что ввели значение — продвинуться
+    // Собранные значения.
+    property string oldPin: ""
+    property string newPin: ""
+    property string confirmPin: ""
+
+    property bool started: false    // первый показ уже открыл первый экран
+    property bool attempted: false  // операция запущена → показываем результат
 
     function titleText() {
         if (mode === "so") return qsTr("Change admin PIN")
         if (mode === "unblock") return qsTr("Unblock user PIN")
         return qsTr("Change user PIN")
     }
-    function pin1Label() {
+    function oldHeading() {
         if (mode === "so") return qsTr("Current admin PIN")
         if (mode === "unblock") return qsTr("Administrator (SO) PIN")
         return qsTr("Current user PIN")
     }
-    function pin2Label() {
+    function newHeading() {
         if (mode === "so") return qsTr("New admin PIN")
         return qsTr("New user PIN")
     }
-    function dots(s) {
-        var out = ""
-        for (var i = 0; i < s.length; ++i) out += "●"
-        return out
-    }
-    function matchOk() {
-        return pin2.length > 0 && pin2 === pin2c
-    }
-    function canApply() {
-        // Разблокировка требует только PIN администратора (нового PIN нет).
-        return !tokenSession.busy && pin1.length > 0 && (mode === "unblock" || matchOk())
-    }
 
-    // Следующий незаполненный шаг сбора ("" — всё собрано).
-    function nextStep() {
-        if (pin1.length === 0) return "pin1"
-        if (mode === "unblock") return ""
-        if (pin2.length === 0) return "pin2"
-        if (pin2c.length === 0) return "pin2c"
-        return ""
-    }
-    function stepHeading(step) {
-        if (step === "pin1") return pin1Label()
-        if (step === "pin2") return pin2Label()
-        return qsTr("Confirm new PIN")
-    }
-
-    function openPad(which, heading) {
-        var pad = pageStack.push(Qt.resolvedUrl("PinPadPage.qml"), {
+    // Открыть очередной экран ввода. useReplace=false — первый шаг (push поверх
+    // этого экрана); true — следующий шаг (replace: заменяет предыдущий экран
+    // ввода, этот контроллер между шагами не показывается). PinPadPage с
+    // autoPop=false сам не закрывается — навигацию ведёт этот контроллер.
+    function openPad(useReplace, heading, subtitle, onEntered) {
+        var props = {
             heading: heading,
-            acceptText: qsTr("OK")
-        })
-        pad.entered.connect(function(value) {
-            if (which === "pin1") page.pin1 = value
-            else if (which === "pin2") page.pin2 = value
-            else page.pin2c = value
-            // Продвижение делаем не здесь (PinPadPage сам вызовет pop() после
-            // entered — push следующего экрана тут привёл бы к гонке), а когда
-            // страница снова станет активной (onStatusChanged).
-            page.pendingAdvance = true
-        })
+            subtitle: subtitle,
+            acceptText: qsTr("OK"),
+            autoPop: false
+        }
+        var pad = useReplace
+                ? pageStack.replace(Qt.resolvedUrl("PinPadPage.qml"), props)
+                : pageStack.push(Qt.resolvedUrl("PinPadPage.qml"), props)
+        pad.entered.connect(onEntered)
+        return pad
     }
 
-    // Открыть экран для следующего незаполненного шага ("" — всё собрано).
-    function advance() {
-        var step = page.nextStep()
-        if (step === "")
-            page.autoCollecting = false
+    function askOld() {
+        page.openPad(false, page.oldHeading(), "", function(v) { page.onOld(v) })
+    }
+    function askNew(subtitle) {
+        page.openPad(true, page.newHeading(), subtitle, function(v) { page.onNew(v) })
+    }
+    function askConfirm() {
+        page.openPad(true, qsTr("Confirm new PIN"), "", function(v) { page.onConfirm(v) })
+    }
+
+    function onOld(v) {
+        page.oldPin = v
+        if (page.mode === "unblock")
+            page.runOp()                // разблокировка — только PIN администратора
         else
-            page.openPad(step, page.stepHeading(step))
+            page.askNew("")             // дальше — новый PIN
+    }
+    function onNew(v) {
+        page.newPin = v
+        page.askConfirm()
+    }
+    function onConfirm(v) {
+        page.confirmPin = v
+        if (page.newPin === page.confirmPin) {
+            page.runOp()
+        } else {
+            // Новые PIN не совпали — просим новый и повтор заново с подсказкой.
+            page.newPin = ""
+            page.confirmPin = ""
+            page.askNew(qsTr("The new PINs do not match"))
+        }
     }
 
-    function doApply() {
-        if (!page.canApply())
-            return
-        page.autoCollecting = false
+    // Данные собраны — закрываем экран ввода (над нами он один → простой pop) и
+    // выполняем операцию; результат показываем уже здесь (индикатор → сообщение).
+    function runOp() {
         page.attempted = true
+        pageStack.pop()
         if (page.mode === "so")
-            tokenSession.changeSoPin(page.slotId, page.pin1, page.pin2)
+            tokenSession.changeSoPin(page.slotId, page.oldPin, page.newPin)
         else if (page.mode === "unblock")
-            tokenSession.unblockUserPin(page.slotId, page.pin1)
+            tokenSession.unblockUserPin(page.slotId, page.oldPin)
         else
-            tokenSession.changeUserPin(page.slotId, page.pin1, page.pin2)
+            tokenSession.changeUserPin(page.slotId, page.oldPin, page.newPin)
     }
 
-    // Автопродвижение по мере ввода. Срабатывает, когда страница снова активна
-    // (очередной PinPadPage закрылся): при первом показе открываем первый шаг;
-    // затем — следующий шаг, но только если значение действительно ввели
-    // (pendingAdvance). Возврат «назад» из PinPadPage значение не вводит —
-    // тогда просто показываем итог, не открывая экран заново (не запираем).
+    // Перезапуск после ошибки (например, неверный текущий PIN).
+    function retry() {
+        page.oldPin = ""
+        page.newPin = ""
+        page.confirmPin = ""
+        page.attempted = false
+        page.askOld()
+    }
+
+    // Старт цепочки при первом показе. Если экран снова стал активным ДО запуска
+    // операции — значит пользователь вышел «назад» из ввода: отменяем всё.
     onStatusChanged: {
-        if (status !== PageStatus.Active || page.attempted || tokenSession.busy)
+        if (status !== PageStatus.Active)
             return
         if (!page.started) {
             page.started = true
-            if (page.autoCollecting)
-                page.advance()
-            return
-        }
-        if (page.pendingAdvance) {
-            page.pendingAdvance = false
-            if (page.autoCollecting)
-                page.advance()
+            page.askOld()
+        } else if (!page.attempted) {
+            pageStack.pop()
         }
     }
 
@@ -135,67 +139,15 @@ Page {
         Column {
             id: col
             width: parent.width
-            spacing: Theme.paddingMedium
+            spacing: Theme.paddingLarge
 
             PageHeader { title: page.titleText() }
-
-            // Текущий PIN (пользователя или SO).
-            Button {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: page.pin1.length > 0
-                      ? page.pin1Label() + ": " + page.dots(page.pin1)
-                      : page.pin1Label()
-                enabled: !tokenSession.busy
-                onClicked: page.openPad("pin1", page.pin1Label())
-            }
-
-            // Новый PIN (не нужен при разблокировке — там только сброс счётчика).
-            Button {
-                visible: page.mode !== "unblock"
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: page.pin2.length > 0
-                      ? page.pin2Label() + ": " + page.dots(page.pin2)
-                      : page.pin2Label()
-                enabled: !tokenSession.busy
-                onClicked: page.openPad("pin2", page.pin2Label())
-            }
-
-            // Подтверждение нового PIN.
-            Button {
-                visible: page.mode !== "unblock"
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: page.pin2c.length > 0
-                      ? qsTr("Confirm new PIN") + ": " + page.dots(page.pin2c)
-                      : qsTr("Confirm new PIN")
-                enabled: !tokenSession.busy
-                onClicked: page.openPad("pin2c", qsTr("Confirm new PIN"))
-            }
-
-            Label {
-                x: Theme.horizontalPageMargin
-                width: parent.width - 2 * Theme.horizontalPageMargin
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.Wrap
-                visible: page.mode !== "unblock" && page.pin2.length > 0 && page.pin2c.length > 0
-                         && page.pin2 !== page.pin2c
-                text: qsTr("The new PINs do not match")
-                color: "#f44336"
-                font.pixelSize: Theme.fontSizeSmall
-            }
-
-            Button {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: tokenSession.busy ? qsTr("Applying…")
-                      : (page.mode === "unblock" ? qsTr("Unblock") : qsTr("Change PIN"))
-                enabled: page.canApply()
-                onClicked: page.doApply()
-            }
 
             BusyIndicator {
                 anchors.horizontalCenter: parent.horizontalCenter
                 running: tokenSession.busy
                 visible: tokenSession.busy
-                size: BusyIndicatorSize.Medium
+                size: BusyIndicatorSize.Large
             }
 
             Label {
@@ -207,7 +159,21 @@ Page {
                 visible: page.attempted && !tokenSession.busy && tokenSession.outcome !== 0
                 text: tokenSession.result
                 color: tokenSession.outcome === 1 ? "#4caf50" : "#f44336"
-                font.pixelSize: Theme.fontSizeMedium
+                font.pixelSize: Theme.fontSizeLarge
+            }
+
+            Button {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: page.attempted && !tokenSession.busy && tokenSession.outcome === 1
+                text: qsTr("Done")
+                onClicked: pageStack.pop()
+            }
+
+            Button {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: page.attempted && !tokenSession.busy && tokenSession.outcome === -1
+                text: qsTr("Try again")
+                onClicked: page.retry()
             }
 
             Label {
@@ -215,6 +181,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
+                visible: !page.attempted
                 text: page.mode === "unblock"
                       ? qsTr("The administrator resets the user PIN attempt counter; the user PIN itself stays the same.")
                       : qsTr("A wrong current PIN, entered several times, can lock the token.")

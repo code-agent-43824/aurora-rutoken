@@ -15,6 +15,10 @@ Page {
     property string pin: ""
     property bool textMode: false
     property bool reveal: false
+    // По умолчанию экран сам закрывается после ввода (вход, NFC-мастер, метка).
+    // При false навигацию ведёт вызывающий контроллер (цепочка смены PIN через
+    // pageStack.replace/pop) — экран сам не закрывается, чтобы не было гонок.
+    property bool autoPop: true
 
     signal entered(string pin)
 
@@ -24,7 +28,8 @@ Page {
         Qt.inputMethod.commit()
         var value = page.pin
         page.entered(value)
-        pageStack.pop()
+        if (page.autoPop)
+            pageStack.pop()
     }
 
     SilicaFlickable {

@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.5.0
-Release:    4
+Release:    5
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,15 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.5.0-5
+- PIN change now flows straight through the entry screens without ever returning
+  to the operation's base screen between steps and without a summary of entered
+  PINs. Tapping the menu item goes right to the current-PIN pad, then the new PIN,
+  then repeat it; as soon as the repeat is entered the operation runs (if the two
+  new PINs match, otherwise it asks for them again). Unblock is a single admin-PIN
+  screen, then the reset runs. PinPadPage gained an autoPop flag so the controller
+  drives the chain (replace between steps, one pad above it) with no push/pop race.
+
 * Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.5.0-4
 - PIN change (user / admin / unblock) is now collected as a sequence of screens:
   opening the operation asks for each PIN on its own numeric pad in turn (current

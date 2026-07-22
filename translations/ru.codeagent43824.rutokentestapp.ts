@@ -641,6 +641,14 @@
         <source>A wrong current PIN, entered several times, can lock the token.</source>
         <translation>A wrong current PIN, entered several times, can lock the token.</translation>
     </message>
+    <message>
+        <source>Done</source>
+        <translation>Done</translation>
+    </message>
+    <message>
+        <source>Try again</source>
+        <translation>Try again</translation>
+    </message>
 </context>
 <context>
     <name>PinPadPage</name>
