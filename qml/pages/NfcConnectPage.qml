@@ -22,6 +22,7 @@ Page {
 
     property int step: 1
     property string pin: ""
+    property bool noPin: false      // подключение без входа (только публичные сертификаты)
     property bool started: false
     property var lastToken: null
 
@@ -54,6 +55,8 @@ Page {
             tokenSession.generateKeyPair(tok.slotId, page.pin, page.algorithm, page.label)
         else if (page.operation === "import")
             tokenSession.importCertificate(tok.slotId, page.pin, page.filePath, page.label)
+        else if (page.noPin)
+            tokenSession.preview(tok.slotId)   // без входа — только публичные сертификаты
         else
             tokenSession.nfcRead(tok.slotId, page.pin)
     }
@@ -66,10 +69,20 @@ Page {
         })
         pad.entered.connect(function(entered) {
             page.pin = entered
+            page.noPin = false
             page.step = 3
             tokenWatcher.refresh()
             page.tryRun()
         })
+    }
+
+    // Подключение без PIN-кода: читаем только публичные сертификаты (без входа).
+    function continueNoPin() {
+        page.pin = ""
+        page.noPin = true
+        page.step = 3
+        tokenWatcher.refresh()
+        page.tryRun()
     }
 
     function feedback(ev) {
@@ -138,6 +151,13 @@ Page {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: qsTr("Enter PIN")
                     onClicked: page.enterPin()
+                }
+                // Подключение без входа — видны только публичные сертификаты.
+                Button {
+                    visible: page.operation === "connect"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTr("Continue without PIN")
+                    onClicked: page.continueNoPin()
                 }
             }
 

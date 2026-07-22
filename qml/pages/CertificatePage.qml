@@ -33,7 +33,8 @@ Page {
     function doDelete() {
         var dlg = pageStack.push(Qt.resolvedUrl("DeleteCertPage.qml"), {
             certName: page.title(),
-            hasKey: page.hasKey
+            idHex: page.idHex,
+            slotId: page.slotId
         })
         dlg.chosen.connect(function(keysToo) {
             tokenSession.deleteObjectsCached(page.slotId, page.idHex, keysToo)

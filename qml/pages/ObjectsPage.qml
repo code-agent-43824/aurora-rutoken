@@ -36,7 +36,8 @@ Page {
             var id = m.idHex
             var dlg = pageStack.push(Qt.resolvedUrl("DeleteCertPage.qml"), {
                 certName: page.certTitle(m),
-                hasKey: m.hasKey ? true : false
+                idHex: id,
+                slotId: page.slotId
             })
             dlg.chosen.connect(function(keysToo) {
                 page.deleteAttempted = true

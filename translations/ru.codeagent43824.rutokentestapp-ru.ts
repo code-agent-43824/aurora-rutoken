@@ -69,11 +69,11 @@
     </message>
     <message>
         <source>Manage PIN over NFC</source>
-        <translation>Управление PIN по NFC</translation>
+        <translation>Управление PIN-кодами по NFC</translation>
     </message>
     <message>
         <source>Change or unblock a PIN: enter the PINs, then hold the token once</source>
-        <translation>Смена или разблокировка PIN: введите PIN, затем один раз поднесите токен</translation>
+        <translation>Смена или разблокировка PIN-кода: введите PIN-код, затем один раз поднесите токен</translation>
     </message>
 </context>
 <context>
@@ -151,23 +151,23 @@
     </message>
     <message>
         <source>Unblock user PIN</source>
-        <translation>Разблокировать PIN пользователя</translation>
+        <translation>Разблокировать PIN-код пользователя</translation>
     </message>
     <message>
         <source>Change admin PIN</source>
-        <translation>Смена PIN администратора</translation>
+        <translation>Смена PIN-кода администратора</translation>
     </message>
     <message>
         <source>Change user PIN</source>
-        <translation>Смена PIN пользователя</translation>
+        <translation>Смена PIN-кода пользователя</translation>
     </message>
     <message>
         <source>Enter PIN</source>
-        <translation>Ввести PIN</translation>
+        <translation>Ввести PIN-код</translation>
     </message>
     <message>
         <source>Logged in — the PIN is remembered</source>
-        <translation>Вход выполнен — PIN запомнен</translation>
+        <translation>Вход выполнен — PIN-код запомнен</translation>
     </message>
     <message>
         <source>Log out</source>
@@ -207,15 +207,15 @@
     </message>
     <message>
         <source>User PIN login</source>
-        <translation>Вход по PIN пользователя</translation>
+        <translation>Вход по PIN-коду пользователя</translation>
     </message>
     <message>
         <source>User PIN</source>
-        <translation>PIN пользователя</translation>
+        <translation>PIN-код пользователя</translation>
     </message>
     <message>
         <source>Enter user PIN</source>
-        <translation>Введите PIN пользователя</translation>
+        <translation>Введите PIN-код пользователя</translation>
     </message>
     <message>
         <source>Checking…</source>
@@ -227,7 +227,7 @@
     </message>
     <message>
         <source>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</source>
-        <translation>PIN хранится в памяти до выхода, отключения USB-токена или закрытия приложения.</translation>
+        <translation>PIN-код хранится в памяти до выхода, отключения USB-токена или закрытия приложения.</translation>
     </message>
     <message>
         <source>Token objects (%1)</source>
@@ -274,7 +274,7 @@
     </message>
     <message>
         <source>keys are shown after PIN login</source>
-        <translation>ключи показываются после входа по PIN</translation>
+        <translation>ключи показываются после входа по PIN-коду</translation>
     </message>
     <message>
         <source>certificate without a key (standalone)</source>
@@ -337,7 +337,7 @@
     </message>
     <message>
         <source>unknown until PIN login</source>
-        <translation>неизвестно до входа по PIN</translation>
+        <translation>неизвестно до входа по PIN-коду</translation>
     </message>
     <message>
         <source>yes</source>
@@ -418,15 +418,15 @@
     <name>ImportCertificatePage</name>
     <message>
         <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
-        <translation>По NFC на следующем шаге вы введёте PIN и поднесёте токен.</translation>
+        <translation>По NFC на следующем шаге вы введёте PIN-код и поднесёте токен.</translation>
     </message>
     <message>
         <source>Enter PIN</source>
-        <translation>Ввести PIN</translation>
+        <translation>Ввести PIN-код</translation>
     </message>
     <message>
         <source>PIN is remembered</source>
-        <translation>PIN запомнен</translation>
+        <translation>PIN-код запомнен</translation>
     </message>
     <message>
         <source>Checking…</source>
@@ -466,11 +466,11 @@
     </message>
     <message>
         <source>User PIN</source>
-        <translation>PIN пользователя</translation>
+        <translation>PIN-код пользователя</translation>
     </message>
     <message>
         <source>Enter user PIN</source>
-        <translation>Введите PIN пользователя</translation>
+        <translation>Введите PIN-код пользователя</translation>
     </message>
     <message>
         <source>Importing…</source>
@@ -517,7 +517,7 @@
     </message>
     <message>
         <source>Enter PIN</source>
-        <translation>Ввести PIN</translation>
+        <translation>Ввести PIN-код</translation>
     </message>
     <message>
         <source>Hold the token to the back cover and keep it there until the operation finishes.</source>
@@ -541,26 +541,30 @@
     </message>
     <message>
         <source>User PIN</source>
-        <translation>PIN пользователя</translation>
+        <translation>PIN-код пользователя</translation>
     </message>
     <message>
         <source>Continue</source>
         <translation>Продолжить</translation>
+    </message>
+    <message>
+        <source>Continue without PIN</source>
+        <translation>Продолжить без PIN-кода</translation>
     </message>
 </context>
 <context>
     <name>TokenLabelPage</name>
     <message>
         <source>User PIN</source>
-        <translation>PIN пользователя</translation>
+        <translation>PIN-код пользователя</translation>
     </message>
     <message>
         <source>Enter user PIN</source>
-        <translation>Введите PIN пользователя</translation>
+        <translation>Введите PIN-код пользователя</translation>
     </message>
     <message>
         <source>Changing the label requires the user PIN and does not erase the token.</source>
-        <translation>Смена метки требует PIN пользователя и не стирает токен.</translation>
+        <translation>Смена метки требует PIN-код пользователя и не стирает токен.</translation>
     </message>
     <message>
         <source>Change token label</source>
@@ -576,7 +580,7 @@
     </message>
     <message>
         <source>Administrator (SO) PIN</source>
-        <translation>PIN администратора (SO)</translation>
+        <translation>PIN-код администратора (SO)</translation>
     </message>
     <message>
         <source>OK</source>
@@ -584,7 +588,7 @@
     </message>
     <message>
         <source>Enter administrator (SO) PIN</source>
-        <translation>Ввести PIN администратора (SO)</translation>
+        <translation>Ввести PIN-код администратора (SO)</translation>
     </message>
     <message>
         <source>Applying…</source>
@@ -596,7 +600,7 @@
     </message>
     <message>
         <source>Changing the label requires the administrator (SO) PIN and does not erase the token.</source>
-        <translation>Смена метки требует PIN администратора (SO) и не стирает токен.</translation>
+        <translation>Смена метки требует PIN-код администратора (SO) и не стирает токен.</translation>
     </message>
     <message>
         <source>Done</source>
@@ -623,43 +627,43 @@
     <name>PinChangePage</name>
     <message>
         <source>The administrator resets the user PIN attempt counter; the user PIN itself stays the same.</source>
-        <translation>Администратор сбрасывает счётчик попыток PIN пользователя; сам PIN не меняется.</translation>
+        <translation>Администратор сбрасывает счётчик попыток PIN-кода пользователя; сам PIN-код не меняется.</translation>
     </message>
     <message>
         <source>Change admin PIN</source>
-        <translation>Смена PIN администратора</translation>
+        <translation>Смена PIN-кода администратора</translation>
     </message>
     <message>
         <source>Unblock user PIN</source>
-        <translation>Разблокировать PIN пользователя</translation>
+        <translation>Разблокировать PIN-код пользователя</translation>
     </message>
     <message>
         <source>Change user PIN</source>
-        <translation>Смена PIN пользователя</translation>
+        <translation>Смена PIN-кода пользователя</translation>
     </message>
     <message>
         <source>Current admin PIN</source>
-        <translation>Текущий PIN администратора</translation>
+        <translation>Текущий PIN-код администратора</translation>
     </message>
     <message>
         <source>Administrator (SO) PIN</source>
-        <translation>PIN администратора (SO)</translation>
+        <translation>PIN-код администратора (SO)</translation>
     </message>
     <message>
         <source>Current user PIN</source>
-        <translation>Текущий PIN пользователя</translation>
+        <translation>Текущий PIN-код пользователя</translation>
     </message>
     <message>
         <source>New admin PIN</source>
-        <translation>Новый PIN администратора</translation>
+        <translation>Новый PIN-код администратора</translation>
     </message>
     <message>
         <source>New user PIN</source>
-        <translation>Новый PIN пользователя</translation>
+        <translation>Новый PIN-код пользователя</translation>
     </message>
     <message>
         <source>Confirm new PIN</source>
-        <translation>Подтвердите новый PIN</translation>
+        <translation>Подтвердите новый PIN-код</translation>
     </message>
     <message>
         <source>OK</source>
@@ -667,7 +671,7 @@
     </message>
     <message>
         <source>The new PINs do not match</source>
-        <translation>Новые PIN не совпадают</translation>
+        <translation>Новые PIN-коды не совпадают</translation>
     </message>
     <message>
         <source>Applying…</source>
@@ -679,15 +683,15 @@
     </message>
     <message>
         <source>Change PIN</source>
-        <translation>Сменить PIN</translation>
+        <translation>Сменить PIN-код</translation>
     </message>
     <message>
         <source>The administrator sets a new user PIN; the user PIN attempt counter is reset.</source>
-        <translation>Администратор задаёт новый PIN пользователя; счётчик попыток PIN пользователя сбрасывается.</translation>
+        <translation>Администратор задаёт новый PIN-код пользователя; счётчик попыток PIN-кода пользователя сбрасывается.</translation>
     </message>
     <message>
         <source>A wrong current PIN, entered several times, can lock the token.</source>
-        <translation>Несколько неверных вводов текущего PIN могут заблокировать токен.</translation>
+        <translation>Несколько неверных вводов текущего PIN-кода могут заблокировать токен.</translation>
     </message>
     <message>
         <source>Done</source>
@@ -718,7 +722,7 @@
     <name>PinPadPage</name>
     <message>
         <source>User PIN</source>
-        <translation>PIN пользователя</translation>
+        <translation>PIN-код пользователя</translation>
     </message>
     <message>
         <source>Log in</source>
@@ -726,7 +730,7 @@
     </message>
     <message>
         <source>Enter user PIN</source>
-        <translation>Введите PIN пользователя</translation>
+        <translation>Введите PIN-код пользователя</translation>
     </message>
     <message>
         <source>Show</source>
@@ -745,15 +749,15 @@
     <name>GenerateKeyPage</name>
     <message>
         <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
-        <translation>По NFC на следующем шаге вы введёте PIN и поднесёте токен.</translation>
+        <translation>По NFC на следующем шаге вы введёте PIN-код и поднесёте токен.</translation>
     </message>
     <message>
         <source>Enter PIN</source>
-        <translation>Ввести PIN</translation>
+        <translation>Ввести PIN-код</translation>
     </message>
     <message>
         <source>PIN is remembered</source>
-        <translation>PIN запомнен</translation>
+        <translation>PIN-код запомнен</translation>
     </message>
     <message>
         <source>Checking…</source>
@@ -801,11 +805,11 @@
     </message>
     <message>
         <source>User PIN</source>
-        <translation>PIN пользователя</translation>
+        <translation>PIN-код пользователя</translation>
     </message>
     <message>
         <source>Enter user PIN</source>
-        <translation>Введите PIN пользователя</translation>
+        <translation>Введите PIN-код пользователя</translation>
     </message>
     <message>
         <source>Generating…</source>
@@ -843,23 +847,23 @@
     <name>NfcPinMenuPage</name>
     <message>
         <source>PIN over NFC</source>
-        <translation>Управление PIN по NFC</translation>
+        <translation>Управление PIN-кодами по NFC</translation>
     </message>
     <message>
         <source>Choose an operation. You enter all PINs first, then hold the token once to run it.</source>
-        <translation>Выберите операцию. Сначала введёте все PIN, затем один раз поднесёте токен для выполнения.</translation>
+        <translation>Выберите операцию. Сначала введёте все PIN-коды, затем один раз поднесёте токен для выполнения.</translation>
     </message>
     <message>
         <source>Change user PIN</source>
-        <translation>Смена PIN пользователя</translation>
+        <translation>Смена PIN-кода пользователя</translation>
     </message>
     <message>
         <source>Change admin PIN</source>
-        <translation>Смена PIN администратора</translation>
+        <translation>Смена PIN-кода администратора</translation>
     </message>
     <message>
         <source>Unblock user PIN</source>
-        <translation>Разблокировать PIN пользователя</translation>
+        <translation>Разблокировать PIN-код пользователя</translation>
     </message>
 </context>
 <context>
@@ -887,6 +891,26 @@
     <message>
         <source>Deleting the keys is irreversible — the private key cannot be recovered.</source>
         <translation>Удаление ключей необратимо — закрытый ключ восстановить нельзя.</translation>
+    </message>
+    <message>
+        <source>Checking…</source>
+        <translation>Проверка…</translation>
+    </message>
+    <message>
+        <source>Enter PIN</source>
+        <translation>Ввести PIN-код</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Войти</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>PIN-код пользователя</translation>
+    </message>
+    <message>
+        <source>This certificate may have a private key that stays hidden until you enter the PIN. Enter the PIN to see and remove it too.</source>
+        <translation>У этого сертификата может быть закрытый ключ — он не виден, пока не введён PIN-код. Введите PIN-код, чтобы увидеть и удалить и его.</translation>
     </message>
 </context>
 </TS>

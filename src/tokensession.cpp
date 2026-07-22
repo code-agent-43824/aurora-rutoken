@@ -31,7 +31,7 @@ QString rvHex(CK_RV rv)
 QString pinAttemptsHint(CK_FLAGS flags)
 {
     if (flags & CKF_USER_PIN_LOCKED)
-        return QStringLiteral("PIN заблокирован");
+        return QStringLiteral("PIN-код заблокирован");
     if (flags & CKF_USER_PIN_FINAL_TRY)
         return QStringLiteral("последняя попытка");
     if (flags & CKF_USER_PIN_COUNT_LOW)
@@ -83,9 +83,9 @@ QString loginErrorMessage(CK_FUNCTION_LIST_PREFIX *fns, CK_SLOT_ID slotId, CK_RV
     }
     QString message;
     if (rv == CKR_PIN_INCORRECT)
-        message = QStringLiteral("Неверный PIN");
+        message = QStringLiteral("Неверный PIN-код");
     else if (rv == CKR_PIN_LOCKED)
-        message = QStringLiteral("PIN заблокирован");
+        message = QStringLiteral("PIN-код заблокирован");
     else
         message = QStringLiteral("Ошибка входа: ") + rvHex(rv);
     if (!hint.isEmpty())
@@ -179,10 +179,10 @@ WriteOutcome runTokenWrite(QFunctionPointer getFunctionList, qulonglong slotId, 
 QString pinRvMessage(CK_RV rv)
 {
     switch (rv) {
-    case CKR_PIN_INCORRECT: return QStringLiteral("Неверный текущий PIN");
-    case CKR_PIN_LOCKED: return QStringLiteral("PIN заблокирован");
-    case CKR_PIN_INVALID: return QStringLiteral("Недопустимый PIN");
-    case CKR_PIN_LEN_RANGE: return QStringLiteral("Недопустимая длина нового PIN");
+    case CKR_PIN_INCORRECT: return QStringLiteral("Неверный текущий PIN-код");
+    case CKR_PIN_LOCKED: return QStringLiteral("PIN-код заблокирован");
+    case CKR_PIN_INVALID: return QStringLiteral("Недопустимый PIN-код");
+    case CKR_PIN_LEN_RANGE: return QStringLiteral("Недопустимая длина нового PIN-кода");
     default: return QStringLiteral("Ошибка: ") + rvHex(rv);
     }
 }
@@ -294,7 +294,7 @@ void TokenSession::generateKeyPairCached(qulonglong slotId, const QString &algor
 {
     if (!m_loggedIn || m_cachedSlot != slotId || m_cachedPin.isEmpty()) {
         m_outcome = -1;
-        m_result = QStringLiteral("Сначала войдите по PIN");
+        m_result = QStringLiteral("Сначала войдите по PIN-коду");
         emit changed();
         return;
     }
@@ -306,7 +306,7 @@ void TokenSession::importCertificateCached(qulonglong slotId, const QString &fil
 {
     if (!m_loggedIn || m_cachedSlot != slotId || m_cachedPin.isEmpty()) {
         m_outcome = -1;
-        m_result = QStringLiteral("Сначала войдите по PIN");
+        m_result = QStringLiteral("Сначала войдите по PIN-коду");
         emit changed();
         return;
     }
@@ -356,7 +356,7 @@ void TokenSession::deleteObjectsCached(qulonglong slotId, const QString &idHex, 
 {
     if (!m_loggedIn || m_cachedSlot != slotId || m_cachedPin.isEmpty()) {
         m_outcome = -1;
-        m_result = QStringLiteral("Сначала войдите по PIN");
+        m_result = QStringLiteral("Сначала войдите по PIN-коду");
         emit changed();
         return;
     }
@@ -464,7 +464,7 @@ void TokenSession::changeUserPin(qulonglong slotId, const QString &oldPin, const
                 // Рутокен требует вход пользователем перед сменой его PIN
                 // (иначе C_SetPIN → CKR_USER_NOT_LOGGED_IN = 0x101).
                 if (!fns->C_SetPIN || !fns->C_Login || !fns->C_Logout)
-                    return qMakePair(false, QStringLiteral("Библиотека не предоставляет функции смены PIN"));
+                    return qMakePair(false, QStringLiteral("Библиотека не предоставляет функции смены PIN-кода"));
                 const CK_RV lr = fns->C_Login(s, CKU_USER,
                         reinterpret_cast<CK_UTF8CHAR *>(oldB.data()), static_cast<CK_ULONG>(oldB.size()));
                 if (lr != CKR_OK && lr != CKR_USER_ALREADY_LOGGED_IN)
@@ -474,7 +474,7 @@ void TokenSession::changeUserPin(qulonglong slotId, const QString &oldPin, const
                         reinterpret_cast<CK_UTF8CHAR *>(newB.data()), static_cast<CK_ULONG>(newB.size()));
                 fns->C_Logout(s);
                 return qMakePair(rv == CKR_OK,
-                                 rv == CKR_OK ? QStringLiteral("PIN пользователя изменён") : pinRvMessage(rv));
+                                 rv == CKR_OK ? QStringLiteral("PIN-код пользователя изменён") : pinRvMessage(rv));
             });
         oldB.fill('\0');
         newB.fill('\0');
@@ -518,7 +518,7 @@ void TokenSession::changeSoPin(qulonglong slotId, const QString &oldSoPin, const
                         reinterpret_cast<CK_UTF8CHAR *>(newB.data()), static_cast<CK_ULONG>(newB.size()));
                 fns->C_Logout(s);
                 return qMakePair(rv == CKR_OK,
-                                 rv == CKR_OK ? QStringLiteral("PIN администратора изменён") : pinRvMessage(rv));
+                                 rv == CKR_OK ? QStringLiteral("PIN-код администратора изменён") : pinRvMessage(rv));
             });
         oldB.fill('\0');
         newB.fill('\0');
@@ -532,7 +532,7 @@ void TokenSession::unblockUserPin(qulonglong slotId, const QString &soPin)
         return;
     if (!m_getFunctionList || !m_exUnblockUserPin) {
         m_outcome = -1;
-        m_result = m_getFunctionList ? QStringLiteral("Библиотека не поддерживает разблокировку PIN")
+        m_result = m_getFunctionList ? QStringLiteral("Библиотека не поддерживает разблокировку PIN-кода")
                                      : QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
         emit changed();
         return;
@@ -563,7 +563,7 @@ void TokenSession::unblockUserPin(qulonglong slotId, const QString &soPin)
                 const CK_RV rv = unblock(s);
                 fns->C_Logout(s);
                 return qMakePair(rv == CKR_OK,
-                                 rv == CKR_OK ? QStringLiteral("PIN пользователя разблокирован") : pinRvMessage(rv));
+                                 rv == CKR_OK ? QStringLiteral("PIN-код пользователя разблокирован") : pinRvMessage(rv));
             });
         soB.fill('\0');
         emit finished(r.first, r.second, keepObjects);
@@ -765,7 +765,7 @@ void TokenSession::run(qulonglong slotId, const QString &pin, bool doLogin)
             if (rv == CKR_OK || rv == CKR_USER_ALREADY_LOGGED_IN) {
                 loggedIn = true;
                 outcome = 1;
-                message = QStringLiteral("PIN верный — вход выполнен");
+                message = QStringLiteral("PIN-код верный — вход выполнен");
             } else {
                 message = loginErrorMessage(fns, static_cast<CK_SLOT_ID>(slotId), rv,
                                             reinterpret_cast<ExGetTokenInfoExtendedFn>(exTok));

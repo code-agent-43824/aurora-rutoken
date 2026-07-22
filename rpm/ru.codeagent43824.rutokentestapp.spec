@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.6.0
-Release:    2
+Release:    3
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,15 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.6.0-3
+- When deleting a certificate while not logged in, the chooser now warns that the
+  certificate may have a private key hidden until the PIN is entered and offers an
+  "Enter PIN" button (the key option appears once you log in). The NFC connect step
+  gained a "Continue without PIN" button that reads only the public certificates
+  without logging in. Unified all Russian wording to a single spelling, "PIN-код"
+  (previously mixed "PIN" / "Пин" / "пин"), across the UI strings and the result
+  messages.
+
 * Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.6.0-2
 - After connecting an NFC token the wizard now opens the token properties screen
   (like USB) instead of jumping straight to the certificates; the objects were

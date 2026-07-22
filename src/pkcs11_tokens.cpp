@@ -80,9 +80,9 @@ QVariantList listConnectedTokens(CK_FUNCTION_LIST_PREFIX *functions)
         if (tokenInfo.flags & CKF_TOKEN_INITIALIZED)
             flags << QStringLiteral("инициализирован");
         if (tokenInfo.flags & CKF_LOGIN_REQUIRED)
-            flags << QStringLiteral("нужен вход (PIN)");
+            flags << QStringLiteral("нужен вход (PIN-код)");
         if (tokenInfo.flags & CKF_USER_PIN_INITIALIZED)
-            flags << QStringLiteral("PIN пользователя задан");
+            flags << QStringLiteral("PIN-код пользователя задан");
         if (tokenInfo.flags & CKF_WRITE_PROTECTED)
             flags << QStringLiteral("защита записи");
 

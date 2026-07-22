@@ -547,6 +547,10 @@
         <source>Continue</source>
         <translation>Continue</translation>
     </message>
+    <message>
+        <source>Continue without PIN</source>
+        <translation>Continue without PIN</translation>
+    </message>
 </context>
 <context>
     <name>TokenLabelPage</name>
@@ -887,6 +891,26 @@
     <message>
         <source>Deleting the keys is irreversible — the private key cannot be recovered.</source>
         <translation>Deleting the keys is irreversible — the private key cannot be recovered.</translation>
+    </message>
+    <message>
+        <source>Checking…</source>
+        <translation>Checking…</translation>
+    </message>
+    <message>
+        <source>Enter PIN</source>
+        <translation>Enter PIN</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Log in</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>User PIN</translation>
+    </message>
+    <message>
+        <source>This certificate may have a private key that stays hidden until you enter the PIN. Enter the PIN to see and remove it too.</source>
+        <translation>This certificate may have a private key that stays hidden until you enter the PIN. Enter the PIN to see and remove it too.</translation>
     </message>
 </context>
 </TS>
