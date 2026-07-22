@@ -9,6 +9,7 @@ Page {
     property var slotId: 0
     property string tokenLabel: ""
     property string connection: ""
+    property bool deleteAttempted: false   // показывать результат только после удаления
 
     // Для NFC показываем сохранённый снимок объектов (можно вернуться к
     // сертификатам без повторного поднесения); для USB — живые объекты сессии.
@@ -22,6 +23,25 @@ Page {
             return o.label
         return ""
     }
+
+    // Удаление записи (сертификат + его ключи / отдельный ключ) по CKA_ID —
+    // долгим нажатием, с отсрочкой RemorsePopup. Пока по USB: нужен запомненный
+    // вход (приватные ключи видны только после входа). По NFC — следующий этап.
+    function confirmDelete(m) {
+        if (page.connection === "NFC")
+            return
+        if (!m.idHex || m.idHex.length === 0)
+            return
+        var what = m.kind === "certificate"
+                ? qsTr("Deleting the certificate and its keys")
+                : qsTr("Deleting the key")
+        remorse.execute(what, function() {
+            page.deleteAttempted = true
+            tokenSession.deleteObjectsCached(page.slotId, m.idHex)
+        })
+    }
+
+    RemorsePopup { id: remorse }
 
     SilicaFlickable {
         anchors.fill: parent
@@ -54,6 +74,25 @@ Page {
                 description: qsTr("Objects via PKCS#11")
             }
 
+            BusyIndicator {
+                anchors.horizontalCenter: parent.horizontalCenter
+                running: tokenSession.busy
+                visible: tokenSession.busy
+                size: BusyIndicatorSize.Medium
+            }
+
+            // Результат удаления (успех виден и по исчезновению записи из списка).
+            Label {
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                wrapMode: Text.Wrap
+                textFormat: Text.PlainText
+                visible: page.deleteAttempted && !tokenSession.busy && tokenSession.outcome !== 0
+                text: tokenSession.result
+                color: tokenSession.outcome === 1 ? "#4caf50" : "#f44336"
+                font.pixelSize: Theme.fontSizeSmall
+            }
+
             Label {
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
@@ -64,26 +103,40 @@ Page {
                 font.pixelSize: Theme.fontSizeMedium
             }
 
+            // Подсказка про удаление (только USB — по NFC удаление появится позже).
+            Label {
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                visible: page.connection !== "NFC" && page.objectsModel.length > 0
+                wrapMode: Text.Wrap
+                text: qsTr("Press and hold an item to delete it (with its keys)")
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+            }
+
             Repeater {
                 model: page.objectsModel
 
                 delegate: BackgroundItem {
                     width: content.width
                     height: card.height + Theme.paddingMedium
-                    // Внутрь можно войти только у сертификата.
-                    enabled: modelData.kind === "certificate"
-                    onClicked: pageStack.push(Qt.resolvedUrl("CertificatePage.qml"), {
-                        commonName: modelData.commonName ? modelData.commonName : "",
-                        issuer: modelData.issuer ? modelData.issuer : "",
-                        expiry: modelData.expiry ? modelData.expiry : "",
-                        parsed: modelData.parsed ? modelData.parsed : false,
-                        idText: modelData.idText ? modelData.idText : "",
-                        label: modelData.label ? modelData.label : "",
-                        source: modelData.source ? modelData.source : "",
-                        derB64: modelData.derB64 ? modelData.derB64 : "",
-                        hasKey: modelData.hasKey ? modelData.hasKey : false,
-                        keysKnown: modelData.keysKnown ? modelData.keysKnown : false
-                    })
+                    // Тап открывает сертификат; долгое нажатие — удалить (USB).
+                    onClicked: {
+                        if (modelData.kind === "certificate")
+                            pageStack.push(Qt.resolvedUrl("CertificatePage.qml"), {
+                                commonName: modelData.commonName ? modelData.commonName : "",
+                                issuer: modelData.issuer ? modelData.issuer : "",
+                                expiry: modelData.expiry ? modelData.expiry : "",
+                                parsed: modelData.parsed ? modelData.parsed : false,
+                                idText: modelData.idText ? modelData.idText : "",
+                                label: modelData.label ? modelData.label : "",
+                                source: modelData.source ? modelData.source : "",
+                                derB64: modelData.derB64 ? modelData.derB64 : "",
+                                hasKey: modelData.hasKey ? modelData.hasKey : false,
+                                keysKnown: modelData.keysKnown ? modelData.keysKnown : false
+                            })
+                    }
+                    onPressAndHold: page.confirmDelete(modelData)
 
                     Column {
                         id: card

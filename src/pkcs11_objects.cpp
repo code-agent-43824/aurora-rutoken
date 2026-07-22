@@ -65,6 +65,32 @@ QVector<CK_OBJECT_HANDLE> findByClass(CK_FUNCTION_LIST_PREFIX *fns,
     return result;
 }
 
+// Все объекты (любого класса) с заданным CKA_ID.
+QVector<CK_OBJECT_HANDLE> findByCkaId(CK_FUNCTION_LIST_PREFIX *fns,
+                                     CK_SESSION_HANDLE session, const QByteArray &id)
+{
+    QVector<CK_OBJECT_HANDLE> result;
+    if (id.isEmpty())
+        return result;
+    CK_ATTRIBUTE tmpl;
+    tmpl.type = CKA_ID;
+    tmpl.pValue = const_cast<char *>(id.constData());
+    tmpl.ulValueLen = static_cast<CK_ULONG>(id.size());
+    if (fns->C_FindObjectsInit(session, &tmpl, 1) != CKR_OK)
+        return result;
+
+    CK_OBJECT_HANDLE batch[32];
+    CK_ULONG found = 0;
+    while (fns->C_FindObjects(session, batch, 32, &found) == CKR_OK && found > 0) {
+        for (CK_ULONG i = 0; i < found; ++i)
+            result.append(batch[i]);
+        if (found < 32)
+            break;
+    }
+    fns->C_FindObjectsFinal(session);
+    return result;
+}
+
 QString keyTypeName(CK_ULONG keyType)
 {
     switch (keyType) {
@@ -247,6 +273,19 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
     }
 
     return out;
+}
+
+int destroyByCkaId(CK_FUNCTION_LIST_PREFIX *fns, unsigned long session, const QByteArray &idBytes)
+{
+    if (!fns || !fns->C_DestroyObject || !fns->C_FindObjectsInit || idBytes.isEmpty())
+        return 0;
+    const QVector<CK_OBJECT_HANDLE> objs = findByCkaId(fns, session, idBytes);
+    int destroyed = 0;
+    for (int i = 0; i < objs.size(); ++i) {
+        if (fns->C_DestroyObject(session, objs[i]) == CKR_OK)
+            ++destroyed;
+    }
+    return destroyed;
 }
 
 } // namespace pkcs11

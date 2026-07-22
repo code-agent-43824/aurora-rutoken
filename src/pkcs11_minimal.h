@@ -186,6 +186,8 @@ typedef CK_RV (*CK_C_InitPIN)(CK_SESSION_HANDLE, CK_UTF8CHAR *, CK_ULONG);
 typedef CK_RV (*CK_C_SetPIN)(CK_SESSION_HANDLE, CK_UTF8CHAR *, CK_ULONG, CK_UTF8CHAR *, CK_ULONG);
 // C_CreateObject (№21): создание объекта на токене (для импорта сертификата).
 typedef CK_RV (*CK_C_CreateObject)(CK_SESSION_HANDLE, CK_ATTRIBUTE *, CK_ULONG, CK_OBJECT_HANDLE *);
+// C_DestroyObject (№23): удаление объекта (сертификата/ключа) с токена.
+typedef CK_RV (*CK_C_DestroyObject)(CK_SESSION_HANDLE, CK_OBJECT_HANDLE);
 typedef CK_RV (*CK_C_GetAttributeValue)(CK_SESSION_HANDLE, CK_OBJECT_HANDLE, CK_ATTRIBUTE *, CK_ULONG);
 typedef CK_RV (*CK_C_FindObjectsInit)(CK_SESSION_HANDLE, CK_ATTRIBUTE *, CK_ULONG);
 typedef CK_RV (*CK_C_FindObjects)(CK_SESSION_HANDLE, CK_OBJECT_HANDLE *, CK_ULONG, CK_ULONG *);
@@ -225,7 +227,7 @@ struct CK_FUNCTION_LIST_PREFIX {
     CK_C_Logout C_Logout;                     // 20
     CK_C_CreateObject C_CreateObject;         // 21
     CK_SkippedFn C_CopyObject;                // 22
-    CK_SkippedFn C_DestroyObject;             // 23
+    CK_C_DestroyObject C_DestroyObject;       // 23
     CK_SkippedFn C_GetObjectSize;             // 24
     CK_C_GetAttributeValue C_GetAttributeValue; // 25
     CK_SkippedFn C_SetAttributeValue;         // 26
@@ -313,6 +315,8 @@ static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_Logout) == 20 * sizeof(void *)
               "CK_FUNCTION_LIST: C_Logout offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_CreateObject) == 21 * sizeof(void *),
               "CK_FUNCTION_LIST: C_CreateObject offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_DestroyObject) == 23 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_DestroyObject offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_GetAttributeValue) == 25 * sizeof(void *),
               "CK_FUNCTION_LIST: C_GetAttributeValue offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_FindObjectsInit) == 27 * sizeof(void *),

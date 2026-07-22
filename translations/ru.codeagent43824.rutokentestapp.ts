@@ -288,6 +288,18 @@
         <source>Import certificate</source>
         <translation>Import certificate</translation>
     </message>
+    <message>
+        <source>Deleting the certificate and its keys</source>
+        <translation>Deleting the certificate and its keys</translation>
+    </message>
+    <message>
+        <source>Deleting the key</source>
+        <translation>Deleting the key</translation>
+    </message>
+    <message>
+        <source>Press and hold an item to delete it (with its keys)</source>
+        <translation>Press and hold an item to delete it (with its keys)</translation>
+    </message>
 </context>
 <context>
     <name>CertificatePage</name>

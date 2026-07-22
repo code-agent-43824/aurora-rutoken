@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    0.5.0
-Release:    7
+Version:    0.6.0
+Release:    1
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,14 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.6.0-1
+- Delete objects from the token (USB): press and hold a certificate or a key on
+  the objects screen to remove it together with its key pair (everything sharing
+  the CKA_ID), with a RemorsePopup countdown to cancel. C_DestroyObject (#23) was
+  wired into the function-list ABI with an offset static_assert; the object list
+  refreshes right after in the same logged-in session. Deletion over NFC and a
+  post-generation test signature come next.
+
 * Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.5.0-7
 - Manage the NFC token from its own overview, like USB: tapping the connected
   NFC token now opens the token details with the same pull-down menu (change

@@ -313,6 +313,54 @@ void TokenSession::importCertificateCached(qulonglong slotId, const QString &fil
     importCertificate(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()), filePath, label);
 }
 
+void TokenSession::deleteObjects(qulonglong slotId, const QString &pin, const QString &idHex)
+{
+    if (m_busy)
+        return;
+    m_pendingIsLogin = false; // не вход — не кэшировать PIN по завершении
+    if (!m_getFunctionList) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        emit changed();
+        return;
+    }
+
+    m_busy = true;
+    m_outcome = 0;
+    m_result.clear();
+    emit changed();
+
+    const QFunctionPointer getFunctionList = m_getFunctionList;
+    const QFunctionPointer exTok = m_exGetTokenInfoExtended;
+    QByteArray pinBytes = pin.toUtf8();
+    const QByteArray idBytes = QByteArray::fromHex(idHex.toLatin1());
+
+    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, exTok, idBytes]() mutable {
+        const WriteOutcome wo = runTokenWrite(getFunctionList, slotId, pinBytes, exTok,
+            [&idBytes](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session) {
+                if (idBytes.isEmpty())
+                    return qMakePair(false, QStringLiteral("У объекта нет CKA_ID — удаление недоступно"));
+                const int n = pkcs11::destroyByCkaId(fns, session, idBytes);
+                if (n > 0)
+                    return qMakePair(true, QStringLiteral("Удалено объектов: %1").arg(n));
+                return qMakePair(false, QStringLiteral("Объекты не найдены (уже удалены?)"));
+            });
+        pinBytes.fill('\0');
+        emit finished(wo.outcome, wo.message, wo.objects);
+    });
+}
+
+void TokenSession::deleteObjectsCached(qulonglong slotId, const QString &idHex)
+{
+    if (!m_loggedIn || m_cachedSlot != slotId || m_cachedPin.isEmpty()) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Сначала войдите по PIN");
+        emit changed();
+        return;
+    }
+    deleteObjects(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()), idHex);
+}
+
 void TokenSession::syncWithTokens(const QVariantList &tokens)
 {
     // 1) Сброс запомненного входа при пропаже залогиненного USB-слота.
