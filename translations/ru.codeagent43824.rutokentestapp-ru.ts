@@ -67,6 +67,14 @@
         <source>reader: %1</source>
         <translation>ридер: %1</translation>
     </message>
+    <message>
+        <source>Manage PIN over NFC</source>
+        <translation>Управление PIN по NFC</translation>
+    </message>
+    <message>
+        <source>Change or unblock a PIN: enter the PINs, then hold the token once</source>
+        <translation>Смена или разблокировка PIN: введите PIN, затем один раз поднесите токен</translation>
+    </message>
 </context>
 <context>
     <name>DiagnosticsPage</name>
@@ -649,6 +657,22 @@
         <source>Try again</source>
         <translation>Ещё раз</translation>
     </message>
+    <message>
+        <source>Keep holding the token — the operation is running.</source>
+        <translation>Держите токен — идёт операция.</translation>
+    </message>
+    <message>
+        <source>Hold the token to the back cover and keep it there.</source>
+        <translation>Поднесите токен к задней крышке и держите.</translation>
+    </message>
+    <message>
+        <source>You can remove the token now.</source>
+        <translation>Теперь можно убрать токен.</translation>
+    </message>
+    <message>
+        <source>Start over</source>
+        <translation>Начать заново</translation>
+    </message>
 </context>
 <context>
     <name>PinPadPage</name>
@@ -773,6 +797,29 @@
     <message>
         <source>tokens</source>
         <translation>токенов</translation>
+    </message>
+</context>
+<context>
+    <name>NfcPinMenuPage</name>
+    <message>
+        <source>PIN over NFC</source>
+        <translation>Управление PIN по NFC</translation>
+    </message>
+    <message>
+        <source>Choose an operation. You enter all PINs first, then hold the token once to run it.</source>
+        <translation>Выберите операцию. Сначала введёте все PIN, затем один раз поднесёте токен для выполнения.</translation>
+    </message>
+    <message>
+        <source>Change user PIN</source>
+        <translation>Смена PIN пользователя</translation>
+    </message>
+    <message>
+        <source>Change admin PIN</source>
+        <translation>Смена PIN администратора</translation>
+    </message>
+    <message>
+        <source>Unblock user PIN</source>
+        <translation>Разблокировать PIN пользователя</translation>
     </message>
 </context>
 </TS>

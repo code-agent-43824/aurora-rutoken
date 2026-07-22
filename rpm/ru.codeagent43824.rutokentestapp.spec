@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.5.0
-Release:    5
+Release:    6
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,15 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.5.0-6
+- PIN operations over NFC: change the user PIN, change the admin PIN and unblock
+  the user PIN with the token held only once. A new "Manage PIN over NFC" entry
+  in the NFC section opens a chooser; the same entry screens collect every PIN
+  first (no token needed), then a single hold to the back cover runs the whole
+  operation in one session. On failure "Start over" re-collects. PinChangePage
+  gained a connection property (USB unchanged; NFC adds the hold/animation via
+  the existing NfcHoldAnimation and token detection, like the connect wizard).
+
 * Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.5.0-5
 - PIN change now flows straight through the entry screens without ever returning
   to the operation's base screen between steps and without a summary of entered

@@ -67,6 +67,14 @@
         <source>reader: %1</source>
         <translation>reader: %1</translation>
     </message>
+    <message>
+        <source>Manage PIN over NFC</source>
+        <translation>Manage PIN over NFC</translation>
+    </message>
+    <message>
+        <source>Change or unblock a PIN: enter the PINs, then hold the token once</source>
+        <translation>Change or unblock a PIN: enter the PINs, then hold the token once</translation>
+    </message>
 </context>
 <context>
     <name>DiagnosticsPage</name>
@@ -649,6 +657,22 @@
         <source>Try again</source>
         <translation>Try again</translation>
     </message>
+    <message>
+        <source>Keep holding the token — the operation is running.</source>
+        <translation>Keep holding the token — the operation is running.</translation>
+    </message>
+    <message>
+        <source>Hold the token to the back cover and keep it there.</source>
+        <translation>Hold the token to the back cover and keep it there.</translation>
+    </message>
+    <message>
+        <source>You can remove the token now.</source>
+        <translation>You can remove the token now.</translation>
+    </message>
+    <message>
+        <source>Start over</source>
+        <translation>Start over</translation>
+    </message>
 </context>
 <context>
     <name>PinPadPage</name>
@@ -773,6 +797,29 @@
     <message>
         <source>tokens</source>
         <translation>tokens</translation>
+    </message>
+</context>
+<context>
+    <name>NfcPinMenuPage</name>
+    <message>
+        <source>PIN over NFC</source>
+        <translation>PIN over NFC</translation>
+    </message>
+    <message>
+        <source>Choose an operation. You enter all PINs first, then hold the token once to run it.</source>
+        <translation>Choose an operation. You enter all PINs first, then hold the token once to run it.</translation>
+    </message>
+    <message>
+        <source>Change user PIN</source>
+        <translation>Change user PIN</translation>
+    </message>
+    <message>
+        <source>Change admin PIN</source>
+        <translation>Change admin PIN</translation>
+    </message>
+    <message>
+        <source>Unblock user PIN</source>
+        <translation>Unblock user PIN</translation>
     </message>
 </context>
 </TS>
