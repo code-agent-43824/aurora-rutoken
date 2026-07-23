@@ -327,7 +327,9 @@
 - [ ] `pkcs11_csr.{h,cpp}`: DER-билдер (len/tlv/INTEGER/OID/SEQUENCE/SET/BIT STRING/OCTET STRING/UTF8String), сборка `Name` из полей DN, `SubjectPublicKeyInfo` из `CKA_VALUE`+`CKA_GOSTR3410_PARAMS`/`CKA_GOSTR3411_PARAMS` (читаем с токена), сборка `CertificationRequestInfo`, подпись через `C_Sign` (механизм по типу ключа), сборка `CertificationRequest`, вывод PEM. Механизм/OID алгоритма — по `CKA_KEY_TYPE` найденного по `CKA_ID` открытого ключа
 - [ ] `TokenSession::createCsr(slot, pin, idHex, dn...)` (и `...Cached`): вход по PIN → найти пару по `CKA_ID` → построить и подписать CSR → PEM в property `lastCsr` (+ сообщение). Под общим мьютексом, в рабочем потоке
 - [ ] UI `CsrPage`: форма DN (CN обяз., O/OU/C/L/ST/email — опц.), запуск (USB — кэш PIN; NFC — через мастер), показ PEM + экспорт в файл (переиспользуем `exportCertificate`-подобный диалог/`ExportCertificatePage`). Точка входа — pull-down в карточке сертификата и/или долгое меню на ключе в `ObjectsPage`. После создания — правило навигации (возврат к списку/показ результата), где применимо
-- [ ] spec 0.7.0-1, переводы, README, JOURNAL; зелёный CI; проверка на телефоне (CSR для ГОСТ-256/512; openssl+ГОСТ на ПК подтверждает подпись; сверить порядок байтов)
+- [x] ABI-константы механизмов, `pkcs11_csr.{h,cpp}` (DER-энкодер + сборка/подпись), `TokenSession::createCsr`/`createCsrCached`/`saveCsrToFile` + property `lastCsr`, `CsrPage` (USB), точки входа (тап по ключу / pull-down карточки) — 2026-07-23
+- [x] spec 0.7.0-1, переводы, README, JOURNAL; **зелёный CI** — 2026-07-23, run #40 (`c65d44f`) зелёный с первой попытки на обеих арках (новый модуль `pkcs11_csr` собрался); в релизе `ci-latest` 4 голых `.rpm` 0.7.0-1 (старые 0.6.0-7 удалены)
+- [ ] Проверка на телефоне (CSR для ГОСТ-256/512 по USB; openssl+ГОСТ на ПК подтверждает подпись; сверить порядок байтов). При расхождении — этап 2
 
 **Этап 2 (0.7.0-2, при необходимости) — правки по устройству:** порядок байтов открытого ключа/подписи ГОСТ, параметры алгоритма, совместимость с openssl-ГОСТ.
 
