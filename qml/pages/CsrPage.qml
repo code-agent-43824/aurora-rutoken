@@ -5,9 +5,10 @@ import Sailfish.Silica 1.0
 // (по CKA_ID). Заполняем Subject (DN), подписываем закрытым ключом на токене,
 // получаем PEM — его видно на экране (выделяемый) и можно сохранить в файл .csr.
 //
-// Эта версия — по USB (вход по PIN, как у генерации/импорта). CSR по NFC —
-// следующим шагом. Результат (PEM) показывается на этом экране — это и есть
-// итог операции, поэтому к списку объектов не возвращаемся.
+// USB — вход по PIN (кэш). NFC — сбор DN здесь, затем мастер поднесения
+// (NfcConnectPage, operation="csr"): ввод PIN-кода и одно поднесение выполняют
+// подпись; по возвращении PEM показывается тут же (из lastCsr). Результат (PEM)
+// показывается на этом экране — это итог операции, к списку объектов не уходим.
 Page {
     id: page
     objectName: "csrPage"
@@ -26,6 +27,20 @@ Page {
         if (tokenSession.busy || cnField.text.length === 0)
             return
         Qt.inputMethod.commit()
+        if (page.connection === "NFC") {
+            // По NFC — через мастер (взять токен → PIN-код → поднести → подпись).
+            // По возвращении CsrPage покажет PEM из lastCsr.
+            page.attempted = true
+            pageStack.push(Qt.resolvedUrl("NfcConnectPage.qml"), {
+                operation: "csr",
+                idHex: page.idHex,
+                csrDn: {
+                    cn: cnField.text, o: oField.text, ou: ouField.text,
+                    c: cField.text, l: lField.text, st: stField.text, email: eField.text
+                }
+            })
+            return
+        }
         if (!tokenSession.loggedIn)
             return
         page.attempted = true
@@ -146,14 +161,14 @@ Page {
 
             // USB: требуется вход по PIN.
             Button {
-                visible: !tokenSession.loggedIn
+                visible: page.connection !== "NFC" && !tokenSession.loggedIn
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: tokenSession.busy ? qsTr("Checking…") : qsTr("Enter PIN")
                 enabled: !tokenSession.busy
                 onClicked: page.openPinPad()
             }
             Label {
-                visible: tokenSession.loggedIn
+                visible: page.connection !== "NFC" && tokenSession.loggedIn
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 horizontalAlignment: Text.AlignHCenter
@@ -161,11 +176,23 @@ Page {
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }
+            // NFC: PIN вводится в мастере при поднесении токена.
+            Label {
+                visible: page.connection === "NFC"
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                text: qsTr("Over NFC you will enter the PIN and hold the token in the next step.")
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+            }
 
             Button {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: tokenSession.busy ? qsTr("Creating…") : qsTr("Create request")
-                enabled: !tokenSession.busy && tokenSession.loggedIn && cnField.text.length > 0
+                enabled: !tokenSession.busy && cnField.text.length > 0
+                         && (page.connection === "NFC" || tokenSession.loggedIn)
                 onClicked: page.doCreate()
             }
 

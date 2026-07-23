@@ -145,11 +145,11 @@ Page {
                 font.pixelSize: Theme.fontSizeExtraSmall
             }
 
-            // Подсказка про запрос на сертификат (пока USB — тап по ключу).
+            // Подсказка про запрос на сертификат (тап по ключу; USB и NFC).
             Label {
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
-                visible: page.connection !== "NFC" && page.objectsModel.length > 0
+                visible: page.objectsModel.length > 0
                 wrapMode: Text.Wrap
                 text: qsTr("Tap a key to create a certificate request (CSR)")
                 color: Theme.secondaryColor
@@ -181,7 +181,7 @@ Page {
                                 slotId: page.slotId,
                                 connection: page.connection
                             })
-                        else if (modelData.kind === "key" && page.connection !== "NFC"
+                        else if (modelData.kind === "key"
                                  && modelData.idHex && modelData.idHex.length > 0)
                             pageStack.push(Qt.resolvedUrl("CsrPage.qml"), {
                                 slotId: page.slotId,

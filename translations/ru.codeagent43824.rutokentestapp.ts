@@ -555,6 +555,10 @@
         <source>Continue without PIN</source>
         <translation>Continue without PIN</translation>
     </message>
+    <message>
+        <source>Certificate request over NFC</source>
+        <translation>Certificate request over NFC</translation>
+    </message>
 </context>
 <context>
     <name>TokenLabelPage</name>
@@ -1081,6 +1085,10 @@
     <message>
         <source>The request is signed by the private key on the token; the private key never leaves it.</source>
         <translation>The request is signed by the private key on the token; the private key never leaves it.</translation>
+    </message>
+    <message>
+        <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
+        <translation>Over NFC you will enter the PIN and hold the token in the next step.</translation>
     </message>
 </context>
 </TS>

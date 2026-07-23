@@ -63,9 +63,9 @@ Page {
         contentHeight: col.height
 
         PullDownMenu {
-            // Запрос на сертификат для ключевой пары этого сертификата (пока USB).
+            // Запрос на сертификат для ключевой пары этого сертификата (USB и NFC).
             MenuItem {
-                visible: page.connection !== "NFC" && page.idHex.length > 0
+                visible: page.idHex.length > 0
                 text: qsTr("Create certificate request")
                 onClicked: pageStack.push(Qt.resolvedUrl("CsrPage.qml"), {
                     slotId: page.slotId,

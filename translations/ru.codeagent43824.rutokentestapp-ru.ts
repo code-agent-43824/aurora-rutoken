@@ -555,6 +555,10 @@
         <source>Continue without PIN</source>
         <translation>Продолжить без PIN-кода</translation>
     </message>
+    <message>
+        <source>Certificate request over NFC</source>
+        <translation>Запрос на сертификат по NFC</translation>
+    </message>
 </context>
 <context>
     <name>TokenLabelPage</name>
@@ -1081,6 +1085,10 @@
     <message>
         <source>The request is signed by the private key on the token; the private key never leaves it.</source>
         <translation>Запрос подписывается закрытым ключом на токене; закрытый ключ его не покидает.</translation>
+    </message>
+    <message>
+        <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
+        <translation>По NFC на следующем шаге вы введёте PIN-код и поднесёте токен.</translation>
     </message>
 </context>
 </TS>

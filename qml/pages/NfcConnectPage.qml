@@ -19,6 +19,9 @@ Page {
     property string algorithm: ""
     property string label: ""
     property string filePath: ""
+    // Для operation="csr": ключевая пара по CKA_ID и поля Subject (DN).
+    property string idHex: ""
+    property var csrDn: null
 
     property int step: 1
     property string pin: ""
@@ -35,6 +38,8 @@ Page {
             return qsTr("Generate a key pair over NFC")
         if (page.operation === "import")
             return qsTr("Import a certificate over NFC")
+        if (page.operation === "csr")
+            return qsTr("Certificate request over NFC")
         return qsTr("Connect over NFC")
     }
 
@@ -59,6 +64,10 @@ Page {
             tokenSession.generateKeyPair(tok.slotId, page.pin, page.algorithm, page.label)
         else if (page.operation === "import")
             tokenSession.importCertificate(tok.slotId, page.pin, page.filePath, page.label)
+        else if (page.operation === "csr")
+            tokenSession.createCsr(tok.slotId, page.pin, page.idHex,
+                                   page.csrDn.cn, page.csrDn.o, page.csrDn.ou, page.csrDn.c,
+                                   page.csrDn.l, page.csrDn.st, page.csrDn.email)
         else if (page.noPin)
             tokenSession.preview(tok.slotId)   // без входа — только публичные сертификаты
         else
@@ -261,6 +270,10 @@ Page {
                                 flags: (t && t.flags) ? t.flags : "",
                                 slotName: (t && t.slotName) ? t.slotName : ""
                             })
+                        } else if (page.operation === "csr") {
+                            // Запрос на сертификат: объекты токена не менялись; возврат
+                            // к CsrPage — она покажет PEM из lastCsr (к списку не уходим).
+                            pageStack.pop()
                         } else {
                             if (tokenSession.outcome === 1) {
                                 tokenSession.updateNfcObjects() // обновить снимок после генерации/импорта

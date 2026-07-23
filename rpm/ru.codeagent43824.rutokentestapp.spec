@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.7.0
-Release:    1
+Release:    2
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,15 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.7.0-2
+- Certificate request (CSR) over NFC: the CSR screen now works with an NFC token
+  too — fill in the DN, then a guided hold (take the token, enter the PIN, hold it
+  once) signs the request and the PEM is shown back on the CSR screen to save. The
+  NFC connect wizard gained a "csr" operation carrying the key id and DN. The
+  GOST-256 CSR from 0.7.0-1 was verified on a PC with the openssl GOST engine
+  ("Certificate request self-signature verify OK"), so the DER/GOST encoding is
+  confirmed correct; no byte-order change was needed.
+
 * Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.7.0-1
 - Certificate request (PKCS#10 / CSR) for a key pair on the token (USB): fill in
   the subject DN (CN required, O/OU/C/L/ST/email optional), the request is built
