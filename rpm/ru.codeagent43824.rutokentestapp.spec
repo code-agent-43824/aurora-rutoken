@@ -1,6 +1,6 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    0.8.0
+Version:    0.9.0
 Release:    1
 Group:      Qt/Qt
 License:    MIT
@@ -44,6 +44,16 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.9.0-1
+- Stabilization, NFC/token-removal recovery: when the token is removed too early
+  or becomes unavailable during an operation, the message now tells you what to do
+  (e.g. "токен убран во время операции — повторите, удерживая токен на связи",
+  "токен не подключён — подключите токен и повторите", "сессия прервана (возможно,
+  токен убран) — повторите") instead of a bare code. The NFC connect / generate /
+  import / CSR wizard gained a "Try again" button on failure that re-detects the
+  token and re-runs the same operation with the already-entered PIN, no re-typing
+  — matching the "Start over" the PIN-change / label / delete NFC flows already had.
+
 * Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.8.0-1
 - Human-readable PKCS#11 error messages: failures used to show only a raw hex code
   (e.g. "C_Sign: 0x00000070"); a central mapping now turns the CKR_* code into a

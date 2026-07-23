@@ -89,6 +89,16 @@ Page {
         })
     }
 
+    // Повтор после неудачи (например, токен убрали слишком рано): снова ждём
+    // поднесения и выполняем ту же операцию с уже введённым PIN-кодом — без
+    // повторного ввода PIN и данных.
+    function retryNfc() {
+        page.started = false
+        page.step = 3
+        tokenWatcher.refresh()
+        page.tryRun()
+    }
+
     // Подключение без PIN-кода: читаем только публичные сертификаты (без входа).
     function continueNoPin() {
         page.pin = ""
@@ -246,6 +256,15 @@ Page {
                     color: tokenSession.outcome === 1 ? "#4caf50" : "#f44336"
                     font.pixelSize: Theme.fontSizeMedium
                 }
+                // Повтор при неудаче (например, токен убрали слишком рано) —
+                // без повторного ввода PIN-кода/данных.
+                Button {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: !tokenSession.busy && tokenSession.outcome === -1
+                    text: qsTr("Try again")
+                    onClicked: page.retryNfc()
+                }
+
                 Button {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: qsTr("Done")

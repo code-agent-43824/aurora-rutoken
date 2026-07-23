@@ -559,6 +559,10 @@
         <source>Certificate request over NFC</source>
         <translation>Certificate request over NFC</translation>
     </message>
+    <message>
+        <source>Try again</source>
+        <translation>Try again</translation>
+    </message>
 </context>
 <context>
     <name>TokenLabelPage</name>
