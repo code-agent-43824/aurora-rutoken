@@ -8,11 +8,17 @@ Page {
 
     property var slotId: 0
     property string connection: "USB"   // "USB" — по кэшу PIN; "NFC" — через мастер
+    // Экран списка объектов, откуда открыта форма: по успеху возвращаемся к нему
+    // (правило проекта — после создания объекта показываем список, не форму) и
+    // показываем на нём результат операции.
+    property var objectsPage: null
 
     // Порядок кодов совпадает с пунктами ComboBox и с TokenSession::generateKeyPair.
     property var algoCodes: ["gost256", "gost512", "rsa2048", "rsa4096"]
     // Показывать результат только после попытки на этом экране (outcome общий с логином).
     property bool attempted: false
+    property bool returnToList: false   // NFC: мастер завершил создание успешно
+    property bool navigatedAway: false  // защита от повторного pop
 
     function doGenerate() {
         if (tokenSession.busy)
@@ -20,11 +26,14 @@ Page {
         Qt.inputMethod.commit()
         if (page.connection === "NFC") {
             // По NFC — через мастер (взять токен → PIN → поднести → генерация).
-            pageStack.push(Qt.resolvedUrl("NfcConnectPage.qml"), {
+            // По успешному завершению мастер сообщает finishedOk → возвращаемся
+            // к списку объектов, когда форма снова станет активной.
+            var wiz = pageStack.push(Qt.resolvedUrl("NfcConnectPage.qml"), {
                 operation: "generate",
                 algorithm: page.algoCodes[algoCombo.currentIndex],
                 label: labelField.text
             })
+            wiz.finishedOk.connect(function() { page.returnToList = true })
             return
         }
         if (!tokenSession.loggedIn)
@@ -33,6 +42,34 @@ Page {
         tokenSession.generateKeyPairCached(page.slotId,
                                            page.algoCodes[algoCombo.currentIndex],
                                            labelField.text)
+    }
+
+    // Вернуться к списку объектов и показать там результат (один раз).
+    function goToList() {
+        if (page.navigatedAway)
+            return
+        page.navigatedAway = true
+        if (page.objectsPage)
+            page.objectsPage.writeResultShown = true
+        pageStack.pop()
+    }
+
+    // USB: операция идёт на этой (активной) странице — по успеху возвращаемся к
+    // списку. Пока форма перекрыта (PIN-экран/мастер) — status не Active, не трогаем.
+    Connections {
+        target: tokenSession
+        onChanged: {
+            if (page.status === PageStatus.Active && page.attempted
+                    && !tokenSession.busy && tokenSession.outcome === 1)
+                page.goToList()
+        }
+    }
+
+    // NFC: мастер завершился успехом (finishedOk) и его закрыли → форма снова
+    // активна → возвращаемся к списку.
+    onStatusChanged: {
+        if (status === PageStatus.Active && page.returnToList)
+            page.goToList()
     }
 
     // Вход по PIN (цифровой экран); используется запомненный PIN для генерации.
@@ -142,17 +179,6 @@ Page {
                 text: tokenSession.result
                 color: tokenSession.outcome === 1 ? "#4caf50" : "#f44336"
                 font.pixelSize: Theme.fontSizeMedium
-            }
-
-            Label {
-                x: Theme.horizontalPageMargin
-                width: parent.width - 2 * Theme.horizontalPageMargin
-                wrapMode: Text.Wrap
-                horizontalAlignment: Text.AlignHCenter
-                visible: page.attempted && !tokenSession.busy && tokenSession.outcome === 1
-                text: qsTr("Swipe back to see the new key in the list.")
-                color: Theme.secondaryColor
-                font.pixelSize: Theme.fontSizeExtraSmall
             }
 
             Label {

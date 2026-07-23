@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.6.0
-Release:    6
+Release:    7
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,14 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.6.0-7
+- After creating an object the app now returns to the objects list instead of
+  staying on the creation form: generating a key pair or importing a certificate
+  pops back to the list on success (USB right after the operation, NFC once the
+  hold wizard reports success via a new finishedOk signal), and the result — the
+  test-signature outcome included — is shown on the list. Fixed a UX rule the
+  owner asked to apply everywhere; recorded it in AGENTS.md.
+
 * Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.6.0-6
 - Test signature right after generating a key pair: sign a fixed buffer with the
   new private key and verify it with the new public key in the same session, so

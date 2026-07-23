@@ -10,6 +10,9 @@ Page {
     property string tokenLabel: ""
     property string connection: ""
     property bool deleteAttempted: false   // показывать результат только после удаления
+    // Форма создания (генерация/импорт) по успеху возвращается сюда и выставляет
+    // этот флаг — показываем результат операции (в т.ч. итог тестовой подписи).
+    property bool writeResultShown: false
 
     // Для NFC показываем сохранённый снимок объектов (можно вернуться к
     // сертификатам без повторного поднесения); для USB — живые объекты сессии.
@@ -75,14 +78,16 @@ Page {
                 text: qsTr("Import certificate")
                 onClicked: pageStack.push(Qt.resolvedUrl("ImportCertificatePage.qml"), {
                     slotId: page.slotId,
-                    connection: page.connection
+                    connection: page.connection,
+                    objectsPage: page
                 })
             }
             MenuItem {
                 text: qsTr("Generate key pair")
                 onClicked: pageStack.push(Qt.resolvedUrl("GenerateKeyPage.qml"), {
                     slotId: page.slotId,
-                    connection: page.connection
+                    connection: page.connection,
+                    objectsPage: page
                 })
             }
         }
@@ -104,13 +109,16 @@ Page {
                 size: BusyIndicatorSize.Medium
             }
 
-            // Результат удаления (успех виден и по исчезновению записи из списка).
+            // Результат последней операции: удаление (успех виден и по исчезновению
+            // записи) либо создание/импорт (форма вернулась сюда) — в т.ч. итог
+            // тестовой подписи после генерации.
             Label {
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 textFormat: Text.PlainText
-                visible: page.deleteAttempted && !tokenSession.busy && tokenSession.outcome !== 0
+                visible: (page.deleteAttempted || page.writeResultShown)
+                         && !tokenSession.busy && tokenSession.outcome !== 0
                 text: tokenSession.result
                 color: tokenSession.outcome === 1 ? "#4caf50" : "#f44336"
                 font.pixelSize: Theme.fontSizeSmall

@@ -481,10 +481,6 @@
         <translation>Импортировать</translation>
     </message>
     <message>
-        <source>Swipe back to see the certificate in the list.</source>
-        <translation>Проведите назад, чтобы увидеть сертификат в списке.</translation>
-    </message>
-    <message>
         <source>Only the certificate (public) is imported — never a private key.</source>
         <translation>Импортируется только сертификат (открытый) — без закрытого ключа.</translation>
     </message>
@@ -818,10 +814,6 @@
     <message>
         <source>Generate</source>
         <translation>Создать</translation>
-    </message>
-    <message>
-        <source>Swipe back to see the new key in the list.</source>
-        <translation>Проведите назад, чтобы увидеть новый ключ в списке.</translation>
     </message>
     <message>
         <source>The private key never leaves the token.</source>

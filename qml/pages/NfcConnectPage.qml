@@ -26,6 +26,10 @@ Page {
     property bool started: false
     property var lastToken: null
 
+    // Успешное завершение записи по NFC (генерация/импорт). Форма-инициатор
+    // (GenerateKeyPage/ImportCertificatePage) по нему возвращается к списку объектов.
+    signal finishedOk()
+
     function opTitle() {
         if (page.operation === "generate")
             return qsTr("Generate a key pair over NFC")
@@ -258,8 +262,10 @@ Page {
                                 slotName: (t && t.slotName) ? t.slotName : ""
                             })
                         } else {
-                            if (tokenSession.outcome === 1)
+                            if (tokenSession.outcome === 1) {
                                 tokenSession.updateNfcObjects() // обновить снимок после генерации/импорта
+                                page.finishedOk()               // форма вернётся к списку объектов
+                            }
                             pageStack.pop()
                         }
                     }

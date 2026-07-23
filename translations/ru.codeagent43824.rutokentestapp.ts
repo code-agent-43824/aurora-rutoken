@@ -481,10 +481,6 @@
         <translation>Import</translation>
     </message>
     <message>
-        <source>Swipe back to see the certificate in the list.</source>
-        <translation>Swipe back to see the certificate in the list.</translation>
-    </message>
-    <message>
         <source>Only the certificate (public) is imported — never a private key.</source>
         <translation>Only the certificate (public) is imported — never a private key.</translation>
     </message>
@@ -818,10 +814,6 @@
     <message>
         <source>Generate</source>
         <translation>Generate</translation>
-    </message>
-    <message>
-        <source>Swipe back to see the new key in the list.</source>
-        <translation>Swipe back to see the new key in the list.</translation>
     </message>
     <message>
         <source>The private key never leaves the token.</source>
