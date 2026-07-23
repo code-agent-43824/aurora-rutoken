@@ -297,8 +297,8 @@
         <translation>Deleting the key</translation>
     </message>
     <message>
-        <source>Press and hold an item to delete it (with its keys)</source>
-        <translation>Press and hold an item to delete it (with its keys)</translation>
+        <source>Press and hold an item to delete it</source>
+        <translation>Press and hold an item to delete it</translation>
     </message>
 </context>
 <context>
@@ -915,6 +915,81 @@
     <message>
         <source>Delete only the certificate</source>
         <translation>Delete only the certificate</translation>
+    </message>
+</context>
+<context>
+    <name>NfcDeletePage</name>
+    <message>
+        <source>User PIN</source>
+        <translation>User PIN</translation>
+    </message>
+    <message>
+        <source>Delete %1</source>
+        <translation>Delete %1</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>Continue</translation>
+    </message>
+    <message>
+        <source>the key</source>
+        <translation>the key</translation>
+    </message>
+    <message>
+        <source>the certificate</source>
+        <translation>the certificate</translation>
+    </message>
+    <message>
+        <source>Delete key</source>
+        <translation>Delete key</translation>
+    </message>
+    <message>
+        <source>Delete certificate</source>
+        <translation>Delete certificate</translation>
+    </message>
+    <message>
+        <source>Delete “%1” — what should be removed?</source>
+        <translation>Delete “%1” — what should be removed?</translation>
+    </message>
+    <message>
+        <source>What should be removed?</source>
+        <translation>What should be removed?</translation>
+    </message>
+    <message>
+        <source>Only the certificate</source>
+        <translation>Only the certificate</translation>
+    </message>
+    <message>
+        <source>Certificate and its keys</source>
+        <translation>Certificate and its keys</translation>
+    </message>
+    <message>
+        <source>Deleting the keys is irreversible — the private key cannot be recovered.</source>
+        <translation>Deleting the keys is irreversible — the private key cannot be recovered.</translation>
+    </message>
+    <message>
+        <source>If the certificate has a private key, entering the PIN will reveal and remove it too.</source>
+        <translation>If the certificate has a private key, entering the PIN will reveal and remove it too.</translation>
+    </message>
+    <message>
+        <source>Keep holding the token — the operation is running.</source>
+        <translation>Keep holding the token — the operation is running.</translation>
+    </message>
+    <message>
+        <source>Hold the token to the back cover and keep it there.</source>
+        <translation>Hold the token to the back cover and keep it there.</translation>
+    </message>
+    <message>
+        <source>You can remove the token now.</source>
+        <translation>You can remove the token now.</translation>
+    </message>
+    <message>
+        <source>Done</source>
+        <translation>Done</translation>
+    </message>
+    <message>
+        <source>Start over</source>
+        <translation>Start over</translation>
     </message>
 </context>
 </TS>

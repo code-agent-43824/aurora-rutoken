@@ -297,8 +297,8 @@
         <translation>Удаление ключа</translation>
     </message>
     <message>
-        <source>Press and hold an item to delete it (with its keys)</source>
-        <translation>Долгое нажатие — удалить объект (вместе с ключами)</translation>
+        <source>Press and hold an item to delete it</source>
+        <translation>Долгое нажатие — удалить объект</translation>
     </message>
 </context>
 <context>
@@ -915,6 +915,81 @@
     <message>
         <source>Delete only the certificate</source>
         <translation>Удалить только сертификат</translation>
+    </message>
+</context>
+<context>
+    <name>NfcDeletePage</name>
+    <message>
+        <source>User PIN</source>
+        <translation>PIN-код пользователя</translation>
+    </message>
+    <message>
+        <source>Delete %1</source>
+        <translation>Удалить %1</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>Продолжить</translation>
+    </message>
+    <message>
+        <source>the key</source>
+        <translation>ключ</translation>
+    </message>
+    <message>
+        <source>the certificate</source>
+        <translation>сертификат</translation>
+    </message>
+    <message>
+        <source>Delete key</source>
+        <translation>Удаление ключа</translation>
+    </message>
+    <message>
+        <source>Delete certificate</source>
+        <translation>Удаление сертификата</translation>
+    </message>
+    <message>
+        <source>Delete “%1” — what should be removed?</source>
+        <translation>Удалить «%1»: что удаляем?</translation>
+    </message>
+    <message>
+        <source>What should be removed?</source>
+        <translation>Что удаляем?</translation>
+    </message>
+    <message>
+        <source>Only the certificate</source>
+        <translation>Только сертификат</translation>
+    </message>
+    <message>
+        <source>Certificate and its keys</source>
+        <translation>Сертификат и его ключи</translation>
+    </message>
+    <message>
+        <source>Deleting the keys is irreversible — the private key cannot be recovered.</source>
+        <translation>Удаление ключей необратимо — закрытый ключ восстановить нельзя.</translation>
+    </message>
+    <message>
+        <source>If the certificate has a private key, entering the PIN will reveal and remove it too.</source>
+        <translation>Если у сертификата есть закрытый ключ, после ввода PIN-кода он тоже будет удалён.</translation>
+    </message>
+    <message>
+        <source>Keep holding the token — the operation is running.</source>
+        <translation>Держите токен — идёт операция.</translation>
+    </message>
+    <message>
+        <source>Hold the token to the back cover and keep it there.</source>
+        <translation>Поднесите токен к задней крышке и держите.</translation>
+    </message>
+    <message>
+        <source>You can remove the token now.</source>
+        <translation>Теперь можно убрать токен.</translation>
+    </message>
+    <message>
+        <source>Done</source>
+        <translation>Готово</translation>
+    </message>
+    <message>
+        <source>Start over</source>
+        <translation>Начать заново</translation>
     </message>
 </context>
 </TS>

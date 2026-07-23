@@ -24,14 +24,24 @@ Page {
         return ""
     }
 
-    // Удаление записи долгим нажатием (пока по USB: приватные ключи видны только
-    // после входа). Сертификат — всегда спрашиваем область (только сертификат /
-    // сертификат+ключи) через DeleteCertPage. Ключ — сразу, с отсрочкой RemorsePopup.
+    // Удаление записи долгим нажатием. Сертификат — всегда спрашиваем область
+    // (только сертификат / сертификат+ключи). USB — через DeleteCertPage (входим
+    // здесь же или уже вошли); NFC — через NfcDeletePage (собираем область+PIN-код,
+    // затем одно поднесение). Ключ по USB — сразу, с отсрочкой RemorsePopup.
     function confirmDelete(m) {
-        if (page.connection === "NFC")
-            return
         if (!m.idHex || m.idHex.length === 0)
             return
+        if (page.connection === "NFC") {
+            pageStack.push(Qt.resolvedUrl("NfcDeletePage.qml"), {
+                kind: m.kind,
+                idHex: m.idHex,
+                certName: page.certTitle(m),
+                hasKey: m.hasKey ? true : false,
+                keysKnown: m.keysKnown ? true : false,
+                slotId: page.slotId
+            })
+            return
+        }
         if (m.kind === "certificate") {
             var id = m.idHex
             var dlg = pageStack.push(Qt.resolvedUrl("DeleteCertPage.qml"), {
@@ -116,13 +126,13 @@ Page {
                 font.pixelSize: Theme.fontSizeMedium
             }
 
-            // Подсказка про удаление (только USB — по NFC удаление появится позже).
+            // Подсказка про удаление (USB и NFC).
             Label {
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
-                visible: page.connection !== "NFC" && page.objectsModel.length > 0
+                visible: page.objectsModel.length > 0
                 wrapMode: Text.Wrap
-                text: qsTr("Press and hold an item to delete it (with its keys)")
+                text: qsTr("Press and hold an item to delete it")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }

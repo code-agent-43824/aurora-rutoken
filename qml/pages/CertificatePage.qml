@@ -29,8 +29,21 @@ Page {
     }
 
     // Удаление сертификата: всегда спрашиваем область (только сертификат /
-    // сертификат+ключи). После удаления закрываем детали — объект удалён.
+    // сертификат+ключи). USB — через DeleteCertPage, после удаления закрываем
+    // детали. NFC — через NfcDeletePage (собираем область+PIN-код, затем одно
+    // поднесение); детали остаются, список обновится по снимку.
     function doDelete() {
+        if (page.connection === "NFC") {
+            pageStack.push(Qt.resolvedUrl("NfcDeletePage.qml"), {
+                kind: "certificate",
+                idHex: page.idHex,
+                certName: page.title(),
+                hasKey: page.hasKey,
+                keysKnown: page.keysKnown,
+                slotId: page.slotId
+            })
+            return
+        }
         var dlg = pageStack.push(Qt.resolvedUrl("DeleteCertPage.qml"), {
             certName: page.title(),
             idHex: page.idHex,
@@ -50,9 +63,9 @@ Page {
         contentHeight: col.height
 
         PullDownMenu {
-            // Удаление — пока по USB (приватные ключи видны только после входа).
+            // Удаление сертификата (USB и NFC).
             MenuItem {
-                visible: page.connection !== "NFC" && page.idHex.length > 0
+                visible: page.idHex.length > 0
                 text: qsTr("Delete certificate")
                 onClicked: page.doDelete()
             }

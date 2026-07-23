@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.6.0
-Release:    4
+Release:    5
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,16 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.6.0-5
+- Delete objects over NFC. Press and hold an object (or use the "Delete
+  certificate" pull-down in the certificate card) on the NFC token: for a
+  certificate you first choose the scope (only the certificate / certificate and
+  its keys), then enter the PIN, then hold the token once to run the whole delete
+  in a single session (login, C_DestroyObject by CKA_ID, re-read). Keys are
+  removed straight after the PIN, no scope question. The NFC object snapshot is
+  refreshed on success so the list reflects the deletion without holding again
+  (new NfcDeletePage, modelled on the NFC PIN-change flow).
+
 * Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.6.0-4
 - Fix the NFC "Continue without PIN" connect that hung forever: a no-login read
   (preview) leaves outcome at 0, so the wizard never advanced — it now finishes on
