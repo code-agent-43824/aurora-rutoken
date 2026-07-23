@@ -120,6 +120,13 @@ static const CK_MECHANISM_TYPE CKM_RSA_PKCS = 0x00000001UL;
 static const CK_MECHANISM_TYPE CKM_GOSTR3410 = 0x00001201UL;         // 2012-256, подпись 32 байт
 static const CK_MECHANISM_TYPE CKM_GOSTR3410_512 = 0xD4321006UL;     // 2012-512, подпись 64 байт (vendor)
 
+// Механизмы «подпись с хешем» (хешируют и подписывают произвольные данные за один
+// C_Sign) — для запроса на сертификат PKCS#10 (v0.7): подписываем весь DER
+// CertificationRequestInfo. ГОСТ — vendor Актив; RSA — SHA-256.
+static const CK_MECHANISM_TYPE CKM_GOSTR3410_WITH_GOSTR3411_12_256 = 0xD4321008UL; // vendor
+static const CK_MECHANISM_TYPE CKM_GOSTR3410_WITH_GOSTR3411_12_512 = 0xD4321009UL; // vendor
+static const CK_MECHANISM_TYPE CKM_SHA256_RSA_PKCS = 0x00000040UL;
+
 struct CK_VERSION {
     CK_BYTE major;
     CK_BYTE minor;

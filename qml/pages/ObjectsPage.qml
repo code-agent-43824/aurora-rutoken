@@ -145,13 +145,25 @@ Page {
                 font.pixelSize: Theme.fontSizeExtraSmall
             }
 
+            // Подсказка про запрос на сертификат (пока USB — тап по ключу).
+            Label {
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                visible: page.connection !== "NFC" && page.objectsModel.length > 0
+                wrapMode: Text.Wrap
+                text: qsTr("Tap a key to create a certificate request (CSR)")
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+            }
+
             Repeater {
                 model: page.objectsModel
 
                 delegate: BackgroundItem {
                     width: content.width
                     height: card.height + Theme.paddingMedium
-                    // Тап открывает сертификат; долгое нажатие — удалить (USB).
+                    // Тап: сертификат → детали; отдельный ключ → запрос на сертификат
+                    // (CSR, пока USB). Долгое нажатие — удалить.
                     onClicked: {
                         if (modelData.kind === "certificate")
                             pageStack.push(Qt.resolvedUrl("CertificatePage.qml"), {
@@ -167,6 +179,14 @@ Page {
                                 hasKey: modelData.hasKey ? modelData.hasKey : false,
                                 keysKnown: modelData.keysKnown ? modelData.keysKnown : false,
                                 slotId: page.slotId,
+                                connection: page.connection
+                            })
+                        else if (modelData.kind === "key" && page.connection !== "NFC"
+                                 && modelData.idHex && modelData.idHex.length > 0)
+                            pageStack.push(Qt.resolvedUrl("CsrPage.qml"), {
+                                slotId: page.slotId,
+                                idHex: modelData.idHex,
+                                keyName: (modelData.label && modelData.label.length > 0) ? modelData.label : "",
                                 connection: page.connection
                             })
                     }

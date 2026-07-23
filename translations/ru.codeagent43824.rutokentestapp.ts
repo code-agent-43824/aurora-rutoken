@@ -300,6 +300,10 @@
         <source>Press and hold an item to delete it</source>
         <translation>Press and hold an item to delete it</translation>
     </message>
+    <message>
+        <source>Tap a key to create a certificate request (CSR)</source>
+        <translation>Tap a key to create a certificate request (CSR)</translation>
+    </message>
 </context>
 <context>
     <name>CertificatePage</name>
@@ -362,6 +366,10 @@
     <message>
         <source>Delete certificate</source>
         <translation>Delete certificate</translation>
+    </message>
+    <message>
+        <source>Create certificate request</source>
+        <translation>Create certificate request</translation>
     </message>
 </context>
 <context>
@@ -982,6 +990,97 @@
     <message>
         <source>Start over</source>
         <translation>Start over</translation>
+    </message>
+</context>
+<context>
+    <name>CsrPage</name>
+    <message>
+        <source>User PIN</source>
+        <translation>User PIN</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Log in</translation>
+    </message>
+    <message>
+        <source>Certificate request</source>
+        <translation>Certificate request</translation>
+    </message>
+    <message>
+        <source>PKCS#10, signed on the token</source>
+        <translation>PKCS#10, signed on the token</translation>
+    </message>
+    <message>
+        <source>For the key pair: %1</source>
+        <translation>For the key pair: %1</translation>
+    </message>
+    <message>
+        <source>Common Name (CN) — required</source>
+        <translation>Common Name (CN) — required</translation>
+    </message>
+    <message>
+        <source>For example, Ivan Ivanov</source>
+        <translation>For example, Ivan Ivanov</translation>
+    </message>
+    <message>
+        <source>Organization (O)</source>
+        <translation>Organization (O)</translation>
+    </message>
+    <message>
+        <source>Organizational Unit (OU)</source>
+        <translation>Organizational Unit (OU)</translation>
+    </message>
+    <message>
+        <source>Country (C) — two letters</source>
+        <translation>Country (C) — two letters</translation>
+    </message>
+    <message>
+        <source>For example, RU</source>
+        <translation>For example, RU</translation>
+    </message>
+    <message>
+        <source>Locality (L)</source>
+        <translation>Locality (L)</translation>
+    </message>
+    <message>
+        <source>State / Province (ST)</source>
+        <translation>State / Province (ST)</translation>
+    </message>
+    <message>
+        <source>Email</source>
+        <translation>Email</translation>
+    </message>
+    <message>
+        <source>Checking…</source>
+        <translation>Checking…</translation>
+    </message>
+    <message>
+        <source>Enter PIN</source>
+        <translation>Enter PIN</translation>
+    </message>
+    <message>
+        <source>PIN is remembered</source>
+        <translation>PIN is remembered</translation>
+    </message>
+    <message>
+        <source>Creating…</source>
+        <translation>Creating…</translation>
+    </message>
+    <message>
+        <source>Create request</source>
+        <translation>Create request</translation>
+    </message>
+    <message>
+        <source>Certificate request (PEM)</source>
+        <translation>Certificate request (PEM)</translation>
+    </message>
+    <message>
+        <source>Save to file (.csr)</source>
+        <translation>Save to file (.csr)</translation>
+    </message>
+    <message>
+        <source>The request is signed by the private key on the token; the private key never leaves it.</source>
+        <translation>The request is signed by the private key on the token; the private key never leaves it.</translation>
     </message>
 </context>
 </TS>

@@ -300,6 +300,10 @@
         <source>Press and hold an item to delete it</source>
         <translation>Долгое нажатие — удалить объект</translation>
     </message>
+    <message>
+        <source>Tap a key to create a certificate request (CSR)</source>
+        <translation>Нажмите на ключ, чтобы создать запрос на сертификат (CSR)</translation>
+    </message>
 </context>
 <context>
     <name>CertificatePage</name>
@@ -362,6 +366,10 @@
     <message>
         <source>Delete certificate</source>
         <translation>Удалить сертификат</translation>
+    </message>
+    <message>
+        <source>Create certificate request</source>
+        <translation>Создать запрос на сертификат</translation>
     </message>
 </context>
 <context>
@@ -982,6 +990,97 @@
     <message>
         <source>Start over</source>
         <translation>Начать заново</translation>
+    </message>
+</context>
+<context>
+    <name>CsrPage</name>
+    <message>
+        <source>User PIN</source>
+        <translation>PIN-код пользователя</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Войти</translation>
+    </message>
+    <message>
+        <source>Certificate request</source>
+        <translation>Запрос на сертификат</translation>
+    </message>
+    <message>
+        <source>PKCS#10, signed on the token</source>
+        <translation>PKCS#10, подпись на токене</translation>
+    </message>
+    <message>
+        <source>For the key pair: %1</source>
+        <translation>Для ключевой пары: %1</translation>
+    </message>
+    <message>
+        <source>Common Name (CN) — required</source>
+        <translation>Общее имя (CN) — обязательно</translation>
+    </message>
+    <message>
+        <source>For example, Ivan Ivanov</source>
+        <translation>Например, Иван Иванов</translation>
+    </message>
+    <message>
+        <source>Organization (O)</source>
+        <translation>Организация (O)</translation>
+    </message>
+    <message>
+        <source>Organizational Unit (OU)</source>
+        <translation>Подразделение (OU)</translation>
+    </message>
+    <message>
+        <source>Country (C) — two letters</source>
+        <translation>Страна (C) — две буквы</translation>
+    </message>
+    <message>
+        <source>For example, RU</source>
+        <translation>Например, RU</translation>
+    </message>
+    <message>
+        <source>Locality (L)</source>
+        <translation>Город (L)</translation>
+    </message>
+    <message>
+        <source>State / Province (ST)</source>
+        <translation>Регион (ST)</translation>
+    </message>
+    <message>
+        <source>Email</source>
+        <translation>Электронная почта</translation>
+    </message>
+    <message>
+        <source>Checking…</source>
+        <translation>Проверка…</translation>
+    </message>
+    <message>
+        <source>Enter PIN</source>
+        <translation>Ввести PIN-код</translation>
+    </message>
+    <message>
+        <source>PIN is remembered</source>
+        <translation>PIN-код запомнен</translation>
+    </message>
+    <message>
+        <source>Creating…</source>
+        <translation>Создание…</translation>
+    </message>
+    <message>
+        <source>Create request</source>
+        <translation>Создать запрос</translation>
+    </message>
+    <message>
+        <source>Certificate request (PEM)</source>
+        <translation>Запрос на сертификат (PEM)</translation>
+    </message>
+    <message>
+        <source>Save to file (.csr)</source>
+        <translation>Сохранить в файл (.csr)</translation>
+    </message>
+    <message>
+        <source>The request is signed by the private key on the token; the private key never leaves it.</source>
+        <translation>Запрос подписывается закрытым ключом на токене; закрытый ключ его не покидает.</translation>
     </message>
 </context>
 </TS>

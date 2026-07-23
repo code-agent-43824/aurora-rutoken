@@ -63,6 +63,17 @@ Page {
         contentHeight: col.height
 
         PullDownMenu {
+            // Запрос на сертификат для ключевой пары этого сертификата (пока USB).
+            MenuItem {
+                visible: page.connection !== "NFC" && page.idHex.length > 0
+                text: qsTr("Create certificate request")
+                onClicked: pageStack.push(Qt.resolvedUrl("CsrPage.qml"), {
+                    slotId: page.slotId,
+                    idHex: page.idHex,
+                    keyName: page.title(),
+                    connection: page.connection
+                })
+            }
             // Удаление сертификата (USB и NFC).
             MenuItem {
                 visible: page.idHex.length > 0

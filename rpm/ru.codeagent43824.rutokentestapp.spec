@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    0.6.0
-Release:    7
+Version:    0.7.0
+Release:    1
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,18 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.7.0-1
+- Certificate request (PKCS#10 / CSR) for a key pair on the token (USB): fill in
+  the subject DN (CN required, O/OU/C/L/ST/email optional), the request is built
+  and signed by the private key on the token, and the resulting PEM is shown and
+  can be saved to a .csr file. Reachable by tapping a key on the objects screen or
+  from the certificate card pull-down. The signature reuses the wired C_Sign with
+  the GOST "sign-with-hash" mechanism (CKM_GOSTR3410_WITH_GOSTR3411_12_256/512) or
+  SHA256-RSA; the SubjectPublicKeyInfo is read from the token (CKA_VALUE + GOST
+  params). New DER encoder builds the request (pkcs11_csr). GOST byte order follows
+  RFC 4491/9215 and is to be verified on device with an openssl GOST engine. CSR
+  over NFC and any byte-order corrections come next.
+
 * Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.6.0-7
 - After creating an object the app now returns to the objects list instead of
   staying on the creation form: generating a key pair or importing a certificate

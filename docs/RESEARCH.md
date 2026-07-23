@@ -157,6 +157,25 @@ Flutter не отвергается навсегда: если позже пон
 
 **Атрибуты C_GenerateKeyPair:** публичный шаблон — `CKA_KEY_TYPE`, `CKA_TOKEN`=true, `CKA_ID`, `CKA_LABEL`, для ГОСТ `CKA_GOSTR3410_PARAMS`/`CKA_GOSTR3411_PARAMS`, для RSA `CKA_MODULUS_BITS`/`CKA_PUBLIC_EXPONENT`; приватный — то же + `CKA_PRIVATE`=true (плюс `CKA_GOSTR*_PARAMS` для ГОСТ). Генерация приватного ключа требует входа по PIN. Коды атрибутов: `CKA_TOKEN`=0x01, `CKA_PRIVATE`=0x02, `CKA_MODULUS_BITS`=0x121, `CKA_PUBLIC_EXPONENT`=0x122, `CKA_GOSTR3410_PARAMS`=0x250, `CKA_GOSTR3411_PARAMS`=0x251. `C_GenerateKeyPair` — позиция 60 в `CK_FUNCTION_LIST`.
 
+### 5г. Запрос на сертификат PKCS#10 (CSR) с ГОСТ — для v0.7
+
+Источники: RFC 4491 (использование ГОСТ Р 34.10 в PKIX), RFC 9215 (ГОСТ 2012 в X.509), заголовки Рутокен SDK, [статья Актива](https://habr.com/ru/companies/aktiv-company/articles/544748/). **Порядок байтов открытого ключа и подписи ГОСТ в DER — известная тонкость; проверяется на устройстве через openssl с ГОСТ-движком.**
+
+```
+CertificationRequest      ::= SEQUENCE { info CertificationRequestInfo, sigAlg AlgorithmIdentifier, sig BIT STRING }
+CertificationRequestInfo  ::= SEQUENCE { version INTEGER(0), subject Name, spki SubjectPublicKeyInfo, attributes [0] IMPLICIT SET }
+```
+
+- **Подпись CSR — без нового ABI:** переиспользуем уже заведённые `C_SignInit`/`C_Sign` (№43/44) с механизмом «подпись с хешем», который хеширует и подписывает произвольные данные (весь DER `CertificationRequestInfo`) за один `C_Sign`:
+  - `CKM_GOSTR3410_WITH_GOSTR3411_12_256` = `0xD4321008` (vendor Актив), подпись 64 байта;
+  - `CKM_GOSTR3410_WITH_GOSTR3411_12_512` = `0xD4321009` (vendor), подпись 128 байт;
+  - RSA: `CKM_SHA256_RSA_PKCS` = `0x00000040`.
+- **SubjectPublicKeyInfo (ГОСТ):** алгоритм-OID открытого ключа 2012-256 = 1.2.643.7.1.1.1.1 (`06 08 2A 85 03 07 01 01 01 01`), 512 = 1.2.643.7.1.1.1.2 (`…01 02`); параметры — `SEQUENCE { publicKeyParamSet OID, digestParamSet OID }` берём **прямо с токена** (атрибуты `CKA_GOSTR3410_PARAMS`/`CKA_GOSTR3411_PARAMS` уже содержат DER OID). Сам ключ — `CKA_VALUE` (OCTET STRING `04 40 <64>` / `04 80 <128>`), кладём как содержимое `BIT STRING` (unused-bits `00`).
+- **signatureAlgorithm:** id-tc26-signwithdigest-gost3410-12-256 = 1.2.643.7.1.1.3.2 (`06 08 2A 85 03 07 01 01 03 02`), 512 = `…03 03`. Без параметров.
+- **Подпись в CSR:** сырой результат `C_Sign` (r||s, 64/128 байт) в `BIT STRING`. Порядок байтов сверяем на устройстве.
+- **Subject Name (DN):** `SEQUENCE OF RDN`, RDN = `SET { SEQUENCE { OID, value } }`. OID: CN 2.5.4.3 (`55 04 03`), O 2.5.4.10 (`…0A`), OU 2.5.4.11 (`…0B`), C 2.5.4.6 (`…06`, `PrintableString`), L 2.5.4.7, ST 2.5.4.8, emailAddress 1.2.840.113549.1.9.1 (`2A 86 48 86 F7 0D 01 09 01`, `IA5String`). Текстовые значения — `UTF8String` (0x0C).
+- **Проверка:** экспорт CSR в PEM (`-----BEGIN CERTIFICATE REQUEST-----`), затем на ПК `openssl req -in req.pem -verify -noout -text` с ГОСТ-движком (задокументировать как).
+
 ## 6. Открытые вопросы (проверять на следующих этапах)
 
 1. Входят ли `pcscd` и NFC-handler в стандартную поставку Авроры, или ставятся отдельными пакетами (например, вместе с приложением «Рутокен»)? Доступен ли pcscd стороннему приложению из песочницы?

@@ -1,6 +1,7 @@
 #include "tokensession.h"
 #include "pkcs11_certimport.h"
 #include "pkcs11_guard.h"
+#include "pkcs11_csr.h"
 #include "pkcs11_keygen.h"
 #include "pkcs11_minimal.h"
 #include "pkcs11_objects.h"
@@ -231,6 +232,7 @@ TokenSession::TokenSession(QObject *parent)
     : QObject(parent)
 {
     connect(this, &TokenSession::finished, this, &TokenSession::onFinished);
+    connect(this, &TokenSession::csrFinished, this, &TokenSession::onCsrFinished);
 
     m_library.setFileName(kLibraryPath);
     if (m_library.load()) {
@@ -753,6 +755,72 @@ void TokenSession::importCertificate(qulonglong slotId, const QString &pin,
     });
 }
 
+void TokenSession::createCsr(qulonglong slotId, const QString &pin, const QString &idHex,
+                             const QString &commonName, const QString &organization,
+                             const QString &organizationUnit, const QString &country,
+                             const QString &locality, const QString &state,
+                             const QString &email)
+{
+    if (m_busy)
+        return;
+    m_pendingIsLogin = false; // не вход — не кэшировать PIN по завершении
+    if (!m_getFunctionList) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        emit changed();
+        return;
+    }
+
+    m_busy = true;
+    m_outcome = 0;
+    m_result.clear();
+    m_lastCsr.clear();
+    emit changed();
+
+    const QFunctionPointer getFunctionList = m_getFunctionList;
+    const QFunctionPointer exTok = m_exGetTokenInfoExtended;
+    QByteArray pinBytes = pin.toUtf8();
+    const QByteArray idBytes = QByteArray::fromHex(idHex.toLatin1());
+
+    pkcs11::CsrDn dn;
+    dn.commonName = commonName;
+    dn.organization = organization;
+    dn.organizationUnit = organizationUnit;
+    dn.country = country;
+    dn.locality = locality;
+    dn.state = state;
+    dn.email = email;
+
+    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, exTok, idBytes, dn]() mutable {
+        QString pem;
+        const WriteOutcome wo = runTokenWrite(getFunctionList, slotId, pinBytes, exTok,
+            [&idBytes, &dn, &pem](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session) {
+                const pkcs11::CsrResult r = pkcs11::createCsr(fns, session, idBytes, dn);
+                if (r.ok)
+                    pem = r.pem;
+                return qMakePair(r.ok, r.message);
+            });
+        pinBytes.fill('\0');
+        emit csrFinished(wo.outcome, wo.message, pem);
+    });
+}
+
+void TokenSession::createCsrCached(qulonglong slotId, const QString &idHex,
+                                   const QString &commonName, const QString &organization,
+                                   const QString &organizationUnit, const QString &country,
+                                   const QString &locality, const QString &state,
+                                   const QString &email)
+{
+    if (!m_loggedIn || m_cachedSlot != slotId || m_cachedPin.isEmpty()) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Сначала войдите по PIN-коду");
+        emit changed();
+        return;
+    }
+    createCsr(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()), idHex,
+              commonName, organization, organizationUnit, country, locality, state, email);
+}
+
 void TokenSession::run(qulonglong slotId, const QString &pin, bool doLogin)
 {
     if (m_busy)
@@ -886,6 +954,18 @@ void TokenSession::onFinished(int outcome, const QString &message, const QVarian
     emit changed();
 }
 
+void TokenSession::onCsrFinished(int outcome, const QString &message, const QString &pem)
+{
+    // CSR не меняет объекты токена и не трогает запомненный вход — только результат
+    // и PEM. (Собственный завершатель, чтобы не смешивать с onFinished/finished.)
+    m_busy = false;
+    m_outcome = outcome;
+    m_result = message;
+    if (outcome == 1)
+        m_lastCsr = pem;
+    emit changed();
+}
+
 QString TokenSession::defaultExportDir()
 {
     QString dir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
@@ -939,6 +1019,43 @@ QString TokenSession::exportCertificate(const QString &derB64, const QString &fo
     } else {
         payload = der;
     }
+
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly) || file.write(payload) != payload.size())
+        return QStringLiteral("Не удалось записать ") + path;
+    file.close();
+
+    return QStringLiteral("Сохранено: ") + path;
+}
+
+QString TokenSession::saveCsrToFile(const QString &pem, const QString &dirPath,
+                                    const QString &baseName)
+{
+    if (pem.isEmpty())
+        return QStringLiteral("Нет запроса для сохранения");
+
+    // Безопасное имя файла (без пути); нормализуем расширение .csr.
+    QString safe;
+    for (int i = 0; i < baseName.size(); ++i) {
+        const QChar c = baseName.at(i);
+        if (c.isLetterOrNumber() || c == QLatin1Char('.') || c == QLatin1Char('_')
+                || c == QLatin1Char('-') || c == QLatin1Char(' '))
+            safe.append(c);
+    }
+    safe = safe.trimmed();
+    if (safe.endsWith(QStringLiteral(".csr"), Qt::CaseInsensitive)
+            || safe.endsWith(QStringLiteral(".pem"), Qt::CaseInsensitive))
+        safe.chop(4);
+    if (safe.isEmpty())
+        safe = QStringLiteral("request");
+
+    QString dir = dirPath.trimmed();
+    if (dir.isEmpty())
+        dir = defaultExportDir();
+    QDir().mkpath(dir);
+
+    const QString path = dir + QLatin1Char('/') + safe + QStringLiteral(".csr");
+    const QByteArray payload = pem.toUtf8();
 
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly) || file.write(payload) != payload.size())

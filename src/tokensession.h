@@ -27,6 +27,8 @@ class TokenSession : public QObject
     Q_PROPERTY(QVariantList objects READ objects NOTIFY changed)
     Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY changed)
     Q_PROPERTY(qulonglong loggedInSlot READ loggedInSlot NOTIFY changed)
+    // PEM последнего сформированного запроса на сертификат (CSR).
+    Q_PROPERTY(QString lastCsr READ lastCsr NOTIFY changed)
     // Логически подключённый NFC-токен и его снимок объектов (см. ниже).
     Q_PROPERTY(QVariantMap nfcToken READ nfcToken NOTIFY changed)
     Q_PROPERTY(QVariantList nfcObjects READ nfcObjects NOTIFY changed)
@@ -43,6 +45,7 @@ public:
     QVariantList objects() const { return m_objects; }
     bool loggedIn() const { return m_loggedIn; }
     qulonglong loggedInSlot() const { return m_cachedSlot; }
+    QString lastCsr() const { return m_lastCsr; }
     QVariantMap nfcToken() const { return m_nfcToken; }
     QVariantList nfcObjects() const { return m_nfcObjects; }
     bool nfcConnected() const { return !m_nfcToken.isEmpty(); }
@@ -84,6 +87,20 @@ public:
     // C_Login → C_DestroyObject(CKO_CERTIFICATE по CKA_ID) → перечитывание
     // публичных объектов. Если токен требует входа для удаления — вернёт ошибку.
     Q_INVOKABLE void deleteCertPublic(qulonglong slotId, const QString &idHex);
+    // Формирование запроса на сертификат (PKCS#10) для пары по CKA_ID: вход по PIN,
+    // построение и подпись CertificationRequestInfo закрытым ключом на токене
+    // (механизм по типу ключа). PEM кладётся в property lastCsr. Поля DN — Subject.
+    Q_INVOKABLE void createCsr(qulonglong slotId, const QString &pin, const QString &idHex,
+                               const QString &commonName, const QString &organization,
+                               const QString &organizationUnit, const QString &country,
+                               const QString &locality, const QString &state,
+                               const QString &email);
+    // То же с запомненным PIN (USB, после login на этом же слоте).
+    Q_INVOKABLE void createCsrCached(qulonglong slotId, const QString &idHex,
+                                     const QString &commonName, const QString &organization,
+                                     const QString &organizationUnit, const QString &country,
+                                     const QString &locality, const QString &state,
+                                     const QString &email);
     // Логически подключённый NFC-токен: снимок объектов сохраняется, чтобы
     // вернуться к его сертификатам без повторного поднесения.
     Q_INVOKABLE void commitNfc(const QVariantMap &token); // токен + снимок текущих объектов
@@ -115,16 +132,21 @@ public:
     // человекочитаемое сообщение (путь или ошибку). Синхронно — файл небольшой.
     Q_INVOKABLE QString exportCertificate(const QString &derB64, const QString &format,
                                           const QString &dirPath, const QString &baseName);
+    // Сохранить PEM запроса на сертификат (CSR) в файл (.csr). Синхронно.
+    Q_INVOKABLE QString saveCsrToFile(const QString &pem, const QString &dirPath,
+                                      const QString &baseName);
     // Каталог по умолчанию для плейсхолдера пути (загрузки → документы → дом).
     Q_INVOKABLE QString defaultExportDir();
 
 signals:
     void changed();
     void finished(int outcome, const QString &message, const QVariantList &objects); // из рабочего потока
+    void csrFinished(int outcome, const QString &message, const QString &pem);        // из рабочего потока
 
 private:
     void run(qulonglong slotId, const QString &pin, bool doLogin);
     void onFinished(int outcome, const QString &message, const QVariantList &objects);
+    void onCsrFinished(int outcome, const QString &message, const QString &pem);
 
     QLibrary m_library;
     QFunctionPointer m_getFunctionList = nullptr;
@@ -146,6 +168,9 @@ private:
     QByteArray m_pendingPin;
     qulonglong m_pendingSlot = 0;
     bool m_pendingIsLogin = false;
+
+    // PEM последнего сформированного запроса на сертификат (CSR).
+    QString m_lastCsr;
 
     // Логически подключённый NFC-токен: дескриптор и снимок объектов.
     QVariantMap m_nfcToken;

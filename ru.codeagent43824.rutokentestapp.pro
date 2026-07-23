@@ -11,6 +11,7 @@ SOURCES += \
     src/main.cpp \
     src/diagnostics.cpp \
     src/pkcs11_certimport.cpp \
+    src/pkcs11_csr.cpp \
     src/pkcs11_guard.cpp \
     src/pkcs11_keygen.cpp \
     src/pkcs11_objects.cpp \
@@ -21,6 +22,7 @@ SOURCES += \
 HEADERS += \
     src/diagnostics.h \
     src/pkcs11_certimport.h \
+    src/pkcs11_csr.h \
     src/pkcs11_guard.h \
     src/pkcs11_keygen.h \
     src/pkcs11_minimal.h \
