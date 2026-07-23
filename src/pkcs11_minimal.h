@@ -112,6 +112,14 @@ static const CK_MECHANISM_TYPE CKM_RSA_PKCS_KEY_PAIR_GEN = 0x00000000UL;
 static const CK_MECHANISM_TYPE CKM_GOSTR3410_KEY_PAIR_GEN = 0x00001200UL;       // 2012-256
 static const CK_MECHANISM_TYPE CKM_GOSTR3410_512_KEY_PAIR_GEN = 0xD4321005UL;   // 2012-512 (vendor)
 
+// Механизмы подписи/проверки для тестовой подписи после генерации.
+// ГОСТ — «сырая» подпись фиксированного блока размером с хеш (32/64 байта):
+//   CKM_GOSTR3410 (2012-256) — стандартный; CKM_GOSTR3410_512 (2012-512) — vendor
+//   Актив (следует за 0xD4321005 KEY_PAIR_GEN). RSA — PKCS#1 v1.5.
+static const CK_MECHANISM_TYPE CKM_RSA_PKCS = 0x00000001UL;
+static const CK_MECHANISM_TYPE CKM_GOSTR3410 = 0x00001201UL;         // 2012-256, подпись 32 байт
+static const CK_MECHANISM_TYPE CKM_GOSTR3410_512 = 0xD4321006UL;     // 2012-512, подпись 64 байт (vendor)
+
 struct CK_VERSION {
     CK_BYTE major;
     CK_BYTE minor;
@@ -197,6 +205,13 @@ typedef CK_RV (*CK_C_GenerateKeyPair)(CK_SESSION_HANDLE, CK_MECHANISM *,
                                       CK_ATTRIBUTE *, CK_ULONG,
                                       CK_ATTRIBUTE *, CK_ULONG,
                                       CK_OBJECT_HANDLE *, CK_OBJECT_HANDLE *);
+// C_SignInit (№43) / C_Sign (№44): тестовая подпись фиксированного блока
+// закрытым ключом (после генерации). Длина подписи — двухпроходно (NULL → длина).
+typedef CK_RV (*CK_C_SignInit)(CK_SESSION_HANDLE, CK_MECHANISM *, CK_OBJECT_HANDLE);
+typedef CK_RV (*CK_C_Sign)(CK_SESSION_HANDLE, CK_BYTE *, CK_ULONG, CK_BYTE *, CK_ULONG *);
+// C_VerifyInit (№49) / C_Verify (№50): проверка тестовой подписи открытым ключом.
+typedef CK_RV (*CK_C_VerifyInit)(CK_SESSION_HANDLE, CK_MECHANISM *, CK_OBJECT_HANDLE);
+typedef CK_RV (*CK_C_Verify)(CK_SESSION_HANDLE, CK_BYTE *, CK_ULONG, CK_BYTE *, CK_ULONG);
 // Заглушка для точек входа PKCS#11, которые нам не нужны, но обязаны занимать
 // свою позицию в таблице ради правильных смещений последующих функций.
 typedef CK_RV (*CK_SkippedFn)(void);
@@ -247,14 +262,14 @@ struct CK_FUNCTION_LIST_PREFIX {
     CK_SkippedFn C_DigestUpdate;              // 40
     CK_SkippedFn C_DigestKey;                 // 41
     CK_SkippedFn C_DigestFinal;               // 42
-    CK_SkippedFn C_SignInit;                  // 43
-    CK_SkippedFn C_Sign;                      // 44
+    CK_C_SignInit C_SignInit;                 // 43
+    CK_C_Sign C_Sign;                         // 44
     CK_SkippedFn C_SignUpdate;                // 45
     CK_SkippedFn C_SignFinal;                 // 46
     CK_SkippedFn C_SignRecoverInit;           // 47
     CK_SkippedFn C_SignRecover;               // 48
-    CK_SkippedFn C_VerifyInit;                // 49
-    CK_SkippedFn C_Verify;                    // 50
+    CK_C_VerifyInit C_VerifyInit;             // 49
+    CK_C_Verify C_Verify;                     // 50
     CK_SkippedFn C_VerifyUpdate;              // 51
     CK_SkippedFn C_VerifyFinal;               // 52
     CK_SkippedFn C_VerifyRecoverInit;         // 53
@@ -323,6 +338,14 @@ static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_FindObjectsInit) == 27 * sizeo
               "CK_FUNCTION_LIST: C_FindObjectsInit offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_FindObjectsFinal) == 29 * sizeof(void *),
               "CK_FUNCTION_LIST: C_FindObjectsFinal offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_SignInit) == 43 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_SignInit offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_Sign) == 44 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_Sign offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_VerifyInit) == 49 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_VerifyInit offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_Verify) == 50 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_Verify offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_GenerateKeyPair) == 60 * sizeof(void *),
               "CK_FUNCTION_LIST: C_GenerateKeyPair offset");
 

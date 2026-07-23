@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.6.0
-Release:    5
+Release:    6
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,16 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.6.0-6
+- Test signature right after generating a key pair: sign a fixed buffer with the
+  new private key and verify it with the new public key in the same session, so
+  the result confirms the pair actually works. The mechanism follows the key type
+  (GOST 2012-256 -> CKM_GOSTR3410 over 32 bytes, GOST 2012-512 -> CKM_GOSTR3410_512
+  over 64 bytes, RSA -> CKM_RSA_PKCS); the outcome is appended to the generation
+  message. C_SignInit (#43), C_Sign (#44), C_VerifyInit (#49) and C_Verify (#50)
+  were wired into the function-list ABI from placeholders with offset static_asserts.
+  Generated keys now carry CKA_SIGN / CKA_VERIFY so they are usable for signing.
+
 * Wed Jul 22 2026 Claude <noreply@anthropic.com> - 0.6.0-5
 - Delete objects over NFC. Press and hold an object (or use the "Delete
   certificate" pull-down in the certificate card) on the NFC token: for a
