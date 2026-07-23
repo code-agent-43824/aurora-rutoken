@@ -1,4 +1,5 @@
 #include "pkcs11_certimport.h"
+#include "pkcs11_errors.h"
 #include "pkcs11_minimal.h"
 
 #include <QtCore/QByteArray>
@@ -241,11 +242,6 @@ QByteArray matchKeyId(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s, const C
     return QByteArray();
 }
 
-QString rvHex(CK_RV rv)
-{
-    return QStringLiteral("0x%1").arg(static_cast<qulonglong>(rv), 8, 16, QLatin1Char('0'));
-}
-
 // Прочитать файл и вернуть DER: PEM декодируется из base64, сырой DER — как есть.
 QByteArray readCertDer(const QString &filePath, QString &err)
 {
@@ -365,7 +361,7 @@ ImportResult importCertificateFromFile(CK_FUNCTION_LIST_PREFIX *fns, unsigned lo
                 ? QStringLiteral("Сертификат импортирован и привязан к ключевой паре")
                 : QStringLiteral("Сертификат импортирован (пара с таким открытым ключом не найдена)");
     } else {
-        res.message = QStringLiteral("C_CreateObject: ") + rvHex(rv);
+        res.message = QStringLiteral("C_CreateObject: ") + pkcs11::rvMessage(rv);
     }
     return res;
 }

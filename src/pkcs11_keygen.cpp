@@ -1,4 +1,5 @@
 #include "pkcs11_keygen.h"
+#include "pkcs11_errors.h"
 #include "pkcs11_minimal.h"
 
 #include <QtCore/QByteArray>
@@ -6,11 +7,6 @@
 #include <QtCore/QVector>
 
 namespace {
-
-QString rvHex(CK_RV rv)
-{
-    return QStringLiteral("0x%1").arg(static_cast<qulonglong>(rv), 8, 16, QLatin1Char('0'));
-}
 
 // DER-кодированные OID параметров ГОСТ (из docs/RESEARCH.md §5в).
 // 256: ключ — набор A (OID 1.2.643.2.2.35.1); хеш — 2012-256 (OID 1.2.643.7.1.1.2.2).
@@ -67,27 +63,27 @@ QString testSignVerify(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session,
 
     CK_RV rv = fns->C_SignInit(session, &mech, hPriv);
     if (rv != CKR_OK)
-        return QStringLiteral("тестовая подпись: C_SignInit ") + rvHex(rv);
+        return QStringLiteral("тестовая подпись: C_SignInit ") + pkcs11::rvMessage(rv);
 
     // Двухпроходно: сначала длина подписи, затем сама подпись.
     CK_ULONG sigLen = 0;
     rv = fns->C_Sign(session, dataPtr, dataLen, nullptr, &sigLen);
     if (rv != CKR_OK)
-        return QStringLiteral("тестовая подпись: C_Sign(длина) ") + rvHex(rv);
+        return QStringLiteral("тестовая подпись: C_Sign(длина) ") + pkcs11::rvMessage(rv);
     QByteArray sig(static_cast<int>(sigLen), '\0');
     rv = fns->C_Sign(session, dataPtr, dataLen,
                      reinterpret_cast<CK_BYTE *>(sig.data()), &sigLen);
     if (rv != CKR_OK)
-        return QStringLiteral("тестовая подпись: C_Sign ") + rvHex(rv);
+        return QStringLiteral("тестовая подпись: C_Sign ") + pkcs11::rvMessage(rv);
 
     rv = fns->C_VerifyInit(session, &mech, hPub);
     if (rv != CKR_OK)
-        return QStringLiteral("тестовая подпись: C_VerifyInit ") + rvHex(rv);
+        return QStringLiteral("тестовая подпись: C_VerifyInit ") + pkcs11::rvMessage(rv);
     rv = fns->C_Verify(session, dataPtr, dataLen,
                        reinterpret_cast<CK_BYTE *>(sig.data()), sigLen);
     if (rv == CKR_OK)
         return QStringLiteral("тестовая подпись: успех (подпись проверена)");
-    return QStringLiteral("тестовая подпись: C_Verify ") + rvHex(rv);
+    return QStringLiteral("тестовая подпись: C_Verify ") + pkcs11::rvMessage(rv);
 }
 
 } // namespace
@@ -197,7 +193,7 @@ KeygenResult generateKeyPair(CK_FUNCTION_LIST_PREFIX *fns, unsigned long session
         const QString sv = testSignVerify(fns, session, hPriv, hPub, keyType);
         res.message = QStringLiteral("Ключевая пара создана. ") + sv;
     } else {
-        res.message = QStringLiteral("C_GenerateKeyPair: ") + rvHex(rv);
+        res.message = QStringLiteral("C_GenerateKeyPair: ") + pkcs11::rvMessage(rv);
     }
     return res;
 }

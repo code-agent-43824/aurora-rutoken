@@ -2,6 +2,7 @@
 #include "pkcs11_certimport.h"
 #include "pkcs11_guard.h"
 #include "pkcs11_csr.h"
+#include "pkcs11_errors.h"
 #include "pkcs11_keygen.h"
 #include "pkcs11_minimal.h"
 #include "pkcs11_objects.h"
@@ -21,11 +22,6 @@
 namespace {
 const QString kLibraryPath = QStringLiteral(
     "/usr/lib/3rdparty/ru.rutoken.librtpkcs11ecp/librtpkcs11ecp.so");
-
-QString rvHex(CK_RV rv)
-{
-    return QStringLiteral("0x%1").arg(static_cast<qulonglong>(rv), 8, 16, QLatin1Char('0'));
-}
 
 // Человекочитаемое состояние PIN пользователя по флагам токена (fallback, если
 // vendor-функция недоступна).
@@ -88,7 +84,7 @@ QString loginErrorMessage(CK_FUNCTION_LIST_PREFIX *fns, CK_SLOT_ID slotId, CK_RV
     else if (rv == CKR_PIN_LOCKED)
         message = QStringLiteral("PIN-код заблокирован");
     else
-        message = QStringLiteral("Ошибка входа: ") + rvHex(rv);
+        message = QStringLiteral("Ошибка входа: ") + pkcs11::rvMessage(rv);
     if (!hint.isEmpty())
         message += QStringLiteral(" (") + hint + QLatin1Char(')');
     return message;
@@ -132,7 +128,7 @@ WriteOutcome runTokenWrite(QFunctionPointer getFunctionList, qulonglong slotId, 
     const bool owns = (initRv == CKR_OK);
     if (!owns && initRv != CKR_CRYPTOKI_ALREADY_INITIALIZED) {
         pinBytes.fill('\0');
-        wo.message = QStringLiteral("C_Initialize: ") + rvHex(initRv);
+        wo.message = QStringLiteral("C_Initialize: ") + pkcs11::rvMessage(initRv);
         return wo;
     }
 
@@ -144,7 +140,7 @@ WriteOutcome runTokenWrite(QFunctionPointer getFunctionList, qulonglong slotId, 
         if (owns)
             fns->C_Finalize(nullptr);
         pinBytes.fill('\0');
-        wo.message = QStringLiteral("Не удалось открыть R/W-сессию: ") + rvHex(rv);
+        wo.message = QStringLiteral("Не удалось открыть R/W-сессию: ") + pkcs11::rvMessage(rv);
         return wo;
     }
 
@@ -184,7 +180,7 @@ QString pinRvMessage(CK_RV rv)
     case CKR_PIN_LOCKED: return QStringLiteral("PIN-код заблокирован");
     case CKR_PIN_INVALID: return QStringLiteral("Недопустимый PIN-код");
     case CKR_PIN_LEN_RANGE: return QStringLiteral("Недопустимая длина нового PIN-кода");
-    default: return QStringLiteral("Ошибка: ") + rvHex(rv);
+    default: return QStringLiteral("Ошибка: ") + pkcs11::rvMessage(rv);
     }
 }
 
@@ -208,7 +204,7 @@ QPair<int, QString> runSessionOp(QFunctionPointer getFunctionList, qulonglong sl
     const CK_RV initRv = fns->C_Initialize(nullptr);
     const bool owns = (initRv == CKR_OK);
     if (!owns && initRv != CKR_CRYPTOKI_ALREADY_INITIALIZED)
-        return qMakePair(-1, QStringLiteral("C_Initialize: ") + rvHex(initRv));
+        return qMakePair(-1, QStringLiteral("C_Initialize: ") + pkcs11::rvMessage(initRv));
 
     CK_SESSION_HANDLE session = 0;
     CK_RV rv = fns->C_OpenSession(static_cast<CK_SLOT_ID>(slotId),
@@ -216,7 +212,7 @@ QPair<int, QString> runSessionOp(QFunctionPointer getFunctionList, qulonglong sl
     if (rv != CKR_OK) {
         if (owns)
             fns->C_Finalize(nullptr);
-        return qMakePair(-1, QStringLiteral("Не удалось открыть R/W-сессию: ") + rvHex(rv));
+        return qMakePair(-1, QStringLiteral("Не удалось открыть R/W-сессию: ") + pkcs11::rvMessage(rv));
     }
 
     const QPair<bool, QString> r = op(fns, session);
@@ -402,7 +398,7 @@ void TokenSession::deleteCertPublic(qulonglong slotId, const QString &idHex)
         const CK_RV initRv = fns->C_Initialize(nullptr);
         const bool owns = (initRv == CKR_OK);
         if (!owns && initRv != CKR_CRYPTOKI_ALREADY_INITIALIZED) {
-            emit finished(-1, QStringLiteral("C_Initialize: ") + rvHex(initRv), keepObjects);
+            emit finished(-1, QStringLiteral("C_Initialize: ") + pkcs11::rvMessage(initRv), keepObjects);
             return;
         }
 
@@ -412,7 +408,7 @@ void TokenSession::deleteCertPublic(qulonglong slotId, const QString &idHex)
         if (rv != CKR_OK) {
             if (owns)
                 fns->C_Finalize(nullptr);
-            emit finished(-1, QStringLiteral("Не удалось открыть R/W-сессию: ") + rvHex(rv), keepObjects);
+            emit finished(-1, QStringLiteral("Не удалось открыть R/W-сессию: ") + pkcs11::rvMessage(rv), keepObjects);
             return;
         }
 
@@ -873,7 +869,7 @@ void TokenSession::run(qulonglong slotId, const QString &pin, bool doLogin)
         if (!owns && initRv != CKR_CRYPTOKI_ALREADY_INITIALIZED) {
             pinBytes.fill('\0');
             emit finished(doLogin ? -1 : 0,
-                          doLogin ? QStringLiteral("C_Initialize: ") + rvHex(initRv) : QString(),
+                          doLogin ? QStringLiteral("C_Initialize: ") + pkcs11::rvMessage(initRv) : QString(),
                           QVariantList());
             return;
         }
@@ -886,7 +882,7 @@ void TokenSession::run(qulonglong slotId, const QString &pin, bool doLogin)
                 fns->C_Finalize(nullptr);
             pinBytes.fill('\0');
             emit finished(doLogin ? -1 : 0,
-                          doLogin ? QStringLiteral("Не удалось открыть сессию: ") + rvHex(rv) : QString(),
+                          doLogin ? QStringLiteral("Не удалось открыть сессию: ") + pkcs11::rvMessage(rv) : QString(),
                           QVariantList());
             return;
         }

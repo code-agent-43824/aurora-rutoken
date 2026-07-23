@@ -1,4 +1,5 @@
 #include "pkcs11_csr.h"
+#include "pkcs11_errors.h"
 #include "pkcs11_minimal.h"
 
 #include <QtCore/QByteArray>
@@ -6,11 +7,6 @@
 #include <initializer_list>
 
 namespace {
-
-QString rvHex(CK_RV rv)
-{
-    return QStringLiteral("0x%1").arg(static_cast<qulonglong>(rv), 8, 16, QLatin1Char('0'));
-}
 
 // --- Минимальный DER-энкодер ------------------------------------------------
 QByteArray derLen(int n)
@@ -264,7 +260,7 @@ CsrResult createCsr(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessionHandle,
     mech.ulParameterLen = 0;
     CK_RV rv = fns->C_SignInit(session, &mech, hPriv);
     if (rv != CKR_OK) {
-        res.message = QStringLiteral("C_SignInit: ") + rvHex(rv);
+        res.message = QStringLiteral("C_SignInit: ") + pkcs11::rvMessage(rv);
         return res;
     }
     QByteArray criData = cri;
@@ -273,14 +269,14 @@ CsrResult createCsr(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessionHandle,
     CK_ULONG sigLen = 0;
     rv = fns->C_Sign(session, criPtr, criLen, nullptr, &sigLen);
     if (rv != CKR_OK) {
-        res.message = QStringLiteral("C_Sign(длина): ") + rvHex(rv);
+        res.message = QStringLiteral("C_Sign(длина): ") + pkcs11::rvMessage(rv);
         return res;
     }
     QByteArray signature(static_cast<int>(sigLen), '\0');
     rv = fns->C_Sign(session, criPtr, criLen,
                      reinterpret_cast<CK_BYTE *>(signature.data()), &sigLen);
     if (rv != CKR_OK) {
-        res.message = QStringLiteral("C_Sign: ") + rvHex(rv);
+        res.message = QStringLiteral("C_Sign: ") + pkcs11::rvMessage(rv);
         return res;
     }
     signature.truncate(static_cast<int>(sigLen));

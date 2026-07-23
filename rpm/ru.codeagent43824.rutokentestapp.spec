@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    0.7.0
-Release:    2
+Version:    0.8.0
+Release:    1
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,16 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.8.0-1
+- Human-readable PKCS#11 error messages: failures used to show only a raw hex code
+  (e.g. "C_Sign: 0x00000070"); a central mapping now turns the CKR_* code into a
+  Russian explanation with the code kept for diagnostics (e.g. "неверный механизм
+  (0x00000070)", "нужен вход по PIN-коду (0x00000101)", "недостаточно памяти на
+  токене"). Wired across key generation, certificate import, CSR, deletion, PIN
+  operations and session/login errors (new pkcs11_errors module; the duplicated
+  local hex helpers were removed). The GOST-256 and GOST-512 certificate requests
+  from v0.7 were verified on a PC with the openssl GOST engine (both "verify OK").
+
 * Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.7.0-2
 - Certificate request (CSR) over NFC: the CSR screen now works with an NFC token
   too — fill in the DN, then a guided hold (take the token, enter the PIN, hold it
