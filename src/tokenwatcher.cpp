@@ -59,8 +59,9 @@ void TokenWatcher::start()
     if (!m_getFunctionList) {
         m_library.setFileName(kLibraryPath);
         if (!m_library.load()) {
-            setStatus(QStringLiteral("Библиотека PKCS#11 Рутокен не найдена: ")
-                      + m_library.errorString());
+            setStatus(QStringLiteral("Библиотека PKCS#11 Рутокен не найдена — установите "
+                                     "официальный пакет ru.rutoken.librtpkcs11ecp (")
+                      + m_library.errorString() + QLatin1Char(')'));
             return;
         }
         m_getFunctionList = m_library.resolve("C_GetFunctionList");

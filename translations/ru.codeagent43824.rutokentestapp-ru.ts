@@ -75,6 +75,10 @@
         <source>Change or unblock a PIN: enter the PINs, then hold the token once</source>
         <translation>Смена или разблокировка PIN-кода: введите PIN-код, затем один раз поднесите токен</translation>
     </message>
+    <message>
+        <source>Application %1</source>
+        <translation>Приложение %1</translation>
+    </message>
 </context>
 <context>
     <name>DiagnosticsPage</name>

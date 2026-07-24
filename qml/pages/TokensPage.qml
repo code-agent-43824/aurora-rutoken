@@ -320,6 +320,17 @@ Page {
                     }
                 }
             }
+
+            // Версия приложения (то же значение, что в диагностике).
+            Item { width: 1; height: Theme.paddingLarge }
+            Label {
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                horizontalAlignment: Text.AlignHCenter
+                text: qsTr("Application %1").arg(appVersion)
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+            }
         }
 
         VerticalScrollDecorator {}

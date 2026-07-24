@@ -75,6 +75,10 @@
         <source>Change or unblock a PIN: enter the PINs, then hold the token once</source>
         <translation>Change or unblock a PIN: enter the PINs, then hold the token once</translation>
     </message>
+    <message>
+        <source>Application %1</source>
+        <translation>Application %1</translation>
+    </message>
 </context>
 <context>
     <name>DiagnosticsPage</name>

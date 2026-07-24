@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.9.0
-Release:    1
+Release:    2
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,13 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.9.0-2
+- Polish: when the Rutoken PKCS#11 library is not installed, the status and every
+  operation now tell the user to install the official ru.rutoken.librtpkcs11ecp
+  package (it ships as a separate RPM next to the app) instead of just saying the
+  library is missing. The application version is also shown at the bottom of the
+  main screen, not only on the diagnostics page.
+
 * Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.9.0-1
 - Stabilization, NFC/token-removal recovery: when the token is removed too early
   or becomes unavailable during an operation, the message now tells you what to do

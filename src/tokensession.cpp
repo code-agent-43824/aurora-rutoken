@@ -22,6 +22,11 @@
 namespace {
 const QString kLibraryPath = QStringLiteral(
     "/usr/lib/3rdparty/ru.rutoken.librtpkcs11ecp/librtpkcs11ecp.so");
+// Действенная подсказка: библиотека Рутокен ставится отдельным официальным
+// пакетом (см. README, канал доставки — два RPM рядом).
+const QString kLibraryMissing = QStringLiteral(
+    "Библиотека PKCS#11 Рутокен не загружена — установите официальный пакет "
+    "ru.rutoken.librtpkcs11ecp");
 
 // Человекочитаемое состояние PIN пользователя по флагам токена (fallback, если
 // vendor-функция недоступна).
@@ -319,7 +324,7 @@ void TokenSession::deleteObjects(qulonglong slotId, const QString &pin,
     m_pendingIsLogin = false; // не вход — не кэшировать PIN по завершении
     if (!m_getFunctionList) {
         m_outcome = -1;
-        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        m_result = kLibraryMissing;
         emit changed();
         return;
     }
@@ -368,7 +373,7 @@ void TokenSession::deleteCertPublic(qulonglong slotId, const QString &idHex)
     m_pendingIsLogin = false;
     if (!m_getFunctionList) {
         m_outcome = -1;
-        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        m_result = kLibraryMissing;
         emit changed();
         return;
     }
@@ -506,7 +511,7 @@ void TokenSession::changeUserPin(qulonglong slotId, const QString &oldPin, const
         return;
     if (!m_getFunctionList) {
         m_outcome = -1;
-        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        m_result = kLibraryMissing;
         emit changed();
         return;
     }
@@ -552,7 +557,7 @@ void TokenSession::changeSoPin(qulonglong slotId, const QString &oldSoPin, const
         return;
     if (!m_getFunctionList) {
         m_outcome = -1;
-        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        m_result = kLibraryMissing;
         emit changed();
         return;
     }
@@ -597,7 +602,7 @@ void TokenSession::unblockUserPin(qulonglong slotId, const QString &soPin)
     if (!m_getFunctionList || !m_exUnblockUserPin) {
         m_outcome = -1;
         m_result = m_getFunctionList ? QStringLiteral("Библиотека не поддерживает разблокировку PIN-кода")
-                                     : QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+                                     : kLibraryMissing;
         emit changed();
         return;
     }
@@ -641,7 +646,7 @@ void TokenSession::changeTokenLabel(qulonglong slotId, const QString &userPin, c
     if (!m_getFunctionList || !m_exSetTokenName) {
         m_outcome = -1;
         m_result = m_getFunctionList ? QStringLiteral("Библиотека не поддерживает смену метки токена")
-                                     : QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+                                     : kLibraryMissing;
         emit changed();
         return;
     }
@@ -688,7 +693,7 @@ void TokenSession::generateKeyPair(qulonglong slotId, const QString &pin,
     m_pendingIsLogin = false; // не вход — не кэшировать PIN по завершении
     if (!m_getFunctionList) {
         m_outcome = -1;
-        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        m_result = kLibraryMissing;
         emit changed();
         return;
     }
@@ -723,7 +728,7 @@ void TokenSession::importCertificate(qulonglong slotId, const QString &pin,
     m_pendingIsLogin = false; // не вход — не кэшировать PIN по завершении
     if (!m_getFunctionList) {
         m_outcome = -1;
-        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        m_result = kLibraryMissing;
         emit changed();
         return;
     }
@@ -762,7 +767,7 @@ void TokenSession::createCsr(qulonglong slotId, const QString &pin, const QStrin
     m_pendingIsLogin = false; // не вход — не кэшировать PIN по завершении
     if (!m_getFunctionList) {
         m_outcome = -1;
-        m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+        m_result = kLibraryMissing;
         emit changed();
         return;
     }
@@ -825,7 +830,7 @@ void TokenSession::run(qulonglong slotId, const QString &pin, bool doLogin)
         m_pendingIsLogin = false; // вход не состоится — не кэшировать
         if (doLogin) {
             m_outcome = -1;
-            m_result = QStringLiteral("Библиотека PKCS#11 Рутокен не загружена");
+            m_result = kLibraryMissing;
             emit changed();
         }
         return;
