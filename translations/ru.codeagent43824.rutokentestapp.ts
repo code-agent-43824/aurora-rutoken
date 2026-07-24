@@ -148,168 +148,6 @@
     </message>
 </context>
 <context>
-    <name>TokenDetailsPage</name>
-    <message>
-        <source>Change token label</source>
-        <translation>Change token label</translation>
-    </message>
-    <message>
-        <source>Unblock user PIN</source>
-        <translation>Unblock user PIN</translation>
-    </message>
-    <message>
-        <source>Change admin PIN</source>
-        <translation>Change admin PIN</translation>
-    </message>
-    <message>
-        <source>Change user PIN</source>
-        <translation>Change user PIN</translation>
-    </message>
-    <message>
-        <source>Enter PIN</source>
-        <translation>Enter PIN</translation>
-    </message>
-    <message>
-        <source>Logged in — the PIN is remembered</source>
-        <translation>Logged in — the PIN is remembered</translation>
-    </message>
-    <message>
-        <source>Log out</source>
-        <translation>Log out</translation>
-    </message>
-    <message>
-        <source>Rutoken</source>
-        <translation>Rutoken</translation>
-    </message>
-    <message>
-        <source>token</source>
-        <translation>token</translation>
-    </message>
-    <message>
-        <source>Serial number</source>
-        <translation>Serial number</translation>
-    </message>
-    <message>
-        <source>Model</source>
-        <translation>Model</translation>
-    </message>
-    <message>
-        <source>Manufacturer</source>
-        <translation>Manufacturer</translation>
-    </message>
-    <message>
-        <source>Firmware / hardware</source>
-        <translation>Firmware / hardware</translation>
-    </message>
-    <message>
-        <source>Reader</source>
-        <translation>Reader</translation>
-    </message>
-    <message>
-        <source>Flags</source>
-        <translation>Flags</translation>
-    </message>
-    <message>
-        <source>User PIN login</source>
-        <translation>User PIN login</translation>
-    </message>
-    <message>
-        <source>User PIN</source>
-        <translation>User PIN</translation>
-    </message>
-    <message>
-        <source>Enter user PIN</source>
-        <translation>Enter user PIN</translation>
-    </message>
-    <message>
-        <source>Checking…</source>
-        <translation>Checking…</translation>
-    </message>
-    <message>
-        <source>Log in</source>
-        <translation>Log in</translation>
-    </message>
-    <message>
-        <source>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</source>
-        <translation>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</translation>
-    </message>
-    <message>
-        <source>Token objects (%1)</source>
-        <translation>Token objects (%1)</translation>
-    </message>
-</context>
-<context>
-    <name>ObjectsPage</name>
-    <message>
-        <source>Objects</source>
-        <translation>Objects</translation>
-    </message>
-    <message>
-        <source>Objects via PKCS#11</source>
-        <translation>Objects via PKCS#11</translation>
-    </message>
-    <message>
-        <source>No certificates or keys found on the token</source>
-        <translation>No certificates or keys found on the token</translation>
-    </message>
-    <message>
-        <source>CERT</source>
-        <translation>CERT</translation>
-    </message>
-    <message>
-        <source>KEY</source>
-        <translation>KEY</translation>
-    </message>
-    <message>
-        <source>(no label)</source>
-        <translation>(no label)</translation>
-    </message>
-    <message>
-        <source>ID: %1</source>
-        <translation>ID: %1</translation>
-    </message>
-    <message>
-        <source>issuer: %1</source>
-        <translation>issuer: %1</translation>
-    </message>
-    <message>
-        <source>expires: %1</source>
-        <translation>expires: %1</translation>
-    </message>
-    <message>
-        <source>keys are shown after PIN login</source>
-        <translation>keys are shown after PIN login</translation>
-    </message>
-    <message>
-        <source>certificate without a key (standalone)</source>
-        <translation>certificate without a key (standalone)</translation>
-    </message>
-    <message>
-        <source>Generate key pair</source>
-        <translation>Generate key pair</translation>
-    </message>
-    <message>
-        <source>Import certificate</source>
-        <translation>Import certificate</translation>
-    </message>
-    <message>
-        <source>Deleting the certificate and its keys</source>
-        <translation>Deleting the certificate and its keys</translation>
-    </message>
-    <message>
-        <source>Deleting the key</source>
-        <translation>Deleting the key</translation>
-    </message>
-    <message>
-        <source>Press and hold an item to delete it</source>
-        <translation>Press and hold an item to delete it</translation>
-    </message>
-    <message>
-        <source>Tap a key to create a certificate request (CSR)</source>
-        <translation>Tap a key to create a certificate request (CSR)</translation>
-    </message>
-</context>
-<context>
     <name>CertificatePage</name>
     <message>
         <source>Certificate</source>
@@ -1097,6 +935,165 @@
     <message>
         <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
         <translation>Over NFC you will enter the PIN and hold the token in the next step.</translation>
+    </message>
+</context>
+<context>
+    <name>TokenPage</name>
+    <message>
+        <source>User PIN</source>
+        <translation>User PIN</translation>
+    </message>
+    <message>
+        <source>Rutoken</source>
+        <translation>Rutoken</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Log in</translation>
+    </message>
+    <message>
+        <source>Deleting the key</source>
+        <translation>Deleting the key</translation>
+    </message>
+    <message>
+        <source>Import certificate</source>
+        <translation>Import certificate</translation>
+    </message>
+    <message>
+        <source>Generate key pair</source>
+        <translation>Generate key pair</translation>
+    </message>
+    <message>
+        <source>token</source>
+        <translation>token</translation>
+    </message>
+    <message>
+        <source>Properties</source>
+        <translation>Properties</translation>
+    </message>
+    <message>
+        <source>Objects · %1</source>
+        <translation>Objects · %1</translation>
+    </message>
+    <message>
+        <source>Objects</source>
+        <translation>Objects</translation>
+    </message>
+    <message>
+        <source>Serial number</source>
+        <translation>Serial number</translation>
+    </message>
+    <message>
+        <source>Model</source>
+        <translation>Model</translation>
+    </message>
+    <message>
+        <source>Manufacturer</source>
+        <translation>Manufacturer</translation>
+    </message>
+    <message>
+        <source>Firmware / hardware</source>
+        <translation>Firmware / hardware</translation>
+    </message>
+    <message>
+        <source>Reader</source>
+        <translation>Reader</translation>
+    </message>
+    <message>
+        <source>Flags</source>
+        <translation>Flags</translation>
+    </message>
+    <message>
+        <source>User PIN login</source>
+        <translation>User PIN login</translation>
+    </message>
+    <message>
+        <source>Checking…</source>
+        <translation>Checking…</translation>
+    </message>
+    <message>
+        <source>Enter PIN</source>
+        <translation>Enter PIN</translation>
+    </message>
+    <message>
+        <source>Logged in — the PIN is remembered</source>
+        <translation>Logged in — the PIN is remembered</translation>
+    </message>
+    <message>
+        <source>Log out</source>
+        <translation>Log out</translation>
+    </message>
+    <message>
+        <source>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</source>
+        <translation>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</translation>
+    </message>
+    <message>
+        <source>Administration</source>
+        <translation>Administration</translation>
+    </message>
+    <message>
+        <source>Change user PIN</source>
+        <translation>Change user PIN</translation>
+    </message>
+    <message>
+        <source>Change admin PIN</source>
+        <translation>Change admin PIN</translation>
+    </message>
+    <message>
+        <source>Unblock user PIN</source>
+        <translation>Unblock user PIN</translation>
+    </message>
+    <message>
+        <source>Change token label</source>
+        <translation>Change token label</translation>
+    </message>
+    <message>
+        <source>Over NFC each administration operation asks for the data, then one hold of the token.</source>
+        <translation>Over NFC each administration operation asks for the data, then one hold of the token.</translation>
+    </message>
+    <message>
+        <source>Enter PIN to see keys</source>
+        <translation>Enter PIN to see keys</translation>
+    </message>
+    <message>
+        <source>No certificates or keys found on the token</source>
+        <translation>No certificates or keys found on the token</translation>
+    </message>
+    <message>
+        <source>Press and hold an item to delete it</source>
+        <translation>Press and hold an item to delete it</translation>
+    </message>
+    <message>
+        <source>Tap a key to create a certificate request (CSR)</source>
+        <translation>Tap a key to create a certificate request (CSR)</translation>
+    </message>
+    <message>
+        <source>CERT</source>
+        <translation>CERT</translation>
+    </message>
+    <message>
+        <source>KEY</source>
+        <translation>KEY</translation>
+    </message>
+    <message>
+        <source>issuer: %1</source>
+        <translation>issuer: %1</translation>
+    </message>
+    <message>
+        <source>expires: %1</source>
+        <translation>expires: %1</translation>
+    </message>
+    <message>
+        <source>ID: %1</source>
+        <translation>ID: %1</translation>
+    </message>
+    <message>
+        <source>keys are shown after PIN login</source>
+        <translation>keys are shown after PIN login</translation>
+    </message>
+    <message>
+        <source>certificate without a key (standalone)</source>
+        <translation>certificate without a key (standalone)</translation>
     </message>
 </context>
 </TS>

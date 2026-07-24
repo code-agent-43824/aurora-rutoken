@@ -277,7 +277,7 @@ Page {
                             // без повторного поднесения.
                             tokenSession.commitNfc(page.lastToken)
                             var t = page.lastToken
-                            pageStack.replace(Qt.resolvedUrl("TokenDetailsPage.qml"), {
+                            pageStack.replace(Qt.resolvedUrl("TokenPage.qml"), {
                                 connection: "NFC",
                                 slotId: (t && t.slotId) ? t.slotId : 0,
                                 tokenLabel: (t && t.label) ? t.label : "",

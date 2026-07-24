@@ -72,7 +72,7 @@ Page {
 
                     onClicked: {
                         tokenSession.clear()
-                        pageStack.push(Qt.resolvedUrl("TokenDetailsPage.qml"), {
+                        pageStack.push(Qt.resolvedUrl("TokenPage.qml"), {
                             slotId: modelData.slotId,
                             tokenLabel: modelData.label,
                             serial: modelData.serial,
@@ -193,7 +193,7 @@ Page {
                 // поднесения (собранные данные → короткая сессия).
                 onClicked: {
                     var t = tokenSession.nfcToken
-                    pageStack.push(Qt.resolvedUrl("TokenDetailsPage.qml"), {
+                    pageStack.push(Qt.resolvedUrl("TokenPage.qml"), {
                         connection: "NFC",
                         slotId: t.slotId ? t.slotId : 0,
                         tokenLabel: t.label ? t.label : "",

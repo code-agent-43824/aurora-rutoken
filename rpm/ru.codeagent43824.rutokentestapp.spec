@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    0.9.0
-Release:    2
+Release:    3
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,15 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Fri Jul 24 2026 Claude <noreply@anthropic.com> - 0.9.0-3
+- Reworked the main token flow: tapping a token now opens a single page with a
+  view switcher at the top — "Properties" (default: token details, PIN login and
+  the administration actions — change user/admin PIN, unblock, change label) and
+  "Objects" (certificates and keys with their actions — generate, import, export,
+  delete, certificate request). Both views are one tap apart; the separate
+  "Objects" button on the token card is gone. TokenDetailsPage and ObjectsPage were
+  merged into TokenPage.
+
 * Thu Jul 23 2026 Claude <noreply@anthropic.com> - 0.9.0-2
 - Polish: when the Rutoken PKCS#11 library is not installed, the status and every
   operation now tell the user to install the official ru.rutoken.librtpkcs11ecp

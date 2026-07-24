@@ -148,168 +148,6 @@
     </message>
 </context>
 <context>
-    <name>TokenDetailsPage</name>
-    <message>
-        <source>Change token label</source>
-        <translation>Сменить метку токена</translation>
-    </message>
-    <message>
-        <source>Unblock user PIN</source>
-        <translation>Разблокировать PIN-код пользователя</translation>
-    </message>
-    <message>
-        <source>Change admin PIN</source>
-        <translation>Смена PIN-кода администратора</translation>
-    </message>
-    <message>
-        <source>Change user PIN</source>
-        <translation>Смена PIN-кода пользователя</translation>
-    </message>
-    <message>
-        <source>Enter PIN</source>
-        <translation>Ввести PIN-код</translation>
-    </message>
-    <message>
-        <source>Logged in — the PIN is remembered</source>
-        <translation>Вход выполнен — PIN-код запомнен</translation>
-    </message>
-    <message>
-        <source>Log out</source>
-        <translation>Разлогиниться</translation>
-    </message>
-    <message>
-        <source>Rutoken</source>
-        <translation>Рутокен</translation>
-    </message>
-    <message>
-        <source>token</source>
-        <translation>токен</translation>
-    </message>
-    <message>
-        <source>Serial number</source>
-        <translation>Серийный номер</translation>
-    </message>
-    <message>
-        <source>Model</source>
-        <translation>Модель</translation>
-    </message>
-    <message>
-        <source>Manufacturer</source>
-        <translation>Производитель</translation>
-    </message>
-    <message>
-        <source>Firmware / hardware</source>
-        <translation>Прошивка / железо</translation>
-    </message>
-    <message>
-        <source>Reader</source>
-        <translation>Ридер</translation>
-    </message>
-    <message>
-        <source>Flags</source>
-        <translation>Флаги</translation>
-    </message>
-    <message>
-        <source>User PIN login</source>
-        <translation>Вход по PIN-коду пользователя</translation>
-    </message>
-    <message>
-        <source>User PIN</source>
-        <translation>PIN-код пользователя</translation>
-    </message>
-    <message>
-        <source>Enter user PIN</source>
-        <translation>Введите PIN-код пользователя</translation>
-    </message>
-    <message>
-        <source>Checking…</source>
-        <translation>Проверка…</translation>
-    </message>
-    <message>
-        <source>Log in</source>
-        <translation>Войти</translation>
-    </message>
-    <message>
-        <source>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</source>
-        <translation>PIN-код хранится в памяти до выхода, отключения USB-токена или закрытия приложения.</translation>
-    </message>
-    <message>
-        <source>Token objects (%1)</source>
-        <translation>Объекты токена (%1)</translation>
-    </message>
-</context>
-<context>
-    <name>ObjectsPage</name>
-    <message>
-        <source>Objects</source>
-        <translation>Объекты</translation>
-    </message>
-    <message>
-        <source>Objects via PKCS#11</source>
-        <translation>Объекты через PKCS#11</translation>
-    </message>
-    <message>
-        <source>No certificates or keys found on the token</source>
-        <translation>На токене не найдено сертификатов и ключей</translation>
-    </message>
-    <message>
-        <source>CERT</source>
-        <translation>СЕРТ</translation>
-    </message>
-    <message>
-        <source>KEY</source>
-        <translation>КЛЮЧ</translation>
-    </message>
-    <message>
-        <source>(no label)</source>
-        <translation>(без метки)</translation>
-    </message>
-    <message>
-        <source>ID: %1</source>
-        <translation>ID: %1</translation>
-    </message>
-    <message>
-        <source>issuer: %1</source>
-        <translation>издатель: %1</translation>
-    </message>
-    <message>
-        <source>expires: %1</source>
-        <translation>истекает: %1</translation>
-    </message>
-    <message>
-        <source>keys are shown after PIN login</source>
-        <translation>ключи показываются после входа по PIN-коду</translation>
-    </message>
-    <message>
-        <source>certificate without a key (standalone)</source>
-        <translation>сертификат без ключа (сам по себе)</translation>
-    </message>
-    <message>
-        <source>Generate key pair</source>
-        <translation>Создать ключевую пару</translation>
-    </message>
-    <message>
-        <source>Import certificate</source>
-        <translation>Импорт сертификата</translation>
-    </message>
-    <message>
-        <source>Deleting the certificate and its keys</source>
-        <translation>Удаление сертификата и его ключей</translation>
-    </message>
-    <message>
-        <source>Deleting the key</source>
-        <translation>Удаление ключа</translation>
-    </message>
-    <message>
-        <source>Press and hold an item to delete it</source>
-        <translation>Долгое нажатие — удалить объект</translation>
-    </message>
-    <message>
-        <source>Tap a key to create a certificate request (CSR)</source>
-        <translation>Нажмите на ключ, чтобы создать запрос на сертификат (CSR)</translation>
-    </message>
-</context>
-<context>
     <name>CertificatePage</name>
     <message>
         <source>Certificate</source>
@@ -1097,6 +935,165 @@
     <message>
         <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
         <translation>По NFC на следующем шаге вы введёте PIN-код и поднесёте токен.</translation>
+    </message>
+</context>
+<context>
+    <name>TokenPage</name>
+    <message>
+        <source>User PIN</source>
+        <translation>PIN-код пользователя</translation>
+    </message>
+    <message>
+        <source>Rutoken</source>
+        <translation>Рутокен</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Войти</translation>
+    </message>
+    <message>
+        <source>Deleting the key</source>
+        <translation>Удаление ключа</translation>
+    </message>
+    <message>
+        <source>Import certificate</source>
+        <translation>Импорт сертификата</translation>
+    </message>
+    <message>
+        <source>Generate key pair</source>
+        <translation>Создать ключевую пару</translation>
+    </message>
+    <message>
+        <source>token</source>
+        <translation>токен</translation>
+    </message>
+    <message>
+        <source>Properties</source>
+        <translation>Свойства</translation>
+    </message>
+    <message>
+        <source>Objects · %1</source>
+        <translation>Объекты · %1</translation>
+    </message>
+    <message>
+        <source>Objects</source>
+        <translation>Объекты</translation>
+    </message>
+    <message>
+        <source>Serial number</source>
+        <translation>Серийный номер</translation>
+    </message>
+    <message>
+        <source>Model</source>
+        <translation>Модель</translation>
+    </message>
+    <message>
+        <source>Manufacturer</source>
+        <translation>Производитель</translation>
+    </message>
+    <message>
+        <source>Firmware / hardware</source>
+        <translation>Прошивка / железо</translation>
+    </message>
+    <message>
+        <source>Reader</source>
+        <translation>Ридер</translation>
+    </message>
+    <message>
+        <source>Flags</source>
+        <translation>Флаги</translation>
+    </message>
+    <message>
+        <source>User PIN login</source>
+        <translation>Вход по PIN-коду пользователя</translation>
+    </message>
+    <message>
+        <source>Checking…</source>
+        <translation>Проверка…</translation>
+    </message>
+    <message>
+        <source>Enter PIN</source>
+        <translation>Ввести PIN-код</translation>
+    </message>
+    <message>
+        <source>Logged in — the PIN is remembered</source>
+        <translation>Вход выполнен — PIN-код запомнен</translation>
+    </message>
+    <message>
+        <source>Log out</source>
+        <translation>Разлогиниться</translation>
+    </message>
+    <message>
+        <source>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</source>
+        <translation>PIN-код хранится в памяти до выхода, отключения USB-токена или закрытия приложения.</translation>
+    </message>
+    <message>
+        <source>Administration</source>
+        <translation>Администрирование</translation>
+    </message>
+    <message>
+        <source>Change user PIN</source>
+        <translation>Смена PIN-кода пользователя</translation>
+    </message>
+    <message>
+        <source>Change admin PIN</source>
+        <translation>Смена PIN-кода администратора</translation>
+    </message>
+    <message>
+        <source>Unblock user PIN</source>
+        <translation>Разблокировать PIN-код пользователя</translation>
+    </message>
+    <message>
+        <source>Change token label</source>
+        <translation>Сменить метку токена</translation>
+    </message>
+    <message>
+        <source>Over NFC each administration operation asks for the data, then one hold of the token.</source>
+        <translation>По NFC каждая административная операция сначала спрашивает данные, затем одно поднесение токена.</translation>
+    </message>
+    <message>
+        <source>Enter PIN to see keys</source>
+        <translation>Ввести PIN-код, чтобы видеть ключи</translation>
+    </message>
+    <message>
+        <source>No certificates or keys found on the token</source>
+        <translation>На токене не найдено сертификатов и ключей</translation>
+    </message>
+    <message>
+        <source>Press and hold an item to delete it</source>
+        <translation>Долгое нажатие — удалить объект</translation>
+    </message>
+    <message>
+        <source>Tap a key to create a certificate request (CSR)</source>
+        <translation>Нажмите на ключ, чтобы создать запрос на сертификат (CSR)</translation>
+    </message>
+    <message>
+        <source>CERT</source>
+        <translation>СЕРТ</translation>
+    </message>
+    <message>
+        <source>KEY</source>
+        <translation>КЛЮЧ</translation>
+    </message>
+    <message>
+        <source>issuer: %1</source>
+        <translation>издатель: %1</translation>
+    </message>
+    <message>
+        <source>expires: %1</source>
+        <translation>истекает: %1</translation>
+    </message>
+    <message>
+        <source>ID: %1</source>
+        <translation>ID: %1</translation>
+    </message>
+    <message>
+        <source>keys are shown after PIN login</source>
+        <translation>ключи показываются после входа по PIN-коду</translation>
+    </message>
+    <message>
+        <source>certificate without a key (standalone)</source>
+        <translation>сертификат без ключа (сам по себе)</translation>
     </message>
 </context>
 </TS>
