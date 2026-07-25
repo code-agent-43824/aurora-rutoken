@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    0.9.0
-Release:    3
+Version:    1.0.0
+Release:    1
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,18 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Fri Jul 25 2026 Claude <noreply@anthropic.com> - 1.0.0-1
+- Release 1.0. Move the token administration actions (change user/admin PIN,
+  unblock the user PIN, change the label) from visible buttons on the Properties
+  view into the top pull-down menu, which is now context-sensitive: the
+  Properties view offers the administration items and the Objects view offers
+  "Import certificate" / "Generate key pair". Finalized the documentation for the
+  1.0 milestone and removed stale translation entries left over from earlier
+  refactors. Feature set: live USB/NFC token list, PIN login, object browser,
+  GOST R 34.10-2012 and RSA key generation, certificate import/export, PIN
+  management, object deletion and PKCS#10 certificate requests — all over USB and
+  NFC, verified on an Aurora 5.2 armv7hl device.
+
 * Fri Jul 24 2026 Claude <noreply@anthropic.com> - 0.9.0-3
 - Reworked the main token flow: tapping a token now opens a single page with a
   view switcher at the top — "Properties" (default: token details, PIN login and

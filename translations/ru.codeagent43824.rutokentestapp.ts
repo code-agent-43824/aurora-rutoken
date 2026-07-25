@@ -44,14 +44,6 @@
         <translation>Rutoken</translation>
     </message>
     <message>
-        <source>Connect a Rutoken over USB or hold it near the NFC antenna</source>
-        <translation>Connect a Rutoken over USB or hold it near the NFC antenna</translation>
-    </message>
-    <message>
-        <source>The list updates automatically</source>
-        <translation>The list updates automatically</translation>
-    </message>
-    <message>
         <source>?</source>
         <translation>?</translation>
     </message>
@@ -68,14 +60,6 @@
         <translation>reader: %1</translation>
     </message>
     <message>
-        <source>Manage PIN over NFC</source>
-        <translation>Manage PIN over NFC</translation>
-    </message>
-    <message>
-        <source>Change or unblock a PIN: enter the PINs, then hold the token once</source>
-        <translation>Change or unblock a PIN: enter the PINs, then hold the token once</translation>
-    </message>
-    <message>
         <source>Application %1</source>
         <translation>Application %1</translation>
     </message>
@@ -85,10 +69,6 @@
     <message>
         <source>Diagnostics</source>
         <translation>Diagnostics</translation>
-    </message>
-    <message>
-        <source>PC/SC, NFC and PKCS#11 — v0.1</source>
-        <translation>PC/SC, NFC and PKCS#11 — v0.1</translation>
     </message>
     <message>
         <source>Refresh</source>
@@ -319,10 +299,6 @@
         <translation>User PIN</translation>
     </message>
     <message>
-        <source>Enter user PIN</source>
-        <translation>Enter user PIN</translation>
-    </message>
-    <message>
         <source>Importing…</source>
         <translation>Importing…</translation>
     </message>
@@ -364,10 +340,6 @@
     <message>
         <source>Enter PIN</source>
         <translation>Enter PIN</translation>
-    </message>
-    <message>
-        <source>Hold the token to the back cover and keep it there until the operation finishes.</source>
-        <translation>Hold the token to the back cover and keep it there until the operation finishes.</translation>
     </message>
     <message>
         <source>Token detected — working…</source>
@@ -433,16 +405,8 @@
         <translation>New token label</translation>
     </message>
     <message>
-        <source>Administrator (SO) PIN</source>
-        <translation>Administrator (SO) PIN</translation>
-    </message>
-    <message>
         <source>OK</source>
         <translation>OK</translation>
-    </message>
-    <message>
-        <source>Enter administrator (SO) PIN</source>
-        <translation>Enter administrator (SO) PIN</translation>
     </message>
     <message>
         <source>Applying…</source>
@@ -451,10 +415,6 @@
     <message>
         <source>Change label</source>
         <translation>Change label</translation>
-    </message>
-    <message>
-        <source>Changing the label requires the administrator (SO) PIN and does not erase the token.</source>
-        <translation>Changing the label requires the administrator (SO) PIN and does not erase the token.</translation>
     </message>
     <message>
         <source>Done</source>
@@ -479,10 +439,6 @@
 </context>
 <context>
     <name>PinChangePage</name>
-    <message>
-        <source>The administrator resets the user PIN attempt counter; the user PIN itself stays the same.</source>
-        <translation>The administrator resets the user PIN attempt counter; the user PIN itself stays the same.</translation>
-    </message>
     <message>
         <source>Change admin PIN</source>
         <translation>Change admin PIN</translation>
@@ -526,26 +482,6 @@
     <message>
         <source>The new PINs do not match</source>
         <translation>The new PINs do not match</translation>
-    </message>
-    <message>
-        <source>Applying…</source>
-        <translation>Applying…</translation>
-    </message>
-    <message>
-        <source>Unblock</source>
-        <translation>Unblock</translation>
-    </message>
-    <message>
-        <source>Change PIN</source>
-        <translation>Change PIN</translation>
-    </message>
-    <message>
-        <source>The administrator sets a new user PIN; the user PIN attempt counter is reset.</source>
-        <translation>The administrator sets a new user PIN; the user PIN attempt counter is reset.</translation>
-    </message>
-    <message>
-        <source>A wrong current PIN, entered several times, can lock the token.</source>
-        <translation>A wrong current PIN, entered several times, can lock the token.</translation>
     </message>
     <message>
         <source>Done</source>
@@ -662,10 +598,6 @@
         <translation>User PIN</translation>
     </message>
     <message>
-        <source>Enter user PIN</source>
-        <translation>Enter user PIN</translation>
-    </message>
-    <message>
         <source>Generating…</source>
         <translation>Generating…</translation>
     </message>
@@ -691,29 +623,6 @@
     <message>
         <source>tokens</source>
         <translation>tokens</translation>
-    </message>
-</context>
-<context>
-    <name>NfcPinMenuPage</name>
-    <message>
-        <source>PIN over NFC</source>
-        <translation>PIN over NFC</translation>
-    </message>
-    <message>
-        <source>Choose an operation. You enter all PINs first, then hold the token once to run it.</source>
-        <translation>Choose an operation. You enter all PINs first, then hold the token once to run it.</translation>
-    </message>
-    <message>
-        <source>Change user PIN</source>
-        <translation>Change user PIN</translation>
-    </message>
-    <message>
-        <source>Change admin PIN</source>
-        <translation>Change admin PIN</translation>
-    </message>
-    <message>
-        <source>Unblock user PIN</source>
-        <translation>Unblock user PIN</translation>
     </message>
 </context>
 <context>
@@ -1028,10 +937,6 @@
         <translation>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</translation>
     </message>
     <message>
-        <source>Administration</source>
-        <translation>Administration</translation>
-    </message>
-    <message>
         <source>Change user PIN</source>
         <translation>Change user PIN</translation>
     </message>
@@ -1046,10 +951,6 @@
     <message>
         <source>Change token label</source>
         <translation>Change token label</translation>
-    </message>
-    <message>
-        <source>Over NFC each administration operation asks for the data, then one hold of the token.</source>
-        <translation>Over NFC each administration operation asks for the data, then one hold of the token.</translation>
     </message>
     <message>
         <source>Enter PIN to see keys</source>
@@ -1094,6 +995,10 @@
     <message>
         <source>certificate without a key (standalone)</source>
         <translation>certificate without a key (standalone)</translation>
+    </message>
+    <message>
+        <source>Pull down for administration: change or unblock PINs, change the label.</source>
+        <translation>Pull down for administration: change or unblock PINs, change the label.</translation>
     </message>
 </context>
 </TS>

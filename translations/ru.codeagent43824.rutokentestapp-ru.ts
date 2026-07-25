@@ -44,14 +44,6 @@
         <translation>Рутокен</translation>
     </message>
     <message>
-        <source>Connect a Rutoken over USB or hold it near the NFC antenna</source>
-        <translation>Подключите Рутокен по USB или поднесите к NFC-антенне</translation>
-    </message>
-    <message>
-        <source>The list updates automatically</source>
-        <translation>Список обновляется автоматически</translation>
-    </message>
-    <message>
         <source>?</source>
         <translation>?</translation>
     </message>
@@ -68,14 +60,6 @@
         <translation>ридер: %1</translation>
     </message>
     <message>
-        <source>Manage PIN over NFC</source>
-        <translation>Управление PIN-кодами по NFC</translation>
-    </message>
-    <message>
-        <source>Change or unblock a PIN: enter the PINs, then hold the token once</source>
-        <translation>Смена или разблокировка PIN-кода: введите PIN-код, затем один раз поднесите токен</translation>
-    </message>
-    <message>
         <source>Application %1</source>
         <translation>Приложение %1</translation>
     </message>
@@ -85,10 +69,6 @@
     <message>
         <source>Diagnostics</source>
         <translation>Диагностика</translation>
-    </message>
-    <message>
-        <source>PC/SC, NFC and PKCS#11 — v0.1</source>
-        <translation>PC/SC, NFC и PKCS#11 — v0.1</translation>
     </message>
     <message>
         <source>Refresh</source>
@@ -319,10 +299,6 @@
         <translation>PIN-код пользователя</translation>
     </message>
     <message>
-        <source>Enter user PIN</source>
-        <translation>Введите PIN-код пользователя</translation>
-    </message>
-    <message>
         <source>Importing…</source>
         <translation>Импорт…</translation>
     </message>
@@ -364,10 +340,6 @@
     <message>
         <source>Enter PIN</source>
         <translation>Ввести PIN-код</translation>
-    </message>
-    <message>
-        <source>Hold the token to the back cover and keep it there until the operation finishes.</source>
-        <translation>Поднесите токен к задней крышке и держите, пока операция не завершится.</translation>
     </message>
     <message>
         <source>Token detected — working…</source>
@@ -433,16 +405,8 @@
         <translation>Новая метка токена</translation>
     </message>
     <message>
-        <source>Administrator (SO) PIN</source>
-        <translation>PIN-код администратора (SO)</translation>
-    </message>
-    <message>
         <source>OK</source>
         <translation>OK</translation>
-    </message>
-    <message>
-        <source>Enter administrator (SO) PIN</source>
-        <translation>Ввести PIN-код администратора (SO)</translation>
     </message>
     <message>
         <source>Applying…</source>
@@ -451,10 +415,6 @@
     <message>
         <source>Change label</source>
         <translation>Сменить метку</translation>
-    </message>
-    <message>
-        <source>Changing the label requires the administrator (SO) PIN and does not erase the token.</source>
-        <translation>Смена метки требует PIN-код администратора (SO) и не стирает токен.</translation>
     </message>
     <message>
         <source>Done</source>
@@ -479,10 +439,6 @@
 </context>
 <context>
     <name>PinChangePage</name>
-    <message>
-        <source>The administrator resets the user PIN attempt counter; the user PIN itself stays the same.</source>
-        <translation>Администратор сбрасывает счётчик попыток PIN-кода пользователя; сам PIN-код не меняется.</translation>
-    </message>
     <message>
         <source>Change admin PIN</source>
         <translation>Смена PIN-кода администратора</translation>
@@ -526,26 +482,6 @@
     <message>
         <source>The new PINs do not match</source>
         <translation>Новые PIN-коды не совпадают</translation>
-    </message>
-    <message>
-        <source>Applying…</source>
-        <translation>Применение…</translation>
-    </message>
-    <message>
-        <source>Unblock</source>
-        <translation>Разблокировать</translation>
-    </message>
-    <message>
-        <source>Change PIN</source>
-        <translation>Сменить PIN-код</translation>
-    </message>
-    <message>
-        <source>The administrator sets a new user PIN; the user PIN attempt counter is reset.</source>
-        <translation>Администратор задаёт новый PIN-код пользователя; счётчик попыток PIN-кода пользователя сбрасывается.</translation>
-    </message>
-    <message>
-        <source>A wrong current PIN, entered several times, can lock the token.</source>
-        <translation>Несколько неверных вводов текущего PIN-кода могут заблокировать токен.</translation>
     </message>
     <message>
         <source>Done</source>
@@ -662,10 +598,6 @@
         <translation>PIN-код пользователя</translation>
     </message>
     <message>
-        <source>Enter user PIN</source>
-        <translation>Введите PIN-код пользователя</translation>
-    </message>
-    <message>
         <source>Generating…</source>
         <translation>Создание…</translation>
     </message>
@@ -691,29 +623,6 @@
     <message>
         <source>tokens</source>
         <translation>токенов</translation>
-    </message>
-</context>
-<context>
-    <name>NfcPinMenuPage</name>
-    <message>
-        <source>PIN over NFC</source>
-        <translation>Управление PIN-кодами по NFC</translation>
-    </message>
-    <message>
-        <source>Choose an operation. You enter all PINs first, then hold the token once to run it.</source>
-        <translation>Выберите операцию. Сначала введёте все PIN-коды, затем один раз поднесёте токен для выполнения.</translation>
-    </message>
-    <message>
-        <source>Change user PIN</source>
-        <translation>Смена PIN-кода пользователя</translation>
-    </message>
-    <message>
-        <source>Change admin PIN</source>
-        <translation>Смена PIN-кода администратора</translation>
-    </message>
-    <message>
-        <source>Unblock user PIN</source>
-        <translation>Разблокировать PIN-код пользователя</translation>
     </message>
 </context>
 <context>
@@ -1028,10 +937,6 @@
         <translation>PIN-код хранится в памяти до выхода, отключения USB-токена или закрытия приложения.</translation>
     </message>
     <message>
-        <source>Administration</source>
-        <translation>Администрирование</translation>
-    </message>
-    <message>
         <source>Change user PIN</source>
         <translation>Смена PIN-кода пользователя</translation>
     </message>
@@ -1046,10 +951,6 @@
     <message>
         <source>Change token label</source>
         <translation>Сменить метку токена</translation>
-    </message>
-    <message>
-        <source>Over NFC each administration operation asks for the data, then one hold of the token.</source>
-        <translation>По NFC каждая административная операция сначала спрашивает данные, затем одно поднесение токена.</translation>
     </message>
     <message>
         <source>Enter PIN to see keys</source>
@@ -1094,6 +995,10 @@
     <message>
         <source>certificate without a key (standalone)</source>
         <translation>сертификат без ключа (сам по себе)</translation>
+    </message>
+    <message>
+        <source>Pull down for administration: change or unblock PINs, change the label.</source>
+        <translation>Потяните шторку вниз для администрирования: смена/разблокировка PIN-кодов, смена метки.</translation>
     </message>
 </context>
 </TS>

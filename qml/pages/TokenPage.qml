@@ -121,9 +121,10 @@ Page {
         anchors.fill: parent
         contentHeight: col.height + Theme.paddingLarge
 
-        // Функции текущего вида: свойства → администрирование доступно кнопками
-        // ниже; объекты → создание объектов через это меню-шторку.
+        // Меню-шторка контекстна виду: «Объекты» → создание объектов;
+        // «Свойства» → администрирование токена (смена/разблокировка PIN-кодов, метка).
         PullDownMenu {
+            // --- Вид «Объекты» ---
             MenuItem {
                 visible: page.view === "objects"
                 text: qsTr("Import certificate")
@@ -137,6 +138,35 @@ Page {
                 onClicked: pageStack.push(Qt.resolvedUrl("GenerateKeyPage.qml"), {
                     slotId: page.slotId, connection: page.connection, objectsPage: page
                 })
+            }
+            // --- Вид «Свойства»: администрирование ---
+            MenuItem {
+                visible: page.view === "properties"
+                text: qsTr("Change token label")
+                onClicked: pageStack.push(Qt.resolvedUrl("TokenLabelPage.qml"),
+                                          { slotId: page.slotId, currentLabel: page.curLabel,
+                                            connection: page.connection })
+            }
+            MenuItem {
+                visible: page.view === "properties"
+                text: qsTr("Unblock user PIN")
+                onClicked: pageStack.push(Qt.resolvedUrl("PinChangePage.qml"),
+                                          { slotId: page.slotId, mode: "unblock",
+                                            connection: page.connection })
+            }
+            MenuItem {
+                visible: page.view === "properties"
+                text: qsTr("Change admin PIN")
+                onClicked: pageStack.push(Qt.resolvedUrl("PinChangePage.qml"),
+                                          { slotId: page.slotId, mode: "so",
+                                            connection: page.connection })
+            }
+            MenuItem {
+                visible: page.view === "properties"
+                text: qsTr("Change user PIN")
+                onClicked: pageStack.push(Qt.resolvedUrl("PinChangePage.qml"),
+                                          { slotId: page.slotId, mode: "user",
+                                            connection: page.connection })
             }
         }
 
@@ -287,46 +317,15 @@ Page {
                     font.pixelSize: Theme.fontSizeExtraSmall
                 }
 
-                // --- Администрирование токена ---
-                SectionHeader { text: qsTr("Administration") }
-
-                Repeater {
-                    model: [
-                        { key: "user",    label: qsTr("Change user PIN") },
-                        { key: "so",      label: qsTr("Change admin PIN") },
-                        { key: "unblock", label: qsTr("Unblock user PIN") },
-                        { key: "label",   label: qsTr("Change token label") }
-                    ]
-                    delegate: BackgroundItem {
-                        width: propsCol.width
-                        height: Theme.itemSizeSmall
-                        onClicked: {
-                            if (modelData.key === "label")
-                                pageStack.push(Qt.resolvedUrl("TokenLabelPage.qml"),
-                                               { slotId: page.slotId, currentLabel: page.curLabel,
-                                                 connection: page.connection })
-                            else
-                                pageStack.push(Qt.resolvedUrl("PinChangePage.qml"),
-                                               { slotId: page.slotId, mode: modelData.key,
-                                                 connection: page.connection })
-                        }
-                        Label {
-                            x: Theme.horizontalPageMargin
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width - 2 * Theme.horizontalPageMargin
-                            text: modelData.label
-                            color: parent.highlighted ? Theme.highlightColor : Theme.primaryColor
-                            font.pixelSize: Theme.fontSizeMedium
-                            truncationMode: TruncationMode.Fade
-                        }
-                    }
-                }
+                // Администрирование токена (смена/разблокировка PIN-кодов, метка) —
+                // в меню-шторке сверху (потяните вниз). Для NFC каждая операция
+                // соберёт данные и попросит одно поднесение токена.
                 Label {
-                    visible: page.connection === "NFC"
                     x: Theme.horizontalPageMargin
                     width: parent.width - 2 * Theme.horizontalPageMargin
                     wrapMode: Text.Wrap
-                    text: qsTr("Over NFC each administration operation asks for the data, then one hold of the token.")
+                    horizontalAlignment: Text.AlignHCenter
+                    text: qsTr("Pull down for administration: change or unblock PINs, change the label.")
                     color: Theme.secondaryColor
                     font.pixelSize: Theme.fontSizeExtraSmall
                 }
