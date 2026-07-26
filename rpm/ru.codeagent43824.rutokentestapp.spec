@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.0.0
-Release:    3
+Release:    4
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,11 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sun Jul 26 2026 Watson <noreply@openai.com> - 1.0.0-4
+- Final v1.0 polish: keep the login action on the Objects view until
+  authentication, but remove the redundant logout button, remembered-PIN status
+  and green login-success result. A failed login remains visible in red.
+
 * Sun Jul 26 2026 Watson <noreply@openai.com> - 1.0.0-3
 - Use "device" or "Rutoken" instead of the physical-form-specific "token" in
   user-facing text: NFC products may be USB devices, smart cards, key fobs or

@@ -329,43 +329,18 @@ Page {
                     text: qsTr("Enter PIN to see keys")
                     onClicked: page.openObjectLogin()
                 }
-                Label {
-                    visible: page.connection !== "NFC" && tokenSession.loggedIn
-                    x: Theme.horizontalPageMargin
-                    width: parent.width - 2 * Theme.horizontalPageMargin
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.Wrap
-                    text: qsTr("Logged in — the PIN is remembered")
-                    color: "#4caf50"
-                    font.pixelSize: Theme.fontSizeMedium
-                }
-                Button {
-                    visible: page.connection !== "NFC" && tokenSession.loggedIn
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: qsTr("Log out")
-                    enabled: !tokenSession.busy
-                    onClicked: tokenSession.logout()
-                }
+                // Успех входа виден по исчезновению кнопки и появлению ключей.
+                // Отдельные зелёные статусы и ручной выход здесь не нужны.
                 Label {
                     x: Theme.horizontalPageMargin
                     width: parent.width - 2 * Theme.horizontalPageMargin
                     wrapMode: Text.Wrap
                     textFormat: Text.PlainText
                     visible: page.connection !== "NFC" && page.loginAttempted
-                             && !tokenSession.busy && tokenSession.outcome !== 0
+                             && !tokenSession.busy && tokenSession.outcome === -1
                     text: tokenSession.result
-                    color: tokenSession.outcome === 1 ? "#4caf50" : "#f44336"
+                    color: "#f44336"
                     font.pixelSize: Theme.fontSizeMedium
-                }
-                Label {
-                    x: Theme.horizontalPageMargin
-                    width: parent.width - 2 * Theme.horizontalPageMargin
-                    wrapMode: Text.Wrap
-                    horizontalAlignment: Text.AlignHCenter
-                    visible: page.connection !== "NFC" && tokenSession.loggedIn
-                    text: qsTr("The PIN is kept in memory until you log out, unplug the USB device, or close the app.")
-                    color: Theme.secondaryColor
-                    font.pixelSize: Theme.fontSizeExtraSmall
                 }
 
                 Label {

@@ -913,18 +913,6 @@
         <translation>Flags</translation>
     </message>
     <message>
-        <source>Logged in — the PIN is remembered</source>
-        <translation>Logged in — the PIN is remembered</translation>
-    </message>
-    <message>
-        <source>Log out</source>
-        <translation>Log out</translation>
-    </message>
-    <message>
-        <source>The PIN is kept in memory until you log out, unplug the USB device, or close the app.</source>
-        <translation>The PIN is kept in memory until you log out, unplug the USB device, or close the app.</translation>
-    </message>
-    <message>
         <source>Change user PIN</source>
         <translation>Change user PIN</translation>
     </message>

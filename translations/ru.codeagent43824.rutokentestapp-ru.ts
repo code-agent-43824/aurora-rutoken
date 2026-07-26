@@ -913,18 +913,6 @@
         <translation>Флаги</translation>
     </message>
     <message>
-        <source>Logged in — the PIN is remembered</source>
-        <translation>Вход выполнен — PIN-код запомнен</translation>
-    </message>
-    <message>
-        <source>Log out</source>
-        <translation>Разлогиниться</translation>
-    </message>
-    <message>
-        <source>The PIN is kept in memory until you log out, unplug the USB device, or close the app.</source>
-        <translation>PIN-код хранится в памяти до выхода, отключения USB-устройства или закрытия приложения.</translation>
-    </message>
-    <message>
         <source>Change user PIN</source>
         <translation>Смена PIN-кода пользователя</translation>
     </message>
