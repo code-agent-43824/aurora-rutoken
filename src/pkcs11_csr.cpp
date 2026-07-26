@@ -213,7 +213,7 @@ CsrResult createCsr(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessionHandle,
         const QByteArray p3410 = readAttr(fns, session, hPub, CKA_GOSTR3410_PARAMS); // DER OID
         const QByteArray p3411 = readAttr(fns, session, hPub, CKA_GOSTR3411_PARAMS); // DER OID
         if (keyVal.isEmpty() || p3410.isEmpty()) {
-            res.message = QStringLiteral("Не удалось прочитать открытый ключ ГОСТ с токена");
+            res.message = QStringLiteral("Не удалось прочитать открытый ключ ГОСТ из Рутокена");
             return res;
         }
         // algorithm OID открытого ключа: 1.2.643.7.1.1.1.1 (256) / .1.2 (512).
@@ -232,7 +232,7 @@ CsrResult createCsr(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessionHandle,
         const QByteArray modulus = readAttr(fns, session, hPub, CKA_MODULUS);
         const QByteArray exponent = readAttr(fns, session, hPub, CKA_PUBLIC_EXPONENT);
         if (modulus.isEmpty() || exponent.isEmpty()) {
-            res.message = QStringLiteral("Не удалось прочитать открытый ключ RSA с токена");
+            res.message = QStringLiteral("Не удалось прочитать открытый ключ RSA из Рутокена");
             return res;
         }
         const QByteArray rsaOid = oid({0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01});

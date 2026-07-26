@@ -96,7 +96,7 @@ Page {
 
             PageHeader {
                 title: qsTr("New key pair")
-                description: qsTr("Generated on the token")
+                description: qsTr("Generated on the Rutoken")
             }
 
             ComboBox {
@@ -150,7 +150,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
-                text: qsTr("Over NFC you will enter the PIN and hold the token in the next step.")
+                text: qsTr("Over NFC you will enter the PIN and hold the device in the next step.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }
@@ -186,7 +186,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
-                text: qsTr("The private key never leaves the token.")
+                text: qsTr("The private key never leaves the Rutoken.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }

@@ -650,7 +650,7 @@ void TokenSession::changeTokenLabel(qulonglong slotId, const QString &userPin, c
         return;
     if (!m_getFunctionList || !m_exSetTokenName) {
         m_outcome = -1;
-        m_result = m_getFunctionList ? QStringLiteral("Библиотека не поддерживает смену метки токена")
+        m_result = m_getFunctionList ? QStringLiteral("Библиотека не поддерживает смену метки Рутокена")
                                      : kLibraryMissing;
         emit changed();
         return;
@@ -683,7 +683,7 @@ void TokenSession::changeTokenLabel(qulonglong slotId, const QString &userPin, c
                         reinterpret_cast<CK_UTF8CHAR *>(labelB.data()), static_cast<CK_ULONG>(labelB.size()));
                 fns->C_Logout(s);
                 return qMakePair(rv == CKR_OK,
-                                 rv == CKR_OK ? QStringLiteral("Метка токена изменена") : pinRvMessage(rv));
+                                 rv == CKR_OK ? QStringLiteral("Метка Рутокена изменена") : pinRvMessage(rv));
             });
         pinB.fill('\0');
         emit finished(r.first, r.second, keepObjects);

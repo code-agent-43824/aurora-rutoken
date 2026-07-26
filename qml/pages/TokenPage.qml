@@ -158,7 +158,7 @@ Page {
             // --- Вид «Свойства»: администрирование ---
             MenuItem {
                 visible: page.view === "properties"
-                text: qsTr("Change token label")
+                text: qsTr("Change Rutoken label")
                 onClicked: pageStack.push(Qt.resolvedUrl("TokenLabelPage.qml"),
                                           { slotId: page.slotId, currentLabel: page.curLabel,
                                             connection: page.connection })
@@ -193,7 +193,7 @@ Page {
 
             PageHeader {
                 title: page.curLabel.length > 0 ? page.curLabel : qsTr("Rutoken")
-                description: page.connection.length > 0 ? page.connection : qsTr("token")
+                description: page.connection.length > 0 ? page.connection : qsTr("device")
             }
 
             // === Переключатель вида (Свойства | Объекты) ===
@@ -363,7 +363,7 @@ Page {
                     wrapMode: Text.Wrap
                     horizontalAlignment: Text.AlignHCenter
                     visible: page.connection !== "NFC" && tokenSession.loggedIn
-                    text: qsTr("The PIN is kept in memory until you log out, unplug the USB token, or close the app.")
+                    text: qsTr("The PIN is kept in memory until you log out, unplug the USB device, or close the app.")
                     color: Theme.secondaryColor
                     font.pixelSize: Theme.fontSizeExtraSmall
                 }
@@ -373,7 +373,7 @@ Page {
                     width: parent.width - 2 * Theme.horizontalPageMargin
                     visible: page.objectsModel.length === 0
                     wrapMode: Text.Wrap
-                    text: qsTr("No certificates or keys found on the token")
+                    text: qsTr("No certificates or keys found on the Rutoken")
                     color: Theme.secondaryHighlightColor
                     font.pixelSize: Theme.fontSizeMedium
                 }

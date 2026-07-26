@@ -91,7 +91,7 @@ Page {
 
             PageHeader {
                 title: qsTr("Import certificate")
-                description: qsTr("From a file to the token")
+                description: qsTr("From a file to the Rutoken")
             }
 
             Button {
@@ -157,7 +157,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
-                text: qsTr("Over NFC you will enter the PIN and hold the token in the next step.")
+                text: qsTr("Over NFC you will enter the PIN and hold the device in the next step.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }

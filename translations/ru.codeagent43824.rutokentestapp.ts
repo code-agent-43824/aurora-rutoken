@@ -16,8 +16,8 @@
         <translation>USB</translation>
     </message>
     <message>
-        <source>Connect a Rutoken over USB — it appears here automatically</source>
-        <translation>Connect a Rutoken over USB — it appears here automatically</translation>
+        <source>Connect a Rutoken device over USB — it appears here automatically</source>
+        <translation>Connect a Rutoken device over USB — it appears here automatically</translation>
     </message>
     <message>
         <source>NFC</source>
@@ -28,8 +28,8 @@
         <translation>Connect over NFC</translation>
     </message>
     <message>
-        <source>Tap and follow the steps: hold the token to the back cover</source>
-        <translation>Tap and follow the steps: hold the token to the back cover</translation>
+        <source>Tap and follow the steps: hold the device to the back cover</source>
+        <translation>Tap and follow the steps: hold the device to the back cover</translation>
     </message>
     <message>
         <source>Diagnostics</source>
@@ -111,12 +111,12 @@
         <translation>PKCS#11 finalization</translation>
     </message>
     <message>
-        <source>Connected tokens</source>
-        <translation>Connected tokens</translation>
+        <source>Connected Rutoken devices</source>
+        <translation>Connected Rutoken devices</translation>
     </message>
     <message>
-        <source>Token</source>
-        <translation>Token</translation>
+        <source>Device</source>
+        <translation>Device</translation>
     </message>
     <message>
         <source>Pull down to refresh</source>
@@ -158,8 +158,8 @@
         <translation>CKA_ID</translation>
     </message>
     <message>
-        <source>Key on token</source>
-        <translation>Key on token</translation>
+        <source>Key on Rutoken</source>
+        <translation>Key on Rutoken</translation>
     </message>
     <message>
         <source>unknown until PIN login</source>
@@ -174,8 +174,8 @@
         <translation>no (standalone)</translation>
     </message>
     <message>
-        <source>The X.509 body could not be parsed; showing token attributes.</source>
-        <translation>The X.509 body could not be parsed; showing token attributes.</translation>
+        <source>The X.509 body could not be parsed; showing Rutoken attributes.</source>
+        <translation>The X.509 body could not be parsed; showing Rutoken attributes.</translation>
     </message>
     <message>
         <source>Pull down to export the certificate (without the private key).</source>
@@ -247,8 +247,8 @@
 <context>
     <name>ImportCertificatePage</name>
     <message>
-        <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
-        <translation>Over NFC you will enter the PIN and hold the token in the next step.</translation>
+        <source>Over NFC you will enter the PIN and hold the device in the next step.</source>
+        <translation>Over NFC you will enter the PIN and hold the device in the next step.</translation>
     </message>
     <message>
         <source>Enter PIN</source>
@@ -271,8 +271,8 @@
         <translation>Import certificate</translation>
     </message>
     <message>
-        <source>From a file to the token</source>
-        <translation>From a file to the token</translation>
+        <source>From a file to the Rutoken</source>
+        <translation>From a file to the Rutoken</translation>
     </message>
     <message>
         <source>Choose a file</source>
@@ -314,12 +314,12 @@
 <context>
     <name>NfcConnectPage</name>
     <message>
-        <source>Keep holding the token — the operation is running.</source>
-        <translation>Keep holding the token — the operation is running.</translation>
+        <source>Keep holding the device — the operation is running.</source>
+        <translation>Keep holding the device — the operation is running.</translation>
     </message>
     <message>
-        <source>Hold the token to the back cover and keep it there.</source>
-        <translation>Hold the token to the back cover and keep it there.</translation>
+        <source>Hold the device to the back cover and keep it there.</source>
+        <translation>Hold the device to the back cover and keep it there.</translation>
     </message>
     <message>
         <source>Connect over NFC</source>
@@ -334,24 +334,24 @@
         <translation>Import a certificate over NFC</translation>
     </message>
     <message>
-        <source>Take the Rutoken NFC token in your hand. You will hold it to the back of the phone in a moment.</source>
-        <translation>Take the Rutoken NFC token in your hand. You will hold it to the back of the phone in a moment.</translation>
+        <source>Take the Rutoken NFC device in your hand. You will hold it to the back of the phone in a moment.</source>
+        <translation>Take the Rutoken NFC device in your hand. You will hold it to the back of the phone in a moment.</translation>
     </message>
     <message>
         <source>Enter PIN</source>
         <translation>Enter PIN</translation>
     </message>
     <message>
-        <source>Token detected — working…</source>
-        <translation>Token detected — working…</translation>
+        <source>Device detected — working…</source>
+        <translation>Device detected — working…</translation>
     </message>
     <message>
-        <source>Waiting for the token…</source>
-        <translation>Waiting for the token…</translation>
+        <source>Waiting for the device…</source>
+        <translation>Waiting for the device…</translation>
     </message>
     <message>
-        <source>You can remove the token now.</source>
-        <translation>You can remove the token now.</translation>
+        <source>You can remove the device now.</source>
+        <translation>You can remove the device now.</translation>
     </message>
     <message>
         <source>Done</source>
@@ -389,20 +389,20 @@
         <translation>Enter user PIN</translation>
     </message>
     <message>
-        <source>Changing the label requires the user PIN and does not erase the token.</source>
-        <translation>Changing the label requires the user PIN and does not erase the token.</translation>
+        <source>Changing the label requires the user PIN and does not erase the Rutoken.</source>
+        <translation>Changing the label requires the user PIN and does not erase the Rutoken.</translation>
     </message>
     <message>
-        <source>Change token label</source>
-        <translation>Change token label</translation>
+        <source>Change Rutoken label</source>
+        <translation>Change Rutoken label</translation>
     </message>
     <message>
-        <source>Token label</source>
-        <translation>Token label</translation>
+        <source>Rutoken label</source>
+        <translation>Rutoken label</translation>
     </message>
     <message>
-        <source>New token label</source>
-        <translation>New token label</translation>
+        <source>New Rutoken label</source>
+        <translation>New Rutoken label</translation>
     </message>
     <message>
         <source>OK</source>
@@ -421,20 +421,20 @@
         <translation>Done</translation>
     </message>
     <message>
-        <source>Hold the token to the back cover and keep it there.</source>
-        <translation>Hold the token to the back cover and keep it there.</translation>
+        <source>Hold the device to the back cover and keep it there.</source>
+        <translation>Hold the device to the back cover and keep it there.</translation>
     </message>
     <message>
-        <source>Keep holding the token — the operation is running.</source>
-        <translation>Keep holding the token — the operation is running.</translation>
+        <source>Keep holding the device — the operation is running.</source>
+        <translation>Keep holding the device — the operation is running.</translation>
     </message>
     <message>
         <source>Start over</source>
         <translation>Start over</translation>
     </message>
     <message>
-        <source>You can remove the token now.</source>
-        <translation>You can remove the token now.</translation>
+        <source>You can remove the device now.</source>
+        <translation>You can remove the device now.</translation>
     </message>
 </context>
 <context>
@@ -492,16 +492,16 @@
         <translation>Try again</translation>
     </message>
     <message>
-        <source>Keep holding the token — the operation is running.</source>
-        <translation>Keep holding the token — the operation is running.</translation>
+        <source>Keep holding the device — the operation is running.</source>
+        <translation>Keep holding the device — the operation is running.</translation>
     </message>
     <message>
-        <source>Hold the token to the back cover and keep it there.</source>
-        <translation>Hold the token to the back cover and keep it there.</translation>
+        <source>Hold the device to the back cover and keep it there.</source>
+        <translation>Hold the device to the back cover and keep it there.</translation>
     </message>
     <message>
-        <source>You can remove the token now.</source>
-        <translation>You can remove the token now.</translation>
+        <source>You can remove the device now.</source>
+        <translation>You can remove the device now.</translation>
     </message>
     <message>
         <source>Start over</source>
@@ -538,8 +538,8 @@
 <context>
     <name>GenerateKeyPage</name>
     <message>
-        <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
-        <translation>Over NFC you will enter the PIN and hold the token in the next step.</translation>
+        <source>Over NFC you will enter the PIN and hold the device in the next step.</source>
+        <translation>Over NFC you will enter the PIN and hold the device in the next step.</translation>
     </message>
     <message>
         <source>Enter PIN</source>
@@ -562,8 +562,8 @@
         <translation>New key pair</translation>
     </message>
     <message>
-        <source>Generated on the token</source>
-        <translation>Generated on the token</translation>
+        <source>Generated on the Rutoken</source>
+        <translation>Generated on the Rutoken</translation>
     </message>
     <message>
         <source>Algorithm and length</source>
@@ -606,8 +606,8 @@
         <translation>Generate</translation>
     </message>
     <message>
-        <source>The private key never leaves the token.</source>
-        <translation>The private key never leaves the token.</translation>
+        <source>The private key never leaves the Rutoken.</source>
+        <translation>The private key never leaves the Rutoken.</translation>
     </message>
 </context>
 <context>
@@ -617,12 +617,12 @@
         <translation>Rutoken</translation>
     </message>
     <message>
-        <source>token</source>
-        <translation>token</translation>
+        <source>device</source>
+        <translation>device</translation>
     </message>
     <message>
-        <source>tokens</source>
-        <translation>tokens</translation>
+        <source>devices</source>
+        <translation>devices</translation>
     </message>
 </context>
 <context>
@@ -731,16 +731,16 @@
         <translation>If the certificate has a private key, entering the PIN will reveal and remove it too.</translation>
     </message>
     <message>
-        <source>Keep holding the token — the operation is running.</source>
-        <translation>Keep holding the token — the operation is running.</translation>
+        <source>Keep holding the device — the operation is running.</source>
+        <translation>Keep holding the device — the operation is running.</translation>
     </message>
     <message>
-        <source>Hold the token to the back cover and keep it there.</source>
-        <translation>Hold the token to the back cover and keep it there.</translation>
+        <source>Hold the device to the back cover and keep it there.</source>
+        <translation>Hold the device to the back cover and keep it there.</translation>
     </message>
     <message>
-        <source>You can remove the token now.</source>
-        <translation>You can remove the token now.</translation>
+        <source>You can remove the device now.</source>
+        <translation>You can remove the device now.</translation>
     </message>
     <message>
         <source>Done</source>
@@ -766,8 +766,8 @@
         <translation>Certificate request</translation>
     </message>
     <message>
-        <source>PKCS#10, signed on the token</source>
-        <translation>PKCS#10, signed on the token</translation>
+        <source>PKCS#10, signed on the Rutoken</source>
+        <translation>PKCS#10, signed on the Rutoken</translation>
     </message>
     <message>
         <source>For the key pair: %1</source>
@@ -838,12 +838,12 @@
         <translation>Save to file (.csr)</translation>
     </message>
     <message>
-        <source>The request is signed by the private key on the token; the private key never leaves it.</source>
-        <translation>The request is signed by the private key on the token; the private key never leaves it.</translation>
+        <source>The request is signed by the private key on the Rutoken; the private key never leaves it.</source>
+        <translation>The request is signed by the private key on the Rutoken; the private key never leaves it.</translation>
     </message>
     <message>
-        <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
-        <translation>Over NFC you will enter the PIN and hold the token in the next step.</translation>
+        <source>Over NFC you will enter the PIN and hold the device in the next step.</source>
+        <translation>Over NFC you will enter the PIN and hold the device in the next step.</translation>
     </message>
 </context>
 <context>
@@ -873,8 +873,8 @@
         <translation>Generate key pair</translation>
     </message>
     <message>
-        <source>token</source>
-        <translation>token</translation>
+        <source>device</source>
+        <translation>device</translation>
     </message>
     <message>
         <source>Properties</source>
@@ -921,8 +921,8 @@
         <translation>Log out</translation>
     </message>
     <message>
-        <source>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</source>
-        <translation>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</translation>
+        <source>The PIN is kept in memory until you log out, unplug the USB device, or close the app.</source>
+        <translation>The PIN is kept in memory until you log out, unplug the USB device, or close the app.</translation>
     </message>
     <message>
         <source>Change user PIN</source>
@@ -937,16 +937,16 @@
         <translation>Unblock user PIN</translation>
     </message>
     <message>
-        <source>Change token label</source>
-        <translation>Change token label</translation>
+        <source>Change Rutoken label</source>
+        <translation>Change Rutoken label</translation>
     </message>
     <message>
         <source>Enter PIN to see keys</source>
         <translation>Enter PIN to see keys</translation>
     </message>
     <message>
-        <source>No certificates or keys found on the token</source>
-        <translation>No certificates or keys found on the token</translation>
+        <source>No certificates or keys found on the Rutoken</source>
+        <translation>No certificates or keys found on the Rutoken</translation>
     </message>
     <message>
         <source>Press and hold an item to delete it</source>

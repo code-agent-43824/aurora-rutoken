@@ -172,7 +172,7 @@ Page {
                     width: parent.width - 2 * Theme.horizontalPageMargin
                     wrapMode: Text.Wrap
                     horizontalAlignment: Text.AlignHCenter
-                    text: qsTr("Take the Rutoken NFC token in your hand. You will hold it to the back of the phone in a moment.")
+                    text: qsTr("Take the Rutoken NFC device in your hand. You will hold it to the back of the phone in a moment.")
                     color: Theme.highlightColor
                     font.pixelSize: Theme.fontSizeLarge
                 }
@@ -210,8 +210,8 @@ Page {
                     wrapMode: Text.Wrap
                     horizontalAlignment: Text.AlignHCenter
                     text: page.started
-                          ? qsTr("Keep holding the token — the operation is running.")
-                          : qsTr("Hold the token to the back cover and keep it there.")
+                          ? qsTr("Keep holding the device — the operation is running.")
+                          : qsTr("Hold the device to the back cover and keep it there.")
                     color: Theme.highlightColor
                     font.pixelSize: Theme.fontSizeLarge
                 }
@@ -228,8 +228,8 @@ Page {
                     width: parent.width - 2 * Theme.horizontalPageMargin
                     wrapMode: Text.Wrap
                     horizontalAlignment: Text.AlignHCenter
-                    text: page.started ? qsTr("Token detected — working…")
-                                       : qsTr("Waiting for the token…")
+                    text: page.started ? qsTr("Device detected — working…")
+                                       : qsTr("Waiting for the device…")
                     color: Theme.secondaryHighlightColor
                     font.pixelSize: Theme.fontSizeMedium
                 }
@@ -246,7 +246,7 @@ Page {
                     width: parent.width - 2 * Theme.horizontalPageMargin
                     wrapMode: Text.Wrap
                     horizontalAlignment: Text.AlignHCenter
-                    text: qsTr("You can remove the token now.")
+                    text: qsTr("You can remove the device now.")
                     color: Theme.highlightColor
                     font.pixelSize: Theme.fontSizeLarge
                 }

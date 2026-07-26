@@ -120,15 +120,15 @@ Page {
             width: parent.width
             spacing: Theme.paddingMedium
 
-            PageHeader { title: qsTr("Change token label") }
+            PageHeader { title: qsTr("Change Rutoken label") }
 
             // --- Форма сбора (для USB всегда; для NFC — пока не начали) ---
             TextField {
                 id: labelField
                 visible: page.connection !== "NFC" || !page.attempted
                 width: parent.width
-                label: qsTr("Token label")
-                placeholderText: qsTr("New token label")
+                label: qsTr("Rutoken label")
+                placeholderText: qsTr("New Rutoken label")
                 text: page.currentLabel
                 inputMethodHints: Qt.ImhNoPredictiveText
                 enabled: !tokenSession.busy
@@ -169,8 +169,8 @@ Page {
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
                 text: page.nfcStarted
-                      ? qsTr("Keep holding the token — the operation is running.")
-                      : qsTr("Hold the token to the back cover and keep it there.")
+                      ? qsTr("Keep holding the device — the operation is running.")
+                      : qsTr("Hold the device to the back cover and keep it there.")
                 color: Theme.highlightColor
                 font.pixelSize: Theme.fontSizeLarge
             }
@@ -181,7 +181,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
-                text: qsTr("You can remove the token now.")
+                text: qsTr("You can remove the device now.")
                 color: Theme.highlightColor
                 font.pixelSize: Theme.fontSizeLarge
             }
@@ -229,7 +229,7 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
                 // USB — как раньше (всегда); NFC — только пока собираем данные.
                 visible: page.connection !== "NFC" || !page.attempted
-                text: qsTr("Changing the label requires the user PIN and does not erase the token.")
+                text: qsTr("Changing the label requires the user PIN and does not erase the Rutoken.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }

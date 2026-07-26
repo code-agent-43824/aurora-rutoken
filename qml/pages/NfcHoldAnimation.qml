@@ -118,7 +118,7 @@ Item {
            + (phone.x + phone.width * 0.5) * root.approach
         Label {
             anchors.centerIn: parent
-            text: "Rutoken"
+            text: "Рутокен"
             font.pixelSize: Theme.fontSizeExtraSmall
             color: Theme.primaryColor
         }

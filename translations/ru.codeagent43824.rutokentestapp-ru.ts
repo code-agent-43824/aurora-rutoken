@@ -16,8 +16,8 @@
         <translation>USB</translation>
     </message>
     <message>
-        <source>Connect a Rutoken over USB — it appears here automatically</source>
-        <translation>Подключите Рутокен по USB — он появится здесь автоматически</translation>
+        <source>Connect a Rutoken device over USB — it appears here automatically</source>
+        <translation>Подключите устройство Рутокен по USB — оно появится здесь автоматически</translation>
     </message>
     <message>
         <source>NFC</source>
@@ -28,8 +28,8 @@
         <translation>Подключить по NFC</translation>
     </message>
     <message>
-        <source>Tap and follow the steps: hold the token to the back cover</source>
-        <translation>Нажмите и следуйте шагам: поднесите токен к задней крышке</translation>
+        <source>Tap and follow the steps: hold the device to the back cover</source>
+        <translation>Нажмите и следуйте шагам: поднесите устройство к задней крышке</translation>
     </message>
     <message>
         <source>Diagnostics</source>
@@ -111,12 +111,12 @@
         <translation>Финализация PKCS#11</translation>
     </message>
     <message>
-        <source>Connected tokens</source>
-        <translation>Подключённые токены</translation>
+        <source>Connected Rutoken devices</source>
+        <translation>Подключённые устройства Рутокен</translation>
     </message>
     <message>
-        <source>Token</source>
-        <translation>Токен</translation>
+        <source>Device</source>
+        <translation>Устройство</translation>
     </message>
     <message>
         <source>Pull down to refresh</source>
@@ -158,8 +158,8 @@
         <translation>CKA_ID</translation>
     </message>
     <message>
-        <source>Key on token</source>
-        <translation>Ключ на токене</translation>
+        <source>Key on Rutoken</source>
+        <translation>Ключ в Рутокене</translation>
     </message>
     <message>
         <source>unknown until PIN login</source>
@@ -174,8 +174,8 @@
         <translation>нет (сам по себе)</translation>
     </message>
     <message>
-        <source>The X.509 body could not be parsed; showing token attributes.</source>
-        <translation>Тело X.509 не разобрано; показаны атрибуты токена.</translation>
+        <source>The X.509 body could not be parsed; showing Rutoken attributes.</source>
+        <translation>Тело X.509 не разобрано; показаны атрибуты Рутокена.</translation>
     </message>
     <message>
         <source>Pull down to export the certificate (without the private key).</source>
@@ -247,8 +247,8 @@
 <context>
     <name>ImportCertificatePage</name>
     <message>
-        <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
-        <translation>По NFC на следующем шаге вы введёте PIN-код и поднесёте токен.</translation>
+        <source>Over NFC you will enter the PIN and hold the device in the next step.</source>
+        <translation>По NFC на следующем шаге вы введёте PIN-код и поднесёте устройство.</translation>
     </message>
     <message>
         <source>Enter PIN</source>
@@ -271,8 +271,8 @@
         <translation>Импорт сертификата</translation>
     </message>
     <message>
-        <source>From a file to the token</source>
-        <translation>Из файла на токен</translation>
+        <source>From a file to the Rutoken</source>
+        <translation>Из файла в Рутокен</translation>
     </message>
     <message>
         <source>Choose a file</source>
@@ -314,12 +314,12 @@
 <context>
     <name>NfcConnectPage</name>
     <message>
-        <source>Keep holding the token — the operation is running.</source>
-        <translation>Держите токен — идёт операция.</translation>
+        <source>Keep holding the device — the operation is running.</source>
+        <translation>Держите устройство — идёт операция.</translation>
     </message>
     <message>
-        <source>Hold the token to the back cover and keep it there.</source>
-        <translation>Поднесите токен к задней крышке и держите.</translation>
+        <source>Hold the device to the back cover and keep it there.</source>
+        <translation>Поднесите устройство к задней крышке и держите.</translation>
     </message>
     <message>
         <source>Connect over NFC</source>
@@ -334,24 +334,24 @@
         <translation>Импорт сертификата по NFC</translation>
     </message>
     <message>
-        <source>Take the Rutoken NFC token in your hand. You will hold it to the back of the phone in a moment.</source>
-        <translation>Возьмите NFC-токен Рутокен в руку. Сейчас нужно будет поднести его к задней крышке телефона.</translation>
+        <source>Take the Rutoken NFC device in your hand. You will hold it to the back of the phone in a moment.</source>
+        <translation>Возьмите устройство Рутокен с NFC в руку. Сейчас нужно будет поднести его к задней крышке телефона.</translation>
     </message>
     <message>
         <source>Enter PIN</source>
         <translation>Ввести PIN-код</translation>
     </message>
     <message>
-        <source>Token detected — working…</source>
-        <translation>Токен обнаружен — выполняется…</translation>
+        <source>Device detected — working…</source>
+        <translation>Устройство обнаружено — выполняется…</translation>
     </message>
     <message>
-        <source>Waiting for the token…</source>
-        <translation>Ожидание токена…</translation>
+        <source>Waiting for the device…</source>
+        <translation>Ожидание устройства…</translation>
     </message>
     <message>
-        <source>You can remove the token now.</source>
-        <translation>Теперь можно убрать токен.</translation>
+        <source>You can remove the device now.</source>
+        <translation>Теперь можно убрать устройство.</translation>
     </message>
     <message>
         <source>Done</source>
@@ -389,20 +389,20 @@
         <translation>Введите PIN-код пользователя</translation>
     </message>
     <message>
-        <source>Changing the label requires the user PIN and does not erase the token.</source>
-        <translation>Смена метки требует PIN-код пользователя и не стирает токен.</translation>
+        <source>Changing the label requires the user PIN and does not erase the Rutoken.</source>
+        <translation>Смена метки требует PIN-код пользователя и не стирает Рутокен.</translation>
     </message>
     <message>
-        <source>Change token label</source>
-        <translation>Сменить метку токена</translation>
+        <source>Change Rutoken label</source>
+        <translation>Сменить метку Рутокена</translation>
     </message>
     <message>
-        <source>Token label</source>
-        <translation>Метка токена</translation>
+        <source>Rutoken label</source>
+        <translation>Метка Рутокена</translation>
     </message>
     <message>
-        <source>New token label</source>
-        <translation>Новая метка токена</translation>
+        <source>New Rutoken label</source>
+        <translation>Новая метка Рутокена</translation>
     </message>
     <message>
         <source>OK</source>
@@ -421,20 +421,20 @@
         <translation>Готово</translation>
     </message>
     <message>
-        <source>Hold the token to the back cover and keep it there.</source>
-        <translation>Поднесите токен к задней крышке и держите.</translation>
+        <source>Hold the device to the back cover and keep it there.</source>
+        <translation>Поднесите устройство к задней крышке и держите.</translation>
     </message>
     <message>
-        <source>Keep holding the token — the operation is running.</source>
-        <translation>Держите токен — идёт операция.</translation>
+        <source>Keep holding the device — the operation is running.</source>
+        <translation>Держите устройство — идёт операция.</translation>
     </message>
     <message>
         <source>Start over</source>
         <translation>Начать заново</translation>
     </message>
     <message>
-        <source>You can remove the token now.</source>
-        <translation>Теперь можно убрать токен.</translation>
+        <source>You can remove the device now.</source>
+        <translation>Теперь можно убрать устройство.</translation>
     </message>
 </context>
 <context>
@@ -492,16 +492,16 @@
         <translation>Ещё раз</translation>
     </message>
     <message>
-        <source>Keep holding the token — the operation is running.</source>
-        <translation>Держите токен — идёт операция.</translation>
+        <source>Keep holding the device — the operation is running.</source>
+        <translation>Держите устройство — идёт операция.</translation>
     </message>
     <message>
-        <source>Hold the token to the back cover and keep it there.</source>
-        <translation>Поднесите токен к задней крышке и держите.</translation>
+        <source>Hold the device to the back cover and keep it there.</source>
+        <translation>Поднесите устройство к задней крышке и держите.</translation>
     </message>
     <message>
-        <source>You can remove the token now.</source>
-        <translation>Теперь можно убрать токен.</translation>
+        <source>You can remove the device now.</source>
+        <translation>Теперь можно убрать устройство.</translation>
     </message>
     <message>
         <source>Start over</source>
@@ -538,8 +538,8 @@
 <context>
     <name>GenerateKeyPage</name>
     <message>
-        <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
-        <translation>По NFC на следующем шаге вы введёте PIN-код и поднесёте токен.</translation>
+        <source>Over NFC you will enter the PIN and hold the device in the next step.</source>
+        <translation>По NFC на следующем шаге вы введёте PIN-код и поднесёте устройство.</translation>
     </message>
     <message>
         <source>Enter PIN</source>
@@ -562,8 +562,8 @@
         <translation>Новая ключевая пара</translation>
     </message>
     <message>
-        <source>Generated on the token</source>
-        <translation>Создаётся на токене</translation>
+        <source>Generated on the Rutoken</source>
+        <translation>Создаётся в Рутокене</translation>
     </message>
     <message>
         <source>Algorithm and length</source>
@@ -606,8 +606,8 @@
         <translation>Создать</translation>
     </message>
     <message>
-        <source>The private key never leaves the token.</source>
-        <translation>Закрытый ключ не покидает токен.</translation>
+        <source>The private key never leaves the Rutoken.</source>
+        <translation>Закрытый ключ не покидает Рутокен.</translation>
     </message>
 </context>
 <context>
@@ -617,12 +617,12 @@
         <translation>Рутокен</translation>
     </message>
     <message>
-        <source>token</source>
-        <translation>токен</translation>
+        <source>device</source>
+        <translation>устройство</translation>
     </message>
     <message>
-        <source>tokens</source>
-        <translation>токенов</translation>
+        <source>devices</source>
+        <translation>устройства</translation>
     </message>
 </context>
 <context>
@@ -731,16 +731,16 @@
         <translation>Если у сертификата есть закрытый ключ, после ввода PIN-кода он тоже будет удалён.</translation>
     </message>
     <message>
-        <source>Keep holding the token — the operation is running.</source>
-        <translation>Держите токен — идёт операция.</translation>
+        <source>Keep holding the device — the operation is running.</source>
+        <translation>Держите устройство — идёт операция.</translation>
     </message>
     <message>
-        <source>Hold the token to the back cover and keep it there.</source>
-        <translation>Поднесите токен к задней крышке и держите.</translation>
+        <source>Hold the device to the back cover and keep it there.</source>
+        <translation>Поднесите устройство к задней крышке и держите.</translation>
     </message>
     <message>
-        <source>You can remove the token now.</source>
-        <translation>Теперь можно убрать токен.</translation>
+        <source>You can remove the device now.</source>
+        <translation>Теперь можно убрать устройство.</translation>
     </message>
     <message>
         <source>Done</source>
@@ -766,8 +766,8 @@
         <translation>Запрос на сертификат</translation>
     </message>
     <message>
-        <source>PKCS#10, signed on the token</source>
-        <translation>PKCS#10, подпись на токене</translation>
+        <source>PKCS#10, signed on the Rutoken</source>
+        <translation>PKCS#10, подпись в Рутокене</translation>
     </message>
     <message>
         <source>For the key pair: %1</source>
@@ -838,12 +838,12 @@
         <translation>Сохранить в файл (.csr)</translation>
     </message>
     <message>
-        <source>The request is signed by the private key on the token; the private key never leaves it.</source>
-        <translation>Запрос подписывается закрытым ключом на токене; закрытый ключ его не покидает.</translation>
+        <source>The request is signed by the private key on the Rutoken; the private key never leaves it.</source>
+        <translation>Запрос подписывается закрытым ключом в Рутокене; закрытый ключ его не покидает.</translation>
     </message>
     <message>
-        <source>Over NFC you will enter the PIN and hold the token in the next step.</source>
-        <translation>По NFC на следующем шаге вы введёте PIN-код и поднесёте токен.</translation>
+        <source>Over NFC you will enter the PIN and hold the device in the next step.</source>
+        <translation>По NFC на следующем шаге вы введёте PIN-код и поднесёте устройство.</translation>
     </message>
 </context>
 <context>
@@ -873,8 +873,8 @@
         <translation>Создать ключевую пару</translation>
     </message>
     <message>
-        <source>token</source>
-        <translation>токен</translation>
+        <source>device</source>
+        <translation>устройство</translation>
     </message>
     <message>
         <source>Properties</source>
@@ -921,8 +921,8 @@
         <translation>Разлогиниться</translation>
     </message>
     <message>
-        <source>The PIN is kept in memory until you log out, unplug the USB token, or close the app.</source>
-        <translation>PIN-код хранится в памяти до выхода, отключения USB-токена или закрытия приложения.</translation>
+        <source>The PIN is kept in memory until you log out, unplug the USB device, or close the app.</source>
+        <translation>PIN-код хранится в памяти до выхода, отключения USB-устройства или закрытия приложения.</translation>
     </message>
     <message>
         <source>Change user PIN</source>
@@ -937,16 +937,16 @@
         <translation>Разблокировать PIN-код пользователя</translation>
     </message>
     <message>
-        <source>Change token label</source>
-        <translation>Сменить метку токена</translation>
+        <source>Change Rutoken label</source>
+        <translation>Сменить метку Рутокена</translation>
     </message>
     <message>
         <source>Enter PIN to see keys</source>
         <translation>Ввести PIN-код, чтобы видеть ключи</translation>
     </message>
     <message>
-        <source>No certificates or keys found on the token</source>
-        <translation>На токене не найдено сертификатов и ключей</translation>
+        <source>No certificates or keys found on the Rutoken</source>
+        <translation>В Рутокене не найдено сертификатов и ключей</translation>
     </message>
     <message>
         <source>Press and hold an item to delete it</source>

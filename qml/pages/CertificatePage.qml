@@ -120,7 +120,7 @@ Page {
                 value: page.idText.length > 0 ? page.idText : "—"
             }
             DetailItem {
-                label: qsTr("Key on token")
+                label: qsTr("Key on Rutoken")
                 value: !page.keysKnown ? qsTr("unknown until PIN login")
                        : (page.hasKey ? qsTr("yes") : qsTr("no (standalone)"))
             }
@@ -130,7 +130,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 visible: !page.parsed
                 wrapMode: Text.Wrap
-                text: qsTr("The X.509 body could not be parsed; showing token attributes.")
+                text: qsTr("The X.509 body could not be parsed; showing Rutoken attributes.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }

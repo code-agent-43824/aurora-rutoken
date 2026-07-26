@@ -218,8 +218,8 @@ Page {
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
                 text: page.nfcStarted
-                      ? qsTr("Keep holding the token — the operation is running.")
-                      : qsTr("Hold the token to the back cover and keep it there.")
+                      ? qsTr("Keep holding the device — the operation is running.")
+                      : qsTr("Hold the device to the back cover and keep it there.")
                 color: Theme.highlightColor
                 font.pixelSize: Theme.fontSizeLarge
             }
@@ -231,7 +231,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
-                text: qsTr("You can remove the token now.")
+                text: qsTr("You can remove the device now.")
                 color: Theme.highlightColor
                 font.pixelSize: Theme.fontSizeLarge
             }

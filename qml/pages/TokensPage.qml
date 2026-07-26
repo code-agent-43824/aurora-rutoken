@@ -57,7 +57,7 @@ Page {
                     width: parent.width
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.Wrap
-                    text: qsTr("Connect a Rutoken over USB — it appears here automatically")
+                    text: qsTr("Connect a Rutoken device over USB — it appears here automatically")
                     color: Theme.secondaryHighlightColor
                     font.pixelSize: Theme.fontSizeMedium
                 }
@@ -314,7 +314,7 @@ Page {
                         x: Theme.horizontalPageMargin
                         width: nfcCard.width - 2 * Theme.horizontalPageMargin
                         wrapMode: Text.Wrap
-                        text: qsTr("Tap and follow the steps: hold the token to the back cover")
+                        text: qsTr("Tap and follow the steps: hold the device to the back cover")
                         color: Theme.secondaryColor
                         font.pixelSize: Theme.fontSizeExtraSmall
                     }

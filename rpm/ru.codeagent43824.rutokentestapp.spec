@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.0.0
-Release:    2
+Release:    3
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -18,8 +18,8 @@ BuildRequires:  pkgconfig(Qt5Network)
 BuildRequires:  pkgconfig(Qt5Multimedia)
 
 %description
-Test application for working with Rutoken ECP 3.0 hardware tokens over USB
-and NFC on Aurora OS. It shows connected tokens, logs in with the user PIN
+Test application for working with Rutoken ECP 3.0 devices over USB and NFC on
+Aurora OS. It shows connected devices, logs in with the user PIN
 (numeric pad), browses objects, generates key pairs (GOST R 34.10-2012 and
 RSA), imports and exports certificates, and manages PINs (change user/admin
 PIN, unblock the user PIN). NFC uses a guided connect wizard; the certificate
@@ -44,6 +44,11 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sun Jul 26 2026 Watson <noreply@openai.com> - 1.0.0-3
+- Use "device" or "Rutoken" instead of the physical-form-specific "token" in
+  user-facing text: NFC products may be USB devices, smart cards, key fobs or
+  rings. The built-in NFC animation now labels the product «Рутокен» in Russian.
+
 * Sun Jul 26 2026 Watson <noreply@openai.com> - 1.0.0-2
 - Move USB login controls from Properties to Objects, where authentication is
   relevant for displaying private keys. Add the same login action for an NFC

@@ -216,7 +216,7 @@ QVariantList Diagnostics::probePcsc() const
                                               : readers.join(QStringLiteral("; "))));
     } else if (static_cast<quint32>(rv) == 0x8010002E) { // SCARD_E_NO_READERS_AVAILABLE
         rows.append(makeRow(QStringLiteral("readers"), -1,
-                            QStringLiteral("ридеров сейчас нет — подключите токен (")
+                            QStringLiteral("ридеров сейчас нет — подключите устройство (")
                                 + scardErrorText(rv, stringify) + QLatin1Char(')')));
     } else {
         rows.append(makeRow(QStringLiteral("readers"), 0, scardErrorText(rv, stringify)));

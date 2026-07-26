@@ -26,7 +26,7 @@ CoverBackground {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
-            text: tokenWatcher.tokens.length === 1 ? qsTr("token") : qsTr("tokens")
+            text: tokenWatcher.tokens.length === 1 ? qsTr("device") : qsTr("devices")
             color: Theme.secondaryColor
             font.pixelSize: Theme.fontSizeExtraSmall
         }

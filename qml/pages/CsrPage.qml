@@ -79,7 +79,7 @@ Page {
 
             PageHeader {
                 title: qsTr("Certificate request")
-                description: qsTr("PKCS#10, signed on the token")
+                description: qsTr("PKCS#10, signed on the Rutoken")
             }
 
             Label {
@@ -183,7 +183,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
-                text: qsTr("Over NFC you will enter the PIN and hold the token in the next step.")
+                text: qsTr("Over NFC you will enter the PIN and hold the device in the next step.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }
@@ -252,7 +252,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
-                text: qsTr("The request is signed by the private key on the token; the private key never leaves it.")
+                text: qsTr("The request is signed by the private key on the Rutoken; the private key never leaves it.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }

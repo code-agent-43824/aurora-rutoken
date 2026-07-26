@@ -132,8 +132,8 @@ void TokenWatcher::onPolled(const QVariantList &cards, const QString &error)
     if (!error.isEmpty())
         setStatus(error);
     else
-        setStatus(cards.isEmpty() ? QStringLiteral("Токен не подключён")
-                                  : QStringLiteral("Подключено токенов: %1").arg(cards.size()));
+        setStatus(cards.isEmpty() ? QStringLiteral("Устройство Рутокен не подключено")
+                                  : QStringLiteral("Подключено устройств: %1").arg(cards.size()));
 
     const QString signature = signatureOf(cards);
     if (signature == m_signature)
