@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
-      contents: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -90,28 +90,10 @@ jobs:
           path: RPMS/*.${{ matrix.arch }}.rpm
           if-no-files-found: error
 
-      # Публикация БЕЗ ЗИПА: RPM этой архитектуры (приложение + официальная
-      # библиотека) заливаются прямо в релиз ci-latest как отдельные .rpm —
-      # это ОСНОВНОЙ канал (голые файлы, без архива).
-      - name: Publish this architecture RPMs to ci-latest
-        if: github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          rpms=(RPMS/*."${TARGET_ARCH}".rpm)
-          # Ровно два: приложение и официальная библиотека Рутокен.
-          [[ ${#rpms[@]} -eq 2 ]]
-          sha256sum "${rpms[@]}"
-          gh release upload ci-latest "${rpms[@]}" --clobber
-
-  # После успеха ОБЕИХ архитектур: проверить комплектность релиза (ровно 4
-  # текущих .rpm), удалить ассеты прошлых версий приложения и обновить описание.
-  finalize-release:
-    name: Verify and finalize ci-latest
+  # Единственная точка записи в rolling release. Она получает оба проверенных
+  # Actions artifacts и запускается только после успеха всей matrix.
+  publish-release:
+    name: Publish verified four-RPM set
     if: github.ref == 'refs/heads/main'
     needs: [build-rpm]
     runs-on: ubuntu-latest
@@ -121,47 +103,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prune stale versions and require the current four RPMs
+      - name: Download both verified architecture artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: rutokentestapp-*-rpms
+          path: release-rpms
+          merge-multiple: true
+
+      - name: Publish complete set with rollback
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          version=$(awk '$1 == "Version:" { print $2; exit }' rpm/*.spec)
-          release=$(awk '$1 == "Release:" { print $2; exit }' rpm/*.spec)
-          [[ -n "$version" && -n "$release" ]]
-          app_arm="ru.codeagent43824.rutokentestapp-${version}-${release}.armv7hl.rpm"
-          app_a64="ru.codeagent43824.rutokentestapp-${version}-${release}.aarch64.rpm"
-
-          mapfile -t assets < <(gh release view ci-latest --json assets -q '.assets[].name')
-          # Удаляем ассеты приложения прошлых версий (имена меняются с версией).
-          for a in "${assets[@]}"; do
-            case "$a" in
-              ru.codeagent43824.rutokentestapp-*.rpm)
-                if [[ "$a" != "$app_arm" && "$a" != "$app_a64" ]]; then
-                  echo "prune stale $a"
-                  gh release delete-asset ci-latest "$a" -y
-                fi ;;
-            esac
-          done
-
-          # Требуем полный текущий набор: 2 приложения + 2 официальные библиотеки.
-          mapfile -t assets < <(gh release view ci-latest --json assets -q '.assets[].name')
-          have() { printf '%s\n' "${assets[@]}" | grep -qx "$1"; }
-          have "$app_arm"
-          have "$app_a64"
-          printf '%s\n' "${assets[@]}" | grep -qE '^ru\.rutoken\.librtpkcs11ecp-.*\.armv7hl\.rpm$'
-          printf '%s\n' "${assets[@]}" | grep -qE '^ru\.rutoken\.librtpkcs11ecp-.*\.aarch64\.rpm$'
-          echo "ci-latest assets:"; printf '  %s\n' "${assets[@]}"
-
-      - name: Update release description
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh release edit ci-latest --prerelease \
-            --title "Последняя CI-сборка (main)" \
-            --notes "Проверенные RPM для ОС Аврора 5.x из коммита ${GITHUB_SHA} ($(date -u '+%Y-%m-%d %H:%M UTC')). Файлы лежат отдельными .rpm (без архива). Для своей архитектуры сначала установите неизменённый официальный ru.rutoken.librtpkcs11ecp-2.19.0.0-1 RPM, затем ru.codeagent43824.rutokentestapp. 32-битный телефон — *.armv7hl.rpm, 64-битный — *.aarch64.rpm. Приложение подписано тестовым ключом OMP; нужен режим разработчика и разрешение недоверенного ПО. Лицензия Рутокен: https://www.rutoken.ru/download/license/License_Agreement_Rutoken.pdf"
+        run: ./ci/publish-release.sh release-rpms
