@@ -913,18 +913,6 @@
         <translation>Флаги</translation>
     </message>
     <message>
-        <source>User PIN login</source>
-        <translation>Вход по PIN-коду пользователя</translation>
-    </message>
-    <message>
-        <source>Checking…</source>
-        <translation>Проверка…</translation>
-    </message>
-    <message>
-        <source>Enter PIN</source>
-        <translation>Ввести PIN-код</translation>
-    </message>
-    <message>
         <source>Logged in — the PIN is remembered</source>
         <translation>Вход выполнен — PIN-код запомнен</translation>
     </message>

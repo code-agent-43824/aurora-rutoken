@@ -465,10 +465,11 @@ void TokenSession::syncWithTokens(const QVariantList &tokens)
     }
 }
 
-void TokenSession::commitNfc(const QVariantMap &token)
+void TokenSession::commitNfc(const QVariantMap &token, bool authenticated)
 {
     m_nfcToken = token;
     m_nfcObjects = m_objects; // снимок только что прочитанных объектов
+    m_nfcAuthenticated = authenticated;
     emit changed();
 }
 
@@ -477,6 +478,9 @@ void TokenSession::updateNfcObjects()
     if (m_nfcToken.isEmpty())
         return;
     m_nfcObjects = m_objects;
+    // Все изменяющие NFC-операции, после которых вызывается этот метод,
+    // выполняются в аутентифицированной сессии.
+    m_nfcAuthenticated = true;
     emit changed();
 }
 
@@ -494,6 +498,7 @@ void TokenSession::disconnectNfc()
 {
     m_nfcToken.clear();
     m_nfcObjects.clear();
+    m_nfcAuthenticated = false;
     emit changed();
 }
 

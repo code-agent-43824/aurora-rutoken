@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.0.0
-Release:    1
+Release:    2
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,12 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sun Jul 26 2026 Watson <noreply@openai.com> - 1.0.0-2
+- Move USB login controls from Properties to Objects, where authentication is
+  relevant for displaying private keys. Add the same login action for an NFC
+  snapshot connected without a PIN: the existing NFC wizard now requires the PIN,
+  re-reads the token during one hold and returns to the open Objects view.
+
 * Fri Jul 25 2026 Claude <noreply@anthropic.com> - 1.0.0-1
 - Release 1.0. Move the token administration actions (change user/admin PIN,
   unblock the user PIN, change the label) from visible buttons on the Properties

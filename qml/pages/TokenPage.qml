@@ -2,8 +2,8 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 // Единый экран токена с переключателем вида вверху: «Свойства» (по умолчанию —
-// данные токена, вход по PIN-коду и административные функции: смена PIN-кодов,
-// разблокировка, смена метки) и «Объекты» (сертификаты, ключи и связанные
+// данные токена и административные функции: смена PIN-кодов, разблокировка,
+// смена метки) и «Объекты» (вход, сертификаты, ключи и связанные
 // операции: генерация, импорт, экспорт, удаление, запрос на сертификат). Оба
 // вида одинаково быстро доступны, отдельной кнопки «Объекты» больше нет.
 //
@@ -31,6 +31,7 @@ Page {
     // создание/импорт (форма вернулась и выставила writeResultShown).
     property bool deleteAttempted: false
     property bool writeResultShown: false
+    property bool loginAttempted: false
 
     // Живая метка. USB — по slotId из TokenWatcher (обновляется по tokensChanged);
     // NFC — из снимка nfcToken (обновляется через setNfcLabel).
@@ -69,8 +70,23 @@ Page {
             acceptText: qsTr("Log in")
         })
         pad.entered.connect(function(pin) {
+            page.loginAttempted = true
             tokenSession.login(page.slotId, pin)
         })
+    }
+
+    function openObjectLogin() {
+        if (tokenSession.busy)
+            return
+        if (page.connection === "NFC") {
+            pageStack.push(Qt.resolvedUrl("NfcConnectPage.qml"), {
+                operation: "connect",
+                requirePin: true,
+                returnToCaller: true
+            })
+        } else {
+            page.openPinPad()
+        }
     }
 
     // Удаление записи долгим нажатием. Сертификат — всегда спрашиваем область.
@@ -260,63 +276,6 @@ Page {
                     value: page.flags.length > 0 ? page.flags : "—"
                 }
 
-                // --- Вход по PIN — только USB ---
-                SectionHeader {
-                    visible: page.connection !== "NFC"
-                    text: qsTr("User PIN login")
-                }
-                Button {
-                    visible: page.connection !== "NFC" && !tokenSession.loggedIn
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: tokenSession.busy ? qsTr("Checking…") : qsTr("Enter PIN")
-                    enabled: !tokenSession.busy
-                    onClicked: page.openPinPad()
-                }
-                Label {
-                    visible: page.connection !== "NFC" && tokenSession.loggedIn
-                    x: Theme.horizontalPageMargin
-                    width: parent.width - 2 * Theme.horizontalPageMargin
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.Wrap
-                    text: qsTr("Logged in — the PIN is remembered")
-                    color: "#4caf50"
-                    font.pixelSize: Theme.fontSizeMedium
-                }
-                Button {
-                    visible: page.connection !== "NFC" && tokenSession.loggedIn
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: qsTr("Log out")
-                    enabled: !tokenSession.busy
-                    onClicked: tokenSession.logout()
-                }
-                BusyIndicator {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    running: tokenSession.busy
-                    visible: page.connection !== "NFC" && tokenSession.busy
-                    size: BusyIndicatorSize.Medium
-                }
-                Label {
-                    x: Theme.horizontalPageMargin
-                    width: parent.width - 2 * Theme.horizontalPageMargin
-                    wrapMode: Text.Wrap
-                    horizontalAlignment: Text.AlignHCenter
-                    textFormat: Text.PlainText
-                    visible: page.connection !== "NFC" && !tokenSession.busy && tokenSession.outcome !== 0
-                    text: tokenSession.result
-                    color: tokenSession.outcome === 1 ? "#4caf50" : "#f44336"
-                    font.pixelSize: Theme.fontSizeMedium
-                }
-                Label {
-                    x: Theme.horizontalPageMargin
-                    width: parent.width - 2 * Theme.horizontalPageMargin
-                    wrapMode: Text.Wrap
-                    horizontalAlignment: Text.AlignHCenter
-                    visible: page.connection !== "NFC"
-                    text: qsTr("The PIN is kept in memory until you log out, unplug the USB token, or close the app.")
-                    color: Theme.secondaryColor
-                    font.pixelSize: Theme.fontSizeExtraSmall
-                }
-
                 // Администрирование токена (смена/разблокировка PIN-кодов, метка) —
                 // в меню-шторке сверху (потяните вниз). Для NFC каждая операция
                 // соберёт данные и попросит одно поднесение токена.
@@ -359,12 +318,54 @@ Page {
                     font.pixelSize: Theme.fontSizeSmall
                 }
 
-                // Вход по PIN-коду прямо из списка объектов (USB) — чтобы увидеть ключи.
+                // Вход расположен только рядом с сертификатами/ключами. USB
+                // запоминает PIN; NFC перечитывает снимок за одно поднесение.
                 Button {
-                    visible: page.connection !== "NFC" && !tokenSession.loggedIn && !tokenSession.busy
+                    visible: !tokenSession.busy
+                             && ((page.connection !== "NFC" && !tokenSession.loggedIn)
+                                 || (page.connection === "NFC"
+                                     && !tokenSession.nfcAuthenticated))
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: qsTr("Enter PIN to see keys")
-                    onClicked: page.openPinPad()
+                    onClicked: page.openObjectLogin()
+                }
+                Label {
+                    visible: page.connection !== "NFC" && tokenSession.loggedIn
+                    x: Theme.horizontalPageMargin
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                    text: qsTr("Logged in — the PIN is remembered")
+                    color: "#4caf50"
+                    font.pixelSize: Theme.fontSizeMedium
+                }
+                Button {
+                    visible: page.connection !== "NFC" && tokenSession.loggedIn
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTr("Log out")
+                    enabled: !tokenSession.busy
+                    onClicked: tokenSession.logout()
+                }
+                Label {
+                    x: Theme.horizontalPageMargin
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+                    wrapMode: Text.Wrap
+                    textFormat: Text.PlainText
+                    visible: page.connection !== "NFC" && page.loginAttempted
+                             && !tokenSession.busy && tokenSession.outcome !== 0
+                    text: tokenSession.result
+                    color: tokenSession.outcome === 1 ? "#4caf50" : "#f44336"
+                    font.pixelSize: Theme.fontSizeMedium
+                }
+                Label {
+                    x: Theme.horizontalPageMargin
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+                    wrapMode: Text.Wrap
+                    horizontalAlignment: Text.AlignHCenter
+                    visible: page.connection !== "NFC" && tokenSession.loggedIn
+                    text: qsTr("The PIN is kept in memory until you log out, unplug the USB token, or close the app.")
+                    color: Theme.secondaryColor
+                    font.pixelSize: Theme.fontSizeExtraSmall
                 }
 
                 Label {

@@ -33,6 +33,7 @@ class TokenSession : public QObject
     Q_PROPERTY(QVariantMap nfcToken READ nfcToken NOTIFY changed)
     Q_PROPERTY(QVariantList nfcObjects READ nfcObjects NOTIFY changed)
     Q_PROPERTY(bool nfcConnected READ nfcConnected NOTIFY changed)
+    Q_PROPERTY(bool nfcAuthenticated READ nfcAuthenticated NOTIFY changed)
     // Серийники USB-токенов, логически отключённых (скрыты из списка).
     Q_PROPERTY(QStringList suppressedUsb READ suppressedUsb NOTIFY changed)
 
@@ -49,6 +50,7 @@ public:
     QVariantMap nfcToken() const { return m_nfcToken; }
     QVariantList nfcObjects() const { return m_nfcObjects; }
     bool nfcConnected() const { return !m_nfcToken.isEmpty(); }
+    bool nfcAuthenticated() const { return m_nfcAuthenticated; }
     QStringList suppressedUsb() const { return m_suppressedUsb; }
 
     // Вход по PIN + чтение всех объектов (сертификаты и ключи). При успехе PIN
@@ -103,7 +105,7 @@ public:
                                      const QString &email);
     // Логически подключённый NFC-токен: снимок объектов сохраняется, чтобы
     // вернуться к его сертификатам без повторного поднесения.
-    Q_INVOKABLE void commitNfc(const QVariantMap &token); // токен + снимок текущих объектов
+    Q_INVOKABLE void commitNfc(const QVariantMap &token, bool authenticated);
     Q_INVOKABLE void updateNfcObjects();                  // обновить снимок после операции по NFC
     Q_INVOKABLE void setNfcLabel(const QString &label);   // обновить метку в снимке (после смены по NFC)
     Q_INVOKABLE void disconnectNfc();                     // логически отключить NFC-токен
@@ -175,6 +177,7 @@ private:
     // Логически подключённый NFC-токен: дескриптор и снимок объектов.
     QVariantMap m_nfcToken;
     QVariantList m_nfcObjects;
+    bool m_nfcAuthenticated = false;
     // Серийники логически отключённых USB-токенов (скрыты до переподключения).
     QStringList m_suppressedUsb;
     // Текущая операция изменила пользовательский PIN → при успехе сбросить кэш входа.

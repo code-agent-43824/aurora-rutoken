@@ -19,6 +19,10 @@ Page {
     property string algorithm: ""
     property string label: ""
     property string filePath: ""
+    // Повторный вход из уже открытого вида «Объекты»: PIN обязателен, после
+    // обновления снимка возвращаемся к странице-инициатору.
+    property bool requirePin: false
+    property bool returnToCaller: false
     // Для operation="csr": ключевая пара по CKA_ID и поля Subject (DN).
     property string idHex: ""
     property var csrDn: null
@@ -179,7 +183,7 @@ Page {
                 }
                 // Подключение без входа — видны только публичные сертификаты.
                 Button {
-                    visible: page.operation === "connect"
+                    visible: page.operation === "connect" && !page.requirePin
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: qsTr("Continue without PIN")
                     onClicked: page.continueNoPin()
@@ -275,7 +279,11 @@ Page {
                             // считаны при подключении (по PIN-коду — с ключами,
                             // без PIN-кода — только публичные) — из деталей их видно
                             // без повторного поднесения.
-                            tokenSession.commitNfc(page.lastToken)
+                            tokenSession.commitNfc(page.lastToken, !page.noPin)
+                            if (page.returnToCaller) {
+                                pageStack.pop()
+                                return
+                            }
                             var t = page.lastToken
                             pageStack.replace(Qt.resolvedUrl("TokenPage.qml"), {
                                 connection: "NFC",

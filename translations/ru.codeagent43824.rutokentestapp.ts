@@ -913,18 +913,6 @@
         <translation>Flags</translation>
     </message>
     <message>
-        <source>User PIN login</source>
-        <translation>User PIN login</translation>
-    </message>
-    <message>
-        <source>Checking…</source>
-        <translation>Checking…</translation>
-    </message>
-    <message>
-        <source>Enter PIN</source>
-        <translation>Enter PIN</translation>
-    </message>
-    <message>
         <source>Logged in — the PIN is remembered</source>
         <translation>Logged in — the PIN is remembered</translation>
     </message>
