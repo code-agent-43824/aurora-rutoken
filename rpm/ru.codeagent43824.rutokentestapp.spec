@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.0.0
-Release:    5
+Release:    6
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -42,8 +42,14 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/%{name}
 %{_datadir}/applications/%{name}.desktop
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
+%{_datadir}/icons/hicolor/*/apps/ru.codeagent43824.rutoken.png
 
 %changelog
+* Mon Jul 27 2026 Watson <noreply@openai.com> - 1.0.0-6
+- Refine the Slim-C launcher silhouette: a larger lanyard hole, a clearer
+  taper next to the connector and a short flat Type-C blade. Install the icon
+  under a fresh resource name so Aurora Launcher does not reuse its old cache.
+
 * Mon Jul 27 2026 Watson <noreply@openai.com> - 1.0.0-5
 - Rename the launcher from "Rutoken Test" to "Rutoken" and replace the generic
   USB-device icon with an abstract silhouette of the Rutoken ECP 3.0 NFC

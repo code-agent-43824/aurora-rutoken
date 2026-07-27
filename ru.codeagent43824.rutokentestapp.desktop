@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 X-Nemo-Application-Type=silica-qt5
-Icon=ru.codeagent43824.rutokentestapp
+Icon=ru.codeagent43824.rutoken
 Exec=/usr/bin/ru.codeagent43824.rutokentestapp
 Name=Rutoken
 Name[ru]=Рутокен
