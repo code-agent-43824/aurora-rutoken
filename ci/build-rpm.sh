@@ -38,6 +38,22 @@ echo "== signing $RPM_PATH with the OMP regular test key"
 "$PSDK_DIR/sdk-chroot" rpmsign-external sign \
     --key ci/keys/regular_key.pem --cert ci/keys/regular_cert.pem "$RPM_PATH"
 
+echo "== validating installability with the official Aurora RPM validator"
+if "$PSDK_DIR/sdk-chroot" rpm-validator -p regular --color never "$RPM_PATH"; then
+    :
+else
+    VALIDATOR_STATUS=$?
+    case "$VALIDATOR_STATUS" in
+        2)
+            echo "Aurora RPM validator completed with non-blocking warnings" >&2
+            ;;
+        *)
+            echo "Aurora RPM validator rejected the package (exit $VALIDATOR_STATUS)" >&2
+            exit "$VALIDATOR_STATUS"
+            ;;
+    esac
+fi
+
 echo "== verifying package architecture, ELF loader and signature metadata"
 "$PSDK_DIR/sdk-chroot" ./ci/verify-rpm.sh "$TARGET_ARCH" "$RPM_PATH"
 

@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.0.0
-Release:    6
+Release:    7
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -42,9 +42,13 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/%{name}
 %{_datadir}/applications/%{name}.desktop
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
-%{_datadir}/icons/hicolor/*/apps/ru.codeagent43824.rutoken.png
 
 %changelog
+* Mon Jul 27 2026 Watson <noreply@openai.com> - 1.0.0-7
+- Restore the package-name icon identifier required by Aurora RPM validation.
+  Keep the refined Slim-C artwork and reject noncanonical launcher icon names
+  in CI.
+
 * Mon Jul 27 2026 Watson <noreply@openai.com> - 1.0.0-6
 - Refine the Slim-C launcher silhouette: a larger lanyard hole, a clearer
   taper next to the connector and a short flat Type-C blade. Install the icon

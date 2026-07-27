@@ -38,18 +38,22 @@ if [ ! -f "$APP_BINARY" ]; then
 fi
 
 DESKTOP_FILE="$VERIFY_DIR/usr/share/applications/$APP_ID.desktop"
-ICON_ID="ru.codeagent43824.rutoken"
-if [ ! -f "$DESKTOP_FILE" ] || ! grep -Fxq "Icon=$ICON_ID" "$DESKTOP_FILE"; then
-    echo "Desktop file does not reference the cache-busting icon: $ICON_ID" >&2
+if [ ! -f "$DESKTOP_FILE" ] || ! grep -Fxq "Icon=$APP_ID" "$DESKTOP_FILE"; then
+    echo "Desktop Icon must match the RPM package name: $APP_ID" >&2
     exit 1
 fi
 for ICON_SIZE in 86x86 108x108 128x128 172x172; do
-    ICON_PATH="$VERIFY_DIR/usr/share/icons/hicolor/$ICON_SIZE/apps/$ICON_ID.png"
+    ICON_PATH="$VERIFY_DIR/usr/share/icons/hicolor/$ICON_SIZE/apps/$APP_ID.png"
     if [ ! -s "$ICON_PATH" ]; then
         echo "Launcher icon is missing or empty: $ICON_PATH" >&2
         exit 1
     fi
 done
+ICON_COUNT=$(find "$VERIFY_DIR/usr/share/icons/hicolor" -type f -path '*/apps/*.png' | wc -l)
+if [ "$ICON_COUNT" -ne 4 ]; then
+    echo "Expected exactly four canonical launcher PNG files, got $ICON_COUNT" >&2
+    exit 1
+fi
 
 MACHINE=$(LC_ALL=C readelf -h "$APP_BINARY" | awk -F: '/^[[:space:]]*Machine:/{sub(/^[[:space:]]+/, "", $2); print $2}')
 if [ "$MACHINE" != "$EXPECTED_MACHINE" ]; then
@@ -69,4 +73,4 @@ printf '%s\n' "$SIGNATURE_INFO" | grep -Fq 'Subject: Noname developer (for testi
 printf '%s\n' "$SIGNATURE_INFO" | grep -Fq 'Subgroup: regular'
 printf '%s\n' "$SIGNATURE_INFO" | grep -Eq '^Signature: .+'
 
-echo "Verified: rpm_arch=$RPM_ARCH; elf_machine=$MACHINE; loader=$INTERPRETER; icon=$ICON_ID; signature=OMP regular test"
+echo "Verified: rpm_arch=$RPM_ARCH; elf_machine=$MACHINE; loader=$INTERPRETER; icon=$APP_ID; signature=OMP regular test"
