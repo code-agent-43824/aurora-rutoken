@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.0.0
-Release:    4
+Release:    5
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -44,6 +44,12 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Mon Jul 27 2026 Watson <noreply@openai.com> - 1.0.0-5
+- Rename the launcher from "Rutoken Test" to "Rutoken" and replace the generic
+  USB-device icon with an abstract silhouette of the Rutoken ECP 3.0 NFC
+  Slim-C: slim body, lanyard hole, tapered shoulder, USB Type-C connector and
+  NFC waves.
+
 * Sun Jul 26 2026 Watson <noreply@openai.com> - 1.0.0-4
 - Final v1.0 polish: keep the login action on the Objects view until
   authentication, but remove the redundant logout button, remembered-PIN status

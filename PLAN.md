@@ -26,15 +26,18 @@
 Рутокен ЭЦП 3.0 3100 NFC Slim-C с USB Type-C, и перенести стабильный тег версии
 1.0.0 на новую сборку.
 
-- [~] Поменять отображаемое имя launcher: `Rutoken` / `Рутокен` вместо
-  `Rutoken Test` / `Рутокен Тест`, не меняя Application ID и имена пакетов.
-- [~] Перерисовать каноническую SVG-иконку и четыре launcher PNG
+- [x] Поменять отображаемое имя launcher: `Rutoken` / `Рутокен` вместо
+  `Rutoken Test` / `Рутокен Тест`, не меняя Application ID и имена пакетов —
+  2026-07-27.
+- [x] Перерисовать каноническую SVG-иконку и четыре launcher PNG
   (86/108/128/172): оставить абстрактный белый знак на синем фоне, показать
   вытянутый корпус Slim-C, отверстие под крепление, сужение корпуса и
   разъём USB Type-C. Ориентир формы — официальное изображение модели:
-  `https://www.rutoken.ru/resource/products/rutoken_ecp/common/rutoken_ecp_3100_slim_c.png`.
-- [~] Поднять Release пакета до `1.0.0-5`, синхронизировать `kAppVersion`,
-  spec, README, AGENTS, PLAN и JOURNAL; выполнить host-проверки.
+  `https://www.rutoken.ru/resource/products/rutoken_ecp/common/rutoken_ecp_3100_slim_c.png`
+  — 2026-07-27.
+- [x] Поднять Release пакета до `1.0.0-5`, синхронизировать `kAppVersion`,
+  spec, README, AGENTS, release notes, PLAN и JOURNAL; выполнить host-проверки
+  — 2026-07-27.
 - [ ] Собрать и проверить armv7hl/aarch64, оба Actions artifact и атомарную
   публикацию четырёх RPM в `ci-latest`.
 - [ ] После зелёного CI перенести существующий стабильный аннотированный тег
