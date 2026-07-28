@@ -46,15 +46,18 @@ CI теперь также требует экспорты `C_EX_PKCS7Sign`/`C_E
 официальном RPM и наличие обоих новых QML-файлов внутри RPM приложения.
 
 **Проверки:** host-проверки подтвердили shell/YAML/XML, полное покрытие новых
-`qsTr`, синхронность `1.1.0-1`, PKCS#11 ABI-header и чистый diff. GitHub
-Actions run `30362997564` полностью зелёный: armv7hl/ARM и aarch64/AArch64
-собрались, официальный RPM-валидатор, loaders и подписи OMP regular прошли;
-официальная библиотека обеих архитектур подтвердила новые vendor-экспорты.
-Опубликованы artifacts `rutokentestapp-1.1.0-1-<arch>-rpms`, а `ci-latest`
-атомарно содержит четыре RPM. SHA-256 приложения: armv7hl
-`f3e6e074b5cb1a11b17de12514c74ec974c5dd3813281ddf2308e3b618e70499`,
+`qsTr`, синхронность `1.1.0-1`, PKCS#11 ABI-header и чистый diff. Финальный
+GitHub Actions run `30363591737` полностью зелёный: armv7hl/ARM и
+aarch64/AArch64 собрались, официальный RPM-валидатор, loaders и подписи OMP
+regular прошли; официальная библиотека обеих архитектур подтвердила новые
+vendor-экспорты. Дополнительный packaging gate распаковал оба RPM приложения и
+подтвердил наличие `SignFilePage.qml` и `SignDataFilePickerPage.qml`
+(`cms_qml=present`). Опубликованы artifacts
+`rutokentestapp-1.1.0-1-<arch>-rpms`, а `ci-latest` атомарно содержит четыре
+RPM. SHA-256 финальных RPM приложения: armv7hl
+`2ce312f484e92b3af2c6c76808ccae92ca3165ab06d931359c00b64b257589d7`,
 aarch64
-`7bfbee5b1ebf3b48c9521ff48d0bc800388150629eb6a54ad4b4c1324f3b2513`.
+`ec2012abe08a84a4db89f93fa6fccfa005fe300582a94788e7833128cba1f01c`.
 
 **Открыто до закрытия v1.1:** на физическом armv7hl-устройстве получить
 detached и attached CMS по USB и NFC, независимо проверить структуру/подпись и
