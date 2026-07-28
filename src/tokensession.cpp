@@ -1,5 +1,6 @@
 #include "tokensession.h"
 #include "pkcs11_certimport.h"
+#include "pkcs11_cms.h"
 #include "pkcs11_guard.h"
 #include "pkcs11_csr.h"
 #include "pkcs11_errors.h"
@@ -242,6 +243,8 @@ TokenSession::TokenSession(QObject *parent)
         m_exGetTokenInfoExtended = m_library.resolve("C_EX_GetTokenInfoExtended");
         m_exSetTokenName = m_library.resolve("C_EX_SetTokenName");
         m_exUnblockUserPin = m_library.resolve("C_EX_UnblockUserPIN");
+        m_exPkcs7Sign = m_library.resolve("C_EX_PKCS7Sign");
+        m_exFreeBuffer = m_library.resolve("C_EX_FreeBuffer");
     }
 }
 
@@ -825,6 +828,74 @@ void TokenSession::createCsrCached(qulonglong slotId, const QString &idHex,
     }
     createCsr(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()), idHex,
               commonName, organization, organizationUnit, country, locality, state, email);
+}
+
+void TokenSession::signCms(qulonglong slotId, const QString &pin,
+                           const QString &idHex, const QString &certificateDerB64,
+                           const QString &sourcePath, bool detached,
+                           const QString &outputDir, const QString &outputName)
+{
+    if (m_busy)
+        return;
+    m_pendingIsLogin = false;
+    if (!m_getFunctionList) {
+        m_outcome = -1;
+        m_result = kLibraryMissing;
+        emit changed();
+        return;
+    }
+    if (!m_exPkcs7Sign || !m_exFreeBuffer) {
+        m_outcome = -1;
+        m_result = QStringLiteral(
+            "Библиотека Рутокен не предоставляет CMS-функции C_EX_PKCS7Sign/C_EX_FreeBuffer");
+        emit changed();
+        return;
+    }
+
+    m_busy = true;
+    m_outcome = 0;
+    m_result.clear();
+    emit changed();
+
+    const QFunctionPointer getFunctionList = m_getFunctionList;
+    const QFunctionPointer exTok = m_exGetTokenInfoExtended;
+    const QFunctionPointer exSign = m_exPkcs7Sign;
+    const QFunctionPointer exFree = m_exFreeBuffer;
+    QByteArray pinBytes = pin.toUtf8();
+    const QByteArray idBytes = QByteArray::fromHex(idHex.toLatin1());
+    const QByteArray certificateDer = QByteArray::fromBase64(certificateDerB64.toLatin1());
+
+    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, exTok, exSign, exFree,
+                       idBytes, certificateDer, sourcePath, detached,
+                       outputDir, outputName]() mutable {
+        const WriteOutcome wo = runTokenWrite(getFunctionList, slotId, pinBytes, exTok,
+            [exSign, exFree, &idBytes, &certificateDer, &sourcePath, detached,
+             &outputDir, &outputName](CK_FUNCTION_LIST_PREFIX *fns,
+                                      CK_SESSION_HANDLE session) {
+                const pkcs11::CmsResult cms =
+                    pkcs11::signFileCms(fns, session, exSign, exFree, idBytes,
+                                        certificateDer, sourcePath, detached,
+                                        outputDir, outputName);
+                return qMakePair(cms.ok, cms.message);
+            });
+        pinBytes.fill('\0');
+        emit finished(wo.outcome, wo.message, wo.objects);
+    });
+}
+
+void TokenSession::signCmsCached(qulonglong slotId, const QString &idHex,
+                                 const QString &certificateDerB64,
+                                 const QString &sourcePath, bool detached,
+                                 const QString &outputDir, const QString &outputName)
+{
+    if (!m_loggedIn || m_cachedSlot != slotId || m_cachedPin.isEmpty()) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Сначала войдите по PIN-коду");
+        emit changed();
+        return;
+    }
+    signCms(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()),
+            idHex, certificateDerB64, sourcePath, detached, outputDir, outputName);
 }
 
 void TokenSession::run(qulonglong slotId, const QString &pin, bool doLogin)

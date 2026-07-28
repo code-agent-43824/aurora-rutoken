@@ -193,6 +193,10 @@
         <source>Create certificate request</source>
         <translation>Создать запрос на сертификат</translation>
     </message>
+    <message>
+        <source>Sign a file</source>
+        <translation>Подписать файл</translation>
+    </message>
 </context>
 <context>
     <name>ExportCertificatePage</name>
@@ -242,6 +246,104 @@
     <message>
         <source>Choose a certificate</source>
         <translation>Выберите сертификат</translation>
+    </message>
+</context>
+<context>
+    <name>SignDataFilePickerPage</name>
+    <message>
+        <source>Choose a file to sign</source>
+        <translation>Выберите файл для подписи</translation>
+    </message>
+</context>
+<context>
+    <name>SignFilePage</name>
+    <message>
+        <source>User PIN</source>
+        <translation>PIN-код пользователя</translation>
+    </message>
+    <message>
+        <source>Log in</source>
+        <translation>Войти</translation>
+    </message>
+    <message>
+        <source>Sign a file</source>
+        <translation>Подписать файл</translation>
+    </message>
+    <message>
+        <source>CMS/PKCS#7 on the Rutoken</source>
+        <translation>CMS/PKCS#7 в Рутокене</translation>
+    </message>
+    <message>
+        <source>Certificate</source>
+        <translation>Сертификат</translation>
+    </message>
+    <message>
+        <source>Choose a file</source>
+        <translation>Выбрать файл</translation>
+    </message>
+    <message>
+        <source>Source file</source>
+        <translation>Исходный файл</translation>
+    </message>
+    <message>
+        <source>Pick a file or type a path</source>
+        <translation>Выберите файл или введите путь</translation>
+    </message>
+    <message>
+        <source>Signature format</source>
+        <translation>Формат подписи</translation>
+    </message>
+    <message>
+        <source>Detached CMS (.p7s)</source>
+        <translation>Отсоединённая CMS (.p7s)</translation>
+    </message>
+    <message>
+        <source>Attached CMS (.p7m)</source>
+        <translation>Присоединённая CMS (.p7m)</translation>
+    </message>
+    <message>
+        <source>Result file name</source>
+        <translation>Имя файла результата</translation>
+    </message>
+    <message>
+        <source>Extension is added automatically</source>
+        <translation>Расширение добавится автоматически</translation>
+    </message>
+    <message>
+        <source>Save to folder</source>
+        <translation>Сохранить в папку</translation>
+    </message>
+    <message>
+        <source>Detached: the source file is not included in the CMS.</source>
+        <translation>Отсоединённая: исходный файл не включается в CMS.</translation>
+    </message>
+    <message>
+        <source>Attached: the source file is included in the CMS.</source>
+        <translation>Присоединённая: исходный файл включается в CMS.</translation>
+    </message>
+    <message>
+        <source>Checking…</source>
+        <translation>Проверка…</translation>
+    </message>
+    <message>
+        <source>Enter PIN</source>
+        <translation>Ввести PIN-код</translation>
+    </message>
+    <message>
+        <source>Over NFC you will enter the PIN and hold the device in the next step.</source>
+        <translation>По NFC на следующем шаге вы введёте PIN-код и поднесёте устройство.</translation>
+    </message>
+    <message>
+        <source>Signing…</source>
+        <translation>Подписание…</translation>
+    </message>
+    <message>
+        <source>Sign</source>
+        <translation>Подписать</translation>
+    </message>
+    <message>
+        <source>An existing result file is never overwritten. Signature verification will be added later.</source>
+        <translation>Существующий файл результата не перезаписывается. Проверка подписи будет добавлена позже.</translation>
     </message>
 </context>
 <context>
@@ -372,6 +474,10 @@
     <message>
         <source>Certificate request over NFC</source>
         <translation>Запрос на сертификат по NFC</translation>
+    </message>
+    <message>
+        <source>Sign a file over NFC</source>
+        <translation>Подписание файла по NFC</translation>
     </message>
     <message>
         <source>Try again</source>

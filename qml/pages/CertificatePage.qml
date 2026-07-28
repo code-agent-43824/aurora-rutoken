@@ -63,6 +63,17 @@ Page {
         contentHeight: col.height
 
         PullDownMenu {
+            MenuItem {
+                visible: page.idHex.length > 0 && page.derB64.length > 0 && page.hasKey
+                text: qsTr("Sign a file")
+                onClicked: pageStack.push(Qt.resolvedUrl("SignFilePage.qml"), {
+                    slotId: page.slotId,
+                    idHex: page.idHex,
+                    certificateDerB64: page.derB64,
+                    certificateName: page.title(),
+                    connection: page.connection
+                })
+            }
             // Запрос на сертификат для ключевой пары этого сертификата (USB и NFC).
             MenuItem {
                 visible: page.idHex.length > 0

@@ -7,7 +7,8 @@ import Sailfish.Silica 1.0
 //   шаг 3 — поднести токен к задней крышке (иллюстрация + прогресс), при
 //           появлении NFC-слота выполняется операция;
 //   шаг 4 — убрать токен, результат.
-// operation: "connect" (вход + чтение), "generate", "import". PIN по NFC НЕ
+// operation: "connect" (вход + чтение), "generate", "import", "csr", "cms".
+// PIN по NFC НЕ
 // запоминается. После connect токен «логически подключается» (снимок объектов
 // сохраняется в TokenSession) — к нему можно вернуться без повторного поднесения.
 Page {
@@ -26,6 +27,12 @@ Page {
     // Для operation="csr": ключевая пара по CKA_ID и поля Subject (DN).
     property string idHex: ""
     property var csrDn: null
+    // Для operation="cms": выбранный сертификат и параметры файла/результата.
+    property string cmsCertificateDerB64: ""
+    property string cmsSourcePath: ""
+    property bool cmsDetached: true
+    property string cmsOutputDir: ""
+    property string cmsOutputName: ""
 
     property int step: 1
     property string pin: ""
@@ -44,6 +51,8 @@ Page {
             return qsTr("Import a certificate over NFC")
         if (page.operation === "csr")
             return qsTr("Certificate request over NFC")
+        if (page.operation === "cms")
+            return qsTr("Sign a file over NFC")
         return qsTr("Connect over NFC")
     }
 
@@ -72,6 +81,10 @@ Page {
             tokenSession.createCsr(tok.slotId, page.pin, page.idHex,
                                    page.csrDn.cn, page.csrDn.o, page.csrDn.ou, page.csrDn.c,
                                    page.csrDn.l, page.csrDn.st, page.csrDn.email)
+        else if (page.operation === "cms")
+            tokenSession.signCms(tok.slotId, page.pin, page.idHex,
+                                 page.cmsCertificateDerB64, page.cmsSourcePath,
+                                 page.cmsDetached, page.cmsOutputDir, page.cmsOutputName)
         else if (page.noPin)
             tokenSession.preview(tok.slotId)   // без входа — только публичные сертификаты
         else
@@ -297,9 +310,9 @@ Page {
                                 flags: (t && t.flags) ? t.flags : "",
                                 slotName: (t && t.slotName) ? t.slotName : ""
                             })
-                        } else if (page.operation === "csr") {
-                            // Запрос на сертификат: объекты токена не менялись; возврат
-                            // к CsrPage — она покажет PEM из lastCsr (к списку не уходим).
+                        } else if (page.operation === "csr" || page.operation === "cms") {
+                            // CSR/CMS не меняют объекты токена: возврат к форме,
+                            // которая покажет сформированный запрос или путь подписи.
                             pageStack.pop()
                         } else {
                             if (tokenSession.outcome === 1) {

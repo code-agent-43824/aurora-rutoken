@@ -103,6 +103,19 @@ public:
                                      const QString &organizationUnit, const QString &country,
                                      const QString &locality, const QString &state,
                                      const QString &email);
+    // CMS/PKCS#7-подпись выбранного файла закрытым ключом сертификата по
+    // CKA_ID. certificateDerB64 фиксирует именно выбранный сертификат, если на
+    // одной ключевой паре лежит несколько сертификатов. detached=true → .p7s,
+    // false → attached .p7m. Готовый файл не перезаписывает существующий.
+    Q_INVOKABLE void signCms(qulonglong slotId, const QString &pin,
+                             const QString &idHex, const QString &certificateDerB64,
+                             const QString &sourcePath, bool detached,
+                             const QString &outputDir, const QString &outputName);
+    // То же через запомненный USB-PIN.
+    Q_INVOKABLE void signCmsCached(qulonglong slotId, const QString &idHex,
+                                   const QString &certificateDerB64,
+                                   const QString &sourcePath, bool detached,
+                                   const QString &outputDir, const QString &outputName);
     // Логически подключённый NFC-токен: снимок объектов сохраняется, чтобы
     // вернуться к его сертификатам без повторного поднесения.
     Q_INVOKABLE void commitNfc(const QVariantMap &token, bool authenticated);
@@ -157,6 +170,8 @@ private:
     QFunctionPointer m_exGetTokenInfoExtended = nullptr;
     QFunctionPointer m_exSetTokenName = nullptr;
     QFunctionPointer m_exUnblockUserPin = nullptr;
+    QFunctionPointer m_exPkcs7Sign = nullptr;
+    QFunctionPointer m_exFreeBuffer = nullptr;
     bool m_busy = false;
     int m_outcome = 0;
     QString m_result;

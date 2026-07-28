@@ -41,7 +41,8 @@ SONAME=$(LC_ALL=C readelf -d "$LIBRARY" | sed -n 's/.*(SONAME).*\[\(.*\)\]/\1/p'
 [ "$SONAME" = "librtpkcs11ecp.so" ]
 LC_ALL=C readelf -d "$LIBRARY" | grep -Fq '[libpcsclite.so.1]'
 
-for symbol in C_GetFunctionList C_Initialize C_Finalize C_GetInfo; do
+for symbol in C_GetFunctionList C_Initialize C_Finalize C_GetInfo \
+              C_EX_PKCS7Sign C_EX_FreeBuffer; do
     LC_ALL=C readelf -Ws "$LIBRARY" | awk '{print $8}' | grep -Fxq "$symbol"
 done
 

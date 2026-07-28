@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    1.0.0
-Release:    7
+Version:    1.1.0
+Release:    1
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -23,7 +23,9 @@ Aurora OS. It shows connected devices, logs in with the user PIN
 (numeric pad), browses objects, generates key pairs (GOST R 34.10-2012 and
 RSA), imports and exports certificates, and manages PINs (change user/admin
 PIN, unblock the user PIN). NFC uses a guided connect wizard; the certificate
-is auto-attached to its key pair by public key on import.
+is auto-attached to its key pair by public key on import. Files can be signed
+as detached or attached CMS/PKCS#7 with a certificate and private key stored
+on the Rutoken.
 
 %prep
 %autosetup
@@ -44,6 +46,12 @@ is auto-attached to its key pair by public key on import.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Tue Jul 28 2026 Watson <noreply@openai.com> - 1.1.0-1
+- Add detached (.p7s) and attached (.p7m) CMS file signing through the
+  official Rutoken C_EX_PKCS7Sign extension. Select the exact certificate,
+  source file, output directory and name; support both USB and NFC PIN flows
+  and never overwrite an existing result.
+
 * Mon Jul 27 2026 Watson <noreply@openai.com> - 1.0.0-7
 - Restore the package-name icon identifier required by Aurora RPM validation.
   Keep the refined Slim-C artwork and reject noncanonical launcher icon names
