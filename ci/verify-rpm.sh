@@ -37,6 +37,16 @@ if [ ! -f "$APP_BINARY" ]; then
     exit 1
 fi
 
+# v1.1: launcher перехода на CMS может скомпилироваться, даже если новый QML
+# случайно не попал в RPM. Проверяем оба runtime-экрана внутри каждого пакета.
+for QML_PAGE in SignFilePage.qml SignDataFilePickerPage.qml; do
+    QML_PATH="$VERIFY_DIR/usr/share/$APP_ID/qml/pages/$QML_PAGE"
+    if [ ! -s "$QML_PATH" ]; then
+        echo "CMS signing QML is missing or empty: $QML_PATH" >&2
+        exit 1
+    fi
+done
+
 DESKTOP_FILE="$VERIFY_DIR/usr/share/applications/$APP_ID.desktop"
 if [ ! -f "$DESKTOP_FILE" ] || ! grep -Fxq "Icon=$APP_ID" "$DESKTOP_FILE"; then
     echo "Desktop Icon must match the RPM package name: $APP_ID" >&2
@@ -73,4 +83,4 @@ printf '%s\n' "$SIGNATURE_INFO" | grep -Fq 'Subject: Noname developer (for testi
 printf '%s\n' "$SIGNATURE_INFO" | grep -Fq 'Subgroup: regular'
 printf '%s\n' "$SIGNATURE_INFO" | grep -Eq '^Signature: .+'
 
-echo "Verified: rpm_arch=$RPM_ARCH; elf_machine=$MACHINE; loader=$INTERPRETER; icon=$APP_ID; signature=OMP regular test"
+echo "Verified: rpm_arch=$RPM_ARCH; elf_machine=$MACHINE; loader=$INTERPRETER; cms_qml=present; icon=$APP_ID; signature=OMP regular test"
