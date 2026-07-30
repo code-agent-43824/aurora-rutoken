@@ -506,7 +506,7 @@ QString cryptoProPackageVersion()
         const QJsonDocument document = QJsonDocument::fromJson(data, &error);
         if (error.error != QJsonParseError::NoError || !document.isObject())
             continue;
-        const QString version = document.object()
+        const QString version = document.toVariant().toMap()
                 .value(QStringLiteral("version")).toString().trimmed();
         if (!version.isEmpty())
             return version;
