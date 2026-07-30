@@ -71,6 +71,10 @@
 <context>
     <name>DiagnosticsPage</name>
     <message>
+        <source>CryptoPro CSP version</source>
+        <translation>CryptoPro CSP version</translation>
+    </message>
+    <message>
         <source>Diagnostics</source>
         <translation>Diagnostics</translation>
     </message>
@@ -137,6 +141,10 @@
 </context>
 <context>
     <name>CertificatePage</name>
+    <message>
+        <source>Container</source>
+        <translation>Container</translation>
+    </message>
     <message>
         <source>Serial number</source>
         <translation>Serial number</translation>

@@ -1,4 +1,5 @@
 #include "pkcs11_objects.h"
+#include "pkcs11_certimport.h"
 #include "pkcs11_minimal.h"
 
 #include <QtCore/QByteArray>
@@ -277,6 +278,10 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
         cert.insert(QStringLiteral("idText"), idText);
         cert.insert(QStringLiteral("label"), label);
         cert.insert(QStringLiteral("derB64"), QString::fromLatin1(der.toBase64())); // для экспорта
+        // Отпечаток открытого ключа: по нему ключевой контейнер КриптоПро
+        // связывается со своим сертификатом и не показывается отдельной строкой.
+        cert.insert(QStringLiteral("publicKeyHex"), QString::fromLatin1(
+                        pkcs11::publicKeyFromCertificate(der).toHex()));
         cert.insert(QStringLiteral("source"), kSource);
         cert.insert(QStringLiteral("keysKnown"), loggedIn);
         cert.insert(QStringLiteral("hasKey"), !certKeys.isEmpty());

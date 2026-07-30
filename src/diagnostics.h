@@ -28,6 +28,7 @@ public:
 
     void setCryptoProEnabled(bool enabled);
     void setCryptoProLibraries(const QStringList &paths);
+    void setCryptoProVersion(const QString &version);
     Q_INVOKABLE void refresh();
 
 signals:
@@ -49,6 +50,7 @@ private:
     QVariantList m_nfcRows;
     bool m_cryptoProEnabled = false;
     QStringList m_cryptoProLibraries;
+    QString m_cryptoProVersion;
 };
 
 #endif // DIAGNOSTICS_H

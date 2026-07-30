@@ -38,6 +38,7 @@ struct Api
     capi::CryptGetUserKeyFn getUserKey = nullptr;
     capi::CryptGetKeyParamFn getKeyParam = nullptr;
     capi::CryptDestroyKeyFn destroyKey = nullptr;
+    capi::CryptExportKeyFn exportKey = nullptr;
     capi::CertOpenSystemStoreAFn openSystemStore = nullptr;
     capi::CertEnumCertificatesInStoreFn enumCertificates = nullptr;
     capi::CertGetCertificateContextPropertyFn getCertificateProperty = nullptr;
@@ -305,6 +306,76 @@ QString certificateAlgorithm(const QByteArray &der, capi::Dword providerType)
     return oid.isEmpty() ? providerAlgorithm(providerType) : oid;
 }
 
+bool readAnyTlv(const QByteArray &der, int position, quint8 &tag,
+                int &contentStart, int &contentLength, int &next)
+{
+    if (position < 0 || position + 2 > der.size())
+        return false;
+    tag = static_cast<quint8>(der.at(position));
+    int cursor = position + 1;
+    quint32 length = static_cast<quint8>(der.at(cursor++));
+    if (length & 0x80U) {
+        const int count = static_cast<int>(length & 0x7fU);
+        if (count == 0 || count > 4 || cursor + count > der.size())
+            return false;
+        length = 0;
+        for (int i = 0; i < count; ++i)
+            length = (length << 8) | static_cast<quint8>(der.at(cursor++));
+    }
+    if (length > static_cast<quint32>(der.size() - cursor))
+        return false;
+    contentStart = cursor;
+    contentLength = static_cast<int>(length);
+    next = cursor + contentLength;
+    return true;
+}
+
+// Открытый ключ из SubjectPublicKeyInfo: содержимое BIT STRING без байта
+// unused-bits, у ГОСТ дополнительно снимается обёртка OCTET STRING. Нужен, чтобы
+// связать ключевой контейнер с его сертификатом по открытому ключу — так же, как
+// сертификат приклеивается к ключевой паре при импорте.
+QByteArray rawPublicKeyFromCertificate(const QByteArray &der)
+{
+    quint8 tag = 0;
+    int start = 0, length = 0, next = 0;
+    if (!readAnyTlv(der, 0, tag, start, length, next) || tag != 0x30)
+        return QByteArray();
+    int tbsStart = 0, tbsLength = 0;
+    if (!readAnyTlv(der, start, tag, tbsStart, tbsLength, next) || tag != 0x30)
+        return QByteArray();
+
+    const int tbsEnd = tbsStart + tbsLength;
+    int position = tbsStart;
+    int sequenceIndex = 0;
+    while (position < tbsEnd) {
+        if (!readAnyTlv(der, position, tag, start, length, next))
+            return QByteArray();
+        if (tag == 0x30) {
+            // 1 — алгоритм подписи, 2 — издатель, 3 — срок, 4 — субъект,
+            // 5 — SubjectPublicKeyInfo.
+            if (++sequenceIndex == 5) {
+                int algStart = 0, algLength = 0, algNext = 0;
+                if (!readAnyTlv(der, start, tag, algStart, algLength, algNext)
+                        || tag != 0x30)
+                    return QByteArray();
+                int bitsStart = 0, bitsLength = 0, bitsNext = 0;
+                if (!readAnyTlv(der, algNext, tag, bitsStart, bitsLength, bitsNext)
+                        || tag != 0x03 || bitsLength < 2)
+                    return QByteArray();
+                QByteArray key = der.mid(bitsStart + 1, bitsLength - 1);
+                quint8 innerTag = 0;
+                int innerStart = 0, innerLength = 0, innerNext = 0;
+                if (readAnyTlv(key, 0, innerTag, innerStart, innerLength, innerNext)
+                        && innerTag == 0x04 && innerNext == key.size())
+                    key = key.mid(innerStart, innerLength);
+                return key;
+            }
+        }
+        position = next;
+    }
+    return QByteArray();
+}
+
 QString physicalContainerKey(const Container &container)
 {
     // При CRYPT_UNIQUE | CRYPT_FQCN второе имя содержит полный физический
@@ -322,14 +393,23 @@ struct ContainerCertificate
     capi::Dword keySpec = 0;
 };
 
+struct ContainerScan
+{
+    QVector<ContainerCertificate> certificates;
+    // Экспортированные BLOB'ы открытых ключей контейнера. Используются только
+    // для сопоставления контейнера с сертификатом по открытому ключу.
+    QVector<QByteArray> publicKeyBlobs;
+
+    bool isEmpty() const { return certificates.isEmpty() && publicKeyBlobs.isEmpty(); }
+};
+
 // Читает сертификат, лежащий ВНУТРИ контейнера. Хранилище «MY» перечисляет
 // только установленные (зарегистрированные) сертификаты, а приложение их не
 // регистрирует, поэтому лежащий в контейнере сертификат виден исключительно
 // этим путём: контекст самого контейнера → ключ → параметр KP_CERTIFICATE.
-QVector<ContainerCertificate> readContainerCertificates(const Api &api,
-                                                        const Container &container)
+ContainerScan readContainerCertificates(const Api &api, const Container &container)
 {
-    QVector<ContainerCertificate> out;
+    ContainerScan out;
     if (!api.getUserKey || !api.getKeyParam || !api.destroyKey)
         return out;
 
@@ -372,14 +452,30 @@ QVector<ContainerCertificate> readContainerCertificates(const Api &api,
                         && size > 0 && static_cast<int>(size) <= der.size()) {
                     der.truncate(static_cast<int>(size));
                     bool known = false;
-                    for (const ContainerCertificate &existing : out)
+                    for (const ContainerCertificate &existing : out.certificates)
                         known = known || existing.der == der;
                     if (!known) {
                         ContainerCertificate row;
                         row.der = der;
                         row.keySpec = keySpec;
-                        out.append(row);
+                        out.certificates.append(row);
                     }
+                }
+            }
+
+            // Открытый ключ: публичные данные, по ним контейнер связывается со
+            // своим сертификатом, даже если сам сертификат в контейнере не лежит.
+            capi::Dword blobSize = 0;
+            if (api.exportKey
+                    && api.exportKey(key, 0, capi::PublicKeyBlob, 0, nullptr, &blobSize)
+                    && blobSize > 0 && blobSize <= MaxCertificateBytes) {
+                QByteArray blob(static_cast<int>(blobSize), '\0');
+                if (api.exportKey(key, 0, capi::PublicKeyBlob, 0,
+                                  reinterpret_cast<capi::Byte *>(blob.data()), &blobSize)
+                        && blobSize > 0 && static_cast<int>(blobSize) <= blob.size()) {
+                    blob.truncate(static_cast<int>(blobSize));
+                    if (!out.publicKeyBlobs.contains(blob))
+                        out.publicKeyBlobs.append(blob);
                 }
             }
             api.destroyKey(key);
@@ -389,6 +485,33 @@ QVector<ContainerCertificate> readContainerCertificates(const Api &api,
             break;
     }
     return out;
+}
+
+// Версия установленного пакета КриптоПро CSP из метаданных Авроры. Best-effort:
+// читаем только манифест приложения, ничего не запуская. Пусто — значит честно
+// не нашли, выдумывать версию нельзя.
+QString cryptoProPackageVersion()
+{
+    static const QStringList manifests = {
+        QStringLiteral("/usr/share/appmanifest/ru.cryptopro.csp.json"),
+        QStringLiteral("/usr/share/appmanifest/ru.cryptopro.csp/manifest.json"),
+        QStringLiteral("/usr/lib/3rdparty/ru.cryptopro.csp/manifest.json")
+    };
+    for (const QString &path : manifests) {
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly))
+            continue;
+        const QByteArray data = file.read(256 * 1024);
+        QJsonParseError error;
+        const QJsonDocument document = QJsonDocument::fromJson(data, &error);
+        if (error.error != QJsonParseError::NoError || !document.isObject())
+            continue;
+        const QString version = document.object()
+                .value(QStringLiteral("version")).toString().trimmed();
+        if (!version.isEmpty())
+            return version;
+    }
+    return QString();
 }
 
 QStringList loadedCryptoProLibraries(const QString &directLibraryPath)
@@ -484,6 +607,8 @@ QVariantMap buildCertificateRow(const QByteArray &der, const QString &provider,
     row.insert(QStringLiteral("privateKeyAvailable"), privateKeyAvailable);
     row.insert(QStringLiteral("keySpec"), keySpec);
     row.insert(QStringLiteral("origin"), origin);
+    row.insert(QStringLiteral("publicKeyHex"), QString::fromLatin1(
+                   rawPublicKeyFromCertificate(der).toHex()));
     row.insert(QStringLiteral("exactDuplicateCount"), 1);
     row.insert(QStringLiteral("containerCertificateCount"), 1);
     row.insert(QStringLiteral("metadataConflict"), false);
@@ -497,6 +622,7 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
     QVariantMap result;
     QVariantList providerRows;
     QVector<Container> rutokenContainers;
+    QString cspVersion;
 
     for (capi::Dword index = 0; index < static_cast<capi::Dword>(MaxProviders);
          ++index) {
@@ -516,6 +642,16 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
         if (!api.acquireContext(&provider, nullptr, providerBytes.constData(), type,
                                 capi::CryptVerifyContext | capi::CryptSilent))
             continue;
+        if (cspVersion.isEmpty()) {
+            capi::Dword raw = 0;
+            capi::Dword rawSize = static_cast<capi::Dword>(sizeof(raw));
+            if (api.getProvParam(provider, capi::PpVersion,
+                                 reinterpret_cast<capi::Byte *>(&raw), &rawSize, 0)
+                    && rawSize == sizeof(raw)) {
+                cspVersion = QStringLiteral("%1.%2")
+                        .arg((raw >> 8) & 0xffU).arg(raw & 0xffU);
+            }
+        }
         const QVector<Container> listed = enumerateContainers(
                     api, provider, providerName, type);
         api.releaseContext(provider, 0);
@@ -556,6 +692,7 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
             row.insert(QStringLiteral("algorithm"),
                        providerAlgorithm(container.providerType));
             row.insert(QStringLiteral("certificateCount"), 0);
+            row.insert(QStringLiteral("publicKeyBlobs"), QStringList());
             row.insert(QStringLiteral("containerKey"), physicalKey);
             row.insert(QStringLiteral("_physicalKey"), physicalKey);
             logicalIndex = containerRows.size();
@@ -674,15 +811,29 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
                 || logicalContainerScanned.at(logicalIndex))
             continue;
         const Container &container = rutokenContainers.at(rawIndex);
-        const QVector<ContainerCertificate> embedded =
-                readContainerCertificates(api, container);
+        const ContainerScan embedded = readContainerCertificates(api, container);
         if (embedded.isEmpty())
             continue;
         logicalContainerScanned[logicalIndex] = true;
 
         const QString containerKey = containerRows.at(logicalIndex).toMap()
                 .value(QStringLiteral("_physicalKey")).toString();
-        for (const ContainerCertificate &item : embedded) {
+
+        // Открытые ключи контейнера — для сопоставления с сертификатом.
+        if (!embedded.publicKeyBlobs.isEmpty()) {
+            QVariantMap containerRow = containerRows.at(logicalIndex).toMap();
+            QStringList blobs = containerRow.value(
+                        QStringLiteral("publicKeyBlobs")).toStringList();
+            for (const QByteArray &blob : embedded.publicKeyBlobs) {
+                const QString hex = QString::fromLatin1(blob.toHex());
+                if (!blobs.contains(hex))
+                    blobs.append(hex);
+            }
+            containerRow.insert(QStringLiteral("publicKeyBlobs"), blobs);
+            containerRows[logicalIndex] = containerRow;
+        }
+
+        for (const ContainerCertificate &item : embedded.certificates) {
             const QString sha256 = QString::fromLatin1(
                         QCryptographicHash::hash(item.der,
                                                  QCryptographicHash::Sha256).toHex());
@@ -733,6 +884,15 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
         containerRows[i] = row;
     }
 
+    const QString packageVersion = cryptoProPackageVersion();
+    QString versionText = cspVersion.isEmpty()
+            ? QString() : QStringLiteral("провайдер %1").arg(cspVersion);
+    if (!packageVersion.isEmpty()) {
+        versionText = versionText.isEmpty()
+                ? QStringLiteral("пакет %1").arg(packageVersion)
+                : versionText + QStringLiteral(", пакет %1").arg(packageVersion);
+    }
+    result.insert(QStringLiteral("cspVersion"), versionText);
     result.insert(QStringLiteral("libraryPath"), libraryPath);
     result.insert(QStringLiteral("providers"), providerRows);
     result.insert(QStringLiteral("containers"), containerRows);
@@ -829,6 +989,8 @@ QVariantMap executeScan()
                 library.resolve("CryptGetKeyParam"));
     api.destroyKey = reinterpret_cast<capi::CryptDestroyKeyFn>(
                 library.resolve("CryptDestroyKey"));
+    api.exportKey = reinterpret_cast<capi::CryptExportKeyFn>(
+                library.resolve("CryptExportKey"));
 
     QVariantMap result = scan(api, libraryPath);
     result.insert(QStringLiteral("loadedLibraries"),
@@ -969,6 +1131,7 @@ void CryptoProSession::finishHelper(int exitCode, QProcess::ExitStatus exitStatu
     const QVariantMap result = document.toVariant().toMap();
     m_available = result.value(QStringLiteral("available")).toBool();
     m_libraryPath = result.value(QStringLiteral("libraryPath")).toString();
+    m_cspVersion = result.value(QStringLiteral("cspVersion")).toString();
     m_loadedLibraries.clear();
     const QVariantList loadedLibraries =
             result.value(QStringLiteral("loadedLibraries")).toList();

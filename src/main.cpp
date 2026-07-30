@@ -10,7 +10,7 @@
 
 // Версия приложения (для показа в диагностике). Держать синхронной с
 // rpm/*.spec (Version-Release).
-static const char *const kAppVersion = "1.2.0-6";
+static const char *const kAppVersion = "1.2.0-7";
 
 int main(int argc, char *argv[])
 {
@@ -45,6 +45,7 @@ int main(int argc, char *argv[])
     QObject::connect(&cryptoProSession, &CryptoProSession::changed,
                      &diagnostics, [&]() {
         diagnostics.setCryptoProLibraries(cryptoProSession.loadedLibraries());
+        diagnostics.setCryptoProVersion(cryptoProSession.cspVersion());
     });
     applyCryptoProSetting();
 

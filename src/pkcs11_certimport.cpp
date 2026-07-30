@@ -285,6 +285,14 @@ QByteArray readCertDer(const QString &filePath, QString &err)
 
 namespace pkcs11 {
 
+QByteArray publicKeyFromCertificate(const QByteArray &der)
+{
+    CertFields fields;
+    if (!parseCertFields(der, fields) || fields.spkiPublicKey.isEmpty())
+        return QByteArray();
+    return unwrapOctetString(fields.spkiPublicKey);
+}
+
 ImportResult importCertificateFromFile(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessionHandle,
                                        const QString &filePath, const QString &label)
 {

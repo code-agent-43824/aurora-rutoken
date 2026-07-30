@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.2.0
-Release:    6
+Release:    7
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,16 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 30 2026 Claude <noreply@anthropic.com> - 1.2.0-7
+- Stop listing a CryptoPro key container separately when its key belongs to a
+  certificate that is already shown: the container public key is exported and
+  matched against the public key of every displayed certificate from both
+  backends (GOST byte order handled), so the key appears only as a child of its
+  certificate. Show the container path on the certificate screen as well, not
+  only in the object list. Report the CryptoPro CSP version (provider version
+  plus the installed package version when available) in diagnostics instead of
+  only the library file.
+
 * Thu Jul 30 2026 Claude <noreply@anthropic.com> - 1.2.0-6
 - Read the certificate stored inside a CryptoPro container instead of relying on
   the registered-certificate store: enumerating the system store only returns

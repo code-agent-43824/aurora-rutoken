@@ -21,6 +21,7 @@ Page {
     property bool hasKey: false
     property bool keysKnown: false
     property bool cryptoPro: false
+    property string container: ""
     property var slotId: 0
     property string connection: ""
 
@@ -143,6 +144,11 @@ Page {
             DetailItem {
                 label: page.cryptoPro ? qsTr("Serial number") : qsTr("CKA_ID")
                 value: page.idText.length > 0 ? page.idText : "—"
+            }
+            DetailItem {
+                visible: page.cryptoPro
+                label: qsTr("Container")
+                value: page.container.length > 0 ? page.container : "—"
             }
             DetailItem {
                 label: qsTr("Key on Rutoken")

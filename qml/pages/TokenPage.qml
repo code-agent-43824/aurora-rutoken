@@ -132,6 +132,38 @@ Page {
         }
     }
 
+    // Байты hex-строки в обратном порядке: у ГОСТ открытый ключ в контейнере и
+    // в сертификате может отличаться порядком байт (RFC 4491).
+    function reversedHex(hex) {
+        var out = ""
+        for (var i = hex.length - 2; i >= 0; i -= 2)
+            out += hex.substr(i, 2)
+        return out
+    }
+
+    // Контейнер принадлежит уже показанному сертификату, если экспортированный
+    // открытый ключ контейнера содержит открытый ключ этого сертификата. Тогда
+    // отдельной строкой контейнер не показываем — ключ виден дочерним объектом
+    // своего сертификата.
+    function containerBelongsToCertificate(container, publicKeys) {
+        var blobs = container.publicKeyBlobs
+        if (!blobs || blobs.length === 0 || publicKeys.length === 0)
+            return false
+        for (var b = 0; b < blobs.length; ++b) {
+            var blob = String(blobs[b]).toLowerCase()
+            if (blob.length === 0)
+                continue
+            for (var k = 0; k < publicKeys.length; ++k) {
+                var key = String(publicKeys[k]).toLowerCase()
+                if (key.length === 0)
+                    continue
+                if (blob.indexOf(key) >= 0 || blob.indexOf(page.reversedHex(key)) >= 0)
+                    return true
+            }
+        }
+        return false
+    }
+
     function mergeObjects(pkcs11Objects, cryptoProCertificates,
                           cryptoProContainers, enabled, readerName) {
         var active = []
@@ -139,6 +171,9 @@ Page {
         var expired = []
         var visibleDer = {}
         var representedContainers = {}
+        // Открытые ключи всех показанных сертификатов — по ним ключевой
+        // контейнер КриптоПро связывается со своим сертификатом.
+        var shownPublicKeys = []
         var i
         pkcs11Objects = pkcs11Objects || []
         cryptoProCertificates = cryptoProCertificates || []
@@ -148,6 +183,8 @@ Page {
             if (object.kind === "certificate") {
                 if (object.derB64 && object.derB64.length > 0)
                     visibleDer[object.derB64] = true
+                if (object.publicKeyHex && object.publicKeyHex.length > 0)
+                    shownPublicKeys.push(object.publicKeyHex)
                 if (object.expired)
                     expired.push(object)
                 else
@@ -166,6 +203,8 @@ Page {
                         || !page.sameReader(certificate.readerName, wantedReader)
                         || der.length === 0)
                     continue
+                if (certificate.publicKeyHex && certificate.publicKeyHex.length > 0)
+                    shownPublicKeys.push(certificate.publicKeyHex)
                 if (visibleDer[der]) {
                     if (certificate.containerKey)
                         representedContainers[certificate.containerKey] = true
@@ -185,7 +224,8 @@ Page {
                 if (wantedReader.length === 0
                         || !page.sameReader(container.readerName, wantedReader)
                         || (container.containerKey
-                            && representedContainers[container.containerKey]))
+                            && representedContainers[container.containerKey])
+                        || page.containerBelongsToCertificate(container, shownPublicKeys))
                     continue
                 keys.push(page.cryptoProContainerObject(container))
             }
@@ -535,6 +575,7 @@ Page {
                                     hasKey: modelData.hasKey ? modelData.hasKey : false,
                                     keysKnown: modelData.keysKnown ? modelData.keysKnown : false,
                                     cryptoPro: modelData.cryptoPro ? true : false,
+                                    container: modelData.container ? modelData.container : "",
                                     slotId: page.slotId,
                                     connection: page.connection
                                 })

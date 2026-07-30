@@ -123,6 +123,26 @@ void Diagnostics::refresh()
     });
 }
 
+void Diagnostics::setCryptoProVersion(const QString &version)
+{
+    const QString trimmed = version.trimmed();
+    if (m_cryptoProVersion == trimmed)
+        return;
+    m_cryptoProVersion = trimmed;
+    if (!m_cryptoProEnabled)
+        return;
+
+    QVariantList updated;
+    for (const QVariant &value : m_rows) {
+        const QString id = value.toMap().value(QStringLiteral("id")).toString();
+        if (id != QStringLiteral("cryptoprolib") && id != QStringLiteral("cryptoprover"))
+            updated.append(value);
+    }
+    updated += probeCryptoProLibraries(m_cryptoProLibraries);
+    m_rows = updated;
+    emit rowsChanged();
+}
+
 void Diagnostics::setCryptoProLibraries(const QStringList &paths)
 {
     QStringList normalized = paths;
@@ -136,8 +156,9 @@ void Diagnostics::setCryptoProLibraries(const QStringList &paths)
 
     QVariantList updated;
     for (const QVariant &value : m_rows) {
-        if (value.toMap().value(QStringLiteral("id")).toString()
-                != QStringLiteral("cryptoprolib"))
+        const QString rowId = value.toMap().value(QStringLiteral("id")).toString();
+        if (rowId != QStringLiteral("cryptoprolib")
+                && rowId != QStringLiteral("cryptoprover"))
             updated.append(value);
     }
     updated += probeCryptoProLibraries(m_cryptoProLibraries);
@@ -153,8 +174,9 @@ void Diagnostics::setCryptoProEnabled(bool enabled)
     if (!enabled) {
         QVariantList filtered;
         for (const QVariant &value : m_rows) {
-            if (value.toMap().value(QStringLiteral("id")).toString()
-                    != QStringLiteral("cryptoprolib"))
+            const QString rowId = value.toMap().value(QStringLiteral("id")).toString();
+            if (rowId != QStringLiteral("cryptoprolib")
+                    && rowId != QStringLiteral("cryptoprover"))
                 filtered.append(value);
         }
         if (filtered.size() != m_rows.size()) {
@@ -233,6 +255,11 @@ void Diagnostics::probeBackends(bool includeCryptoPro,
 QVariantList Diagnostics::probeCryptoProLibraries(const QStringList &paths) const
 {
     QVariantList rows;
+    // Версия всего установленного КриптоПро CSP, а не отдельной библиотеки.
+    if (!m_cryptoProVersion.isEmpty()) {
+        rows.append(makeRow(QStringLiteral("cryptoprover"), 1, m_cryptoProVersion,
+                            QStringLiteral("КриптоПро CSP: версия")));
+    }
     QStringList candidates = paths;
     if (candidates.isEmpty())
         candidates.append(QStringLiteral(

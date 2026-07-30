@@ -54,6 +54,9 @@ typedef Bool (*CryptGetProvParamFn)(
 typedef Bool (*CryptGetUserKeyFn)(CryptProv, Dword, CryptKey *);
 typedef Bool (*CryptGetKeyParamFn)(CryptKey, Dword, Byte *, Dword *, Dword);
 typedef Bool (*CryptDestroyKeyFn)(CryptKey);
+// Экспорт ОТКРЫТОГО ключа контейнера: публичные данные, нужны только для
+// сопоставления контейнера с сертификатом по открытому ключу.
+typedef Bool (*CryptExportKeyFn)(CryptKey, CryptKey, Dword, Dword, Byte *, Dword *);
 typedef CertStore (*CertOpenSystemStoreAFn)(CryptProv, const char *);
 typedef const CertContext *(*CertEnumCertificatesInStoreFn)(
         CertStore, const CertContext *);
@@ -79,6 +82,9 @@ static const Dword PpEnumContainers = 2;
 static const Dword AtKeyExchange = 1;
 static const Dword AtSignature = 2;
 static const Dword KpCertificate = 26;
+static const Dword PublicKeyBlob = 6;
+// Версия провайдера (старший/младший байт) — для строки версии КриптоПро CSP.
+static const Dword PpVersion = 5;
 
 static const Dword CertKeyProvInfoPropId = 2;
 static const Dword CryptAcquireCompareKeyFlag = 0x00000004U;

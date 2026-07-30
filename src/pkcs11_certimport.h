@@ -1,6 +1,7 @@
 #ifndef PKCS11_CERTIMPORT_H
 #define PKCS11_CERTIMPORT_H
 
+#include <QtCore/QByteArray>
 #include <QtCore/QString>
 
 struct CK_FUNCTION_LIST_PREFIX;
@@ -18,6 +19,12 @@ struct ImportResult {
 // с тем же значением и при совпадении присваивает сертификату CKA_ID найденной
 // пары (иначе CKA_ID = SHA-1 от открытого ключа). Пустой label → берётся CN из
 // тела сертификата.
+// Открытый ключ сертификата в нормализованном виде: содержимое subjectPublicKey
+// без байта unused-bits, у ГОСТ дополнительно снята обёртка OCTET STRING. Тем же
+// значением сертификат приклеивается к ключевой паре при импорте, поэтому по
+// нему же ключевой контейнер связывается со своим сертификатом.
+QByteArray publicKeyFromCertificate(const QByteArray &der);
+
 ImportResult importCertificateFromFile(CK_FUNCTION_LIST_PREFIX *functions, unsigned long session,
                                        const QString &filePath, const QString &label);
 

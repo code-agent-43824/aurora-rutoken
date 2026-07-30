@@ -133,6 +133,16 @@ grep -Fq 'knownCertificateHashes.contains(sha256)' "$CRYPTOPRO_SOURCE"
 # Заголовок карточки — Common Name; путь контейнера — в строке метаданных.
 grep -Fq 'qsTr("container: %1").arg(modelData.container)' "$TOKEN_PAGE"
 grep -Fq 'label: qsTr("Key container")' "$TOKEN_PAGE"
+# Ключевой контейнер не показывается отдельно, если его открытый ключ совпал с
+# ключом уже показанного сертификата: ключ виден дочерним объектом сертификата.
+grep -Fq 'capi::PublicKeyBlob' "$CRYPTOPRO_SOURCE"
+grep -Fq 'rawPublicKeyFromCertificate(der)' "$CRYPTOPRO_SOURCE"
+grep -Fq 'page.containerBelongsToCertificate(container, shownPublicKeys)' "$TOKEN_PAGE"
+grep -Fq 'publicKeyFromCertificate(der).toHex()' src/pkcs11_objects.cpp
+# Путь контейнера виден и на карточке сертификата, и версия CSP — в диагностике.
+grep -Fq 'label: qsTr("Container")' "$CERTIFICATE_PAGE"
+grep -Fq 'capi::PpVersion' "$CRYPTOPRO_SOURCE"
+grep -Fq 'diagnostics.setCryptoProVersion(cryptoProSession.cspVersion());' src/main.cpp
 if grep -Fq 'var label = container.name ? container.name' "$TOKEN_PAGE"; then
     echo "Container path must not be the card title" >&2
     exit 1
