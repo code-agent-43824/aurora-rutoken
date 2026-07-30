@@ -36,6 +36,11 @@ if [ ! -f "$APP_BINARY" ]; then
     echo "Application binary is missing from RPM: /usr/bin/$APP_ID" >&2
     exit 1
 fi
+if ! grep -aFq -- '--cryptopro-scan-helper' "$APP_BINARY" \
+        || ! grep -aFq 'RUTOKEN_CRYPTOPRO_JSON:' "$APP_BINARY"; then
+    echo "Bounded CryptoPro scan helper mode is missing from the application" >&2
+    exit 1
+fi
 
 # v1.1: launcher перехода на CMS может скомпилироваться, даже если новый QML
 # случайно не попал в RPM. Проверяем оба runtime-экрана внутри каждого пакета.
@@ -93,4 +98,4 @@ printf '%s\n' "$SIGNATURE_INFO" | grep -Fq 'Subject: Noname developer (for testi
 printf '%s\n' "$SIGNATURE_INFO" | grep -Fq 'Subgroup: regular'
 printf '%s\n' "$SIGNATURE_INFO" | grep -Eq '^Signature: .+'
 
-echo "Verified: rpm_arch=$RPM_ARCH; elf_machine=$MACHINE; loader=$INTERPRETER; cms_and_capi_qml=present; cryptopro_permission=present; icon=$APP_ID; signature=OMP regular test"
+echo "Verified: rpm_arch=$RPM_ARCH; elf_machine=$MACHINE; loader=$INTERPRETER; cms_and_capi_qml=present; cryptopro_helper=present; cryptopro_permission=present; icon=$APP_ID; signature=OMP regular test"

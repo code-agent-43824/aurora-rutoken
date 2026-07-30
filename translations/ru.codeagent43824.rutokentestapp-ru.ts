@@ -1096,7 +1096,7 @@
     <message><source>Rutoken containers</source><translation>Контейнеры Рутокена</translation></message>
     <message><source>No Rutoken containers found through CryptoPro CSP</source><translation>КриптоПро CSP не нашёл контейнеры Рутокена</translation></message>
     <message><source>Unnamed container</source><translation>Контейнер без имени</translation></message>
-    <message><source>%1 · provider type %2 · certificates: %3</source><translation>%1 · тип провайдера %2 · сертификатов: %3</translation></message>
+    <message><source>provider types %1 · certificates: %2</source><translation>типы провайдеров %1 · сертификатов: %2</translation></message>
     <message><source>Linked certificates</source><translation>Связанные сертификаты</translation></message>
     <message><source>No linked certificates found in the personal store</source><translation>В личном хранилище нет связанных сертификатов</translation></message>
     <message><source>Certificate</source><translation>Сертификат</translation></message>

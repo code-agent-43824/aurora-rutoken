@@ -50,6 +50,7 @@ typedef const CertContext *(*CertEnumCertificatesInStoreFn)(
         CertStore, const CertContext *);
 typedef Bool (*CertGetCertificateContextPropertyFn)(
         const CertContext *, Dword, void *, Dword *);
+typedef Bool (*CertFreeCertificateContextFn)(const CertContext *);
 typedef Bool (*CryptAcquireCertificatePrivateKeyFn)(
         const CertContext *, Dword, void *, CryptProv *, Dword *, Bool *);
 typedef Bool (*CertCloseStoreFn)(CertStore, Dword);

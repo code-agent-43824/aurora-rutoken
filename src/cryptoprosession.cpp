@@ -1,16 +1,29 @@
 #include "cryptoprosession.h"
 #include "cryptopro_capi_minimal.h"
 
-#include <QtConcurrent/QtConcurrent>
+#include <QtCore/QCoreApplication>
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QDateTime>
 #include <QtCore/QHash>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonParseError>
+#include <QtCore/QLibrary>
 #include <QtCore/QSet>
 #include <QtCore/QStringList>
 #include <QtCore/QTextCodec>
+#include <QtCore/QVector>
 #include <QtNetwork/QSslCertificate>
+#include <cstdio>
 
 namespace {
+
+const int MaxProviders = 128;
+const int MaxContainersPerProvider = 512;
+const int MaxCertificates = 4096;
+const capi::Dword MaxCapiTextBytes = 64U * 1024U;
+const int MaxHelperOutputBytes = 4 * 1024 * 1024;
+const int HelperTimeoutMs = 30000;
+const char HelperMarker[] = "RUTOKEN_CRYPTOPRO_JSON:";
 
 struct Api
 {
@@ -21,6 +34,7 @@ struct Api
     capi::CertOpenSystemStoreAFn openSystemStore = nullptr;
     capi::CertEnumCertificatesInStoreFn enumCertificates = nullptr;
     capi::CertGetCertificateContextPropertyFn getCertificateProperty = nullptr;
+    capi::CertFreeCertificateContextFn freeCertificate = nullptr;
     capi::CryptAcquireCertificatePrivateKeyFn acquireCertificateKey = nullptr;
     capi::CertCloseStoreFn closeStore = nullptr;
 };
@@ -131,23 +145,25 @@ QVector<Container> enumerateContainers(const Api &api, capi::CryptProv provider,
 {
     QVector<Container> out;
     capi::Dword flags = capi::CryptFirst | capi::CryptUnique | capi::CryptFqcn;
-    capi::Dword capacity = 0;
-    if (!api.getProvParam(provider, capi::PpEnumContainers, nullptr, &capacity, flags)
-            || capacity == 0)
-        return out;
-    QByteArray buffer(static_cast<int>(capacity), '\0');
-    for (;;) {
+    QByteArray buffer(static_cast<int>(MaxCapiTextBytes), '\0');
+    for (int item = 0; item < MaxContainersPerProvider; ++item) {
         buffer.fill('\0');
-        capi::Dword actual = capacity;
+        capi::Dword actual = static_cast<capi::Dword>(buffer.size());
         if (!api.getProvParam(provider, capi::PpEnumContainers,
                               reinterpret_cast<capi::Byte *>(buffer.data()), &actual, flags))
             break;
+        if (actual == 0 || actual > static_cast<capi::Dword>(buffer.size()))
+            break;
 
-        const QString first = fromCapiText(buffer.constData(), buffer.size());
-        const int secondOffset = buffer.indexOf('\0') + 1;
-        const QString second = secondOffset > 0 && secondOffset < buffer.size()
+        const int validBytes = static_cast<int>(actual);
+        const QString first = fromCapiText(buffer.constData(), validBytes);
+        int firstTerminator = buffer.indexOf('\0', 0);
+        if (firstTerminator >= validBytes)
+            firstTerminator = -1;
+        const int secondOffset = firstTerminator < 0 ? validBytes : firstTerminator + 1;
+        const QString second = secondOffset < validBytes
                 ? fromCapiText(buffer.constData() + secondOffset,
-                               buffer.size() - secondOffset)
+                               validBytes - secondOffset)
                 : QString();
 
         Container container;
@@ -260,10 +276,15 @@ QString certificateAlgorithm(const QByteArray &der, capi::Dword providerType)
     return oid.isEmpty() ? providerAlgorithm(providerType) : oid;
 }
 
-QString bindingKey(const QString &provider, capi::Dword type, const QString &container)
+QString physicalContainerKey(const Container &container)
 {
-    return provider.trimmed().toLower() + QLatin1Char('|') + QString::number(type)
-            + QLatin1Char('|') + normalizedContainerName(container);
+    // При CRYPT_UNIQUE | CRYPT_FQCN второе имя содержит полный физический
+    // путь носителя. Оно одинаково у provider aliases 75/80/81, но различает
+    // одноимённые контейнеры на разных Рутокенах.
+    const QString fqcn = normalizedContainerName(container.friendlyName);
+    if (!fqcn.isEmpty())
+        return fqcn;
+    return normalizedContainerName(container.uniqueName);
 }
 
 QVariantMap scan(const Api &api, const QString &libraryPath)
@@ -272,12 +293,13 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
     QVariantList providerRows;
     QVector<Container> rutokenContainers;
 
-    for (capi::Dword index = 0; ; ++index) {
+    for (capi::Dword index = 0; index < static_cast<capi::Dword>(MaxProviders);
+         ++index) {
         capi::Dword type = 0;
         capi::Dword size = 0;
         if (!api.enumProviders(index, nullptr, 0, &type, nullptr, &size))
             break;
-        if (!isGostProvider(type) || size == 0)
+        if (!isGostProvider(type) || size == 0 || size > MaxCapiTextBytes)
             continue;
         QByteArray name(static_cast<int>(size), '\0');
         if (!api.enumProviders(index, nullptr, 0, &type, name.data(), &size))
@@ -303,23 +325,63 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
     }
 
     QVariantList containerRows;
-    for (const Container &container : rutokenContainers) {
-        QVariantMap row;
-        row.insert(QStringLiteral("name"), container.displayName);
-        row.insert(QStringLiteral("uniqueName"), container.uniqueName);
-        row.insert(QStringLiteral("friendlyName"), container.friendlyName);
-        row.insert(QStringLiteral("provider"), container.provider);
-        row.insert(QStringLiteral("providerType"), container.providerType);
-        row.insert(QStringLiteral("algorithm"), providerAlgorithm(container.providerType));
-        row.insert(QStringLiteral("certificateCount"), 0);
-        containerRows.append(row);
+    QVector<int> logicalContainerIndices;
+    QHash<QString, int> logicalContainerByKey;
+    for (int rawIndex = 0; rawIndex < rutokenContainers.size(); ++rawIndex) {
+        const Container &container = rutokenContainers.at(rawIndex);
+        QString physicalKey = physicalContainerKey(container);
+        if (physicalKey.isEmpty())
+            physicalKey = QStringLiteral("raw:%1").arg(rawIndex);
+
+        int logicalIndex = logicalContainerByKey.value(physicalKey, -1);
+        if (logicalIndex < 0) {
+            QVariantMap row;
+            row.insert(QStringLiteral("name"), container.displayName);
+            row.insert(QStringLiteral("uniqueName"), container.uniqueName);
+            row.insert(QStringLiteral("friendlyName"), container.friendlyName);
+            row.insert(QStringLiteral("provider"), container.provider);
+            row.insert(QStringLiteral("providerType"), container.providerType);
+            row.insert(QStringLiteral("providerTypes"),
+                       QStringList(QString::number(container.providerType)));
+            row.insert(QStringLiteral("providerTypesText"),
+                       QString::number(container.providerType));
+            row.insert(QStringLiteral("algorithms"),
+                       QStringList(providerAlgorithm(container.providerType)));
+            row.insert(QStringLiteral("algorithm"),
+                       providerAlgorithm(container.providerType));
+            row.insert(QStringLiteral("certificateCount"), 0);
+            row.insert(QStringLiteral("_physicalKey"), physicalKey);
+            logicalIndex = containerRows.size();
+            containerRows.append(row);
+            logicalContainerByKey.insert(physicalKey, logicalIndex);
+        } else {
+            QVariantMap row = containerRows.at(logicalIndex).toMap();
+            QStringList types = row.value(QStringLiteral("providerTypes")).toStringList();
+            const QString type = QString::number(container.providerType);
+            if (!types.contains(type))
+                types.append(type);
+            QStringList algorithms = row.value(QStringLiteral("algorithms")).toStringList();
+            const QString algorithm = providerAlgorithm(container.providerType);
+            if (!algorithms.contains(algorithm))
+                algorithms.append(algorithm);
+            row.insert(QStringLiteral("providerTypes"), types);
+            row.insert(QStringLiteral("providerTypesText"), types.join(QStringLiteral(", ")));
+            row.insert(QStringLiteral("algorithms"), algorithms);
+            row.insert(QStringLiteral("algorithm"), algorithms.join(QStringLiteral(" / ")));
+            containerRows[logicalIndex] = row;
+        }
+        logicalContainerIndices.append(logicalIndex);
     }
 
     QVariantList certificates;
     capi::CertStore store = api.openSystemStore(0, "MY");
     if (store) {
         const capi::CertContext *context = nullptr;
-        while ((context = api.enumCertificates(store, context)) != nullptr) {
+        for (int certificateIndex = 0; certificateIndex < MaxCertificates;
+             ++certificateIndex) {
+            context = api.enumCertificates(store, context);
+            if (!context)
+                break;
             if (!context->encoded || context->encodedSize == 0
                     || context->encodedSize > 16U * 1024U * 1024U)
                 continue;
@@ -358,6 +420,7 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
                 continue;
 
             const Container &container = rutokenContainers.at(containerIndex);
+            const int logicalContainerIndex = logicalContainerIndices.at(containerIndex);
             const QSslCertificate certificate(der, QSsl::Der);
             capi::CryptProv keyProvider = 0;
             capi::Dword keySpec = 0;
@@ -399,13 +462,14 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
             row.insert(QStringLiteral("exactDuplicateCount"), 1);
             row.insert(QStringLiteral("containerCertificateCount"), 1);
             row.insert(QStringLiteral("metadataConflict"), false);
-            row.insert(QStringLiteral("_containerIndex"), containerIndex);
-            row.insert(QStringLiteral("_bindingKey"), bindingKey(
-                           container.provider, container.providerType,
-                           container.uniqueName.isEmpty()
-                           ? container.displayName : container.uniqueName));
+            row.insert(QStringLiteral("_containerIndex"), logicalContainerIndex);
+            row.insert(QStringLiteral("_bindingKey"),
+                       containerRows.at(logicalContainerIndex).toMap()
+                       .value(QStringLiteral("_physicalKey")).toString());
             certificates.append(row);
         }
+        if (context)
+            api.freeCertificate(context);
         api.closeStore(store, 0);
     }
 
@@ -438,40 +502,25 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
             containerRows[containerIndex] = container;
         }
     }
+    for (int i = 0; i < containerRows.size(); ++i) {
+        QVariantMap row = containerRows.at(i).toMap();
+        row.remove(QStringLiteral("_physicalKey"));
+        containerRows[i] = row;
+    }
 
     result.insert(QStringLiteral("libraryPath"), libraryPath);
     result.insert(QStringLiteral("providers"), providerRows);
     result.insert(QStringLiteral("containers"), containerRows);
     result.insert(QStringLiteral("certificates"), certificates);
-    result.insert(QStringLiteral("status"), rutokenContainers.isEmpty()
+    result.insert(QStringLiteral("status"), containerRows.isEmpty()
                   ? QStringLiteral("КриптоПро CSP найден, контейнеры Рутокена не найдены")
                   : QStringLiteral("Контейнеров Рутокена: %1, сертификатов: %2")
-                    .arg(rutokenContainers.size()).arg(certificates.size()));
+                    .arg(containerRows.size()).arg(certificates.size()));
     return result;
 }
 
-} // namespace
-
-CryptoProSession::CryptoProSession(QObject *parent)
-    : QObject(parent)
+QVariantMap executeScan()
 {
-    connect(&m_watcher, &QFutureWatcher<QVariantMap>::finished,
-            this, &CryptoProSession::finishRefresh);
-}
-
-CryptoProSession::~CryptoProSession()
-{
-    if (m_watcher.isRunning())
-        m_watcher.waitForFinished();
-    if (m_library.isLoaded())
-        m_library.unload();
-}
-
-bool CryptoProSession::loadLibrary()
-{
-    if (m_library.isLoaded() && m_functions.size() == 9)
-        return true;
-
     const QStringList candidates = {
         QStringLiteral("/usr/lib/3rdparty/ru.cryptopro.csp/lib/libcapi20.so"),
         QStringLiteral("/opt/cprocsp/lib/arm/libcapi20.so"),
@@ -480,46 +529,117 @@ bool CryptoProSession::loadLibrary()
         QStringLiteral("/opt/cprocsp/lib/amd64/libcapi20.so"),
         QStringLiteral("libcapi20.so")
     };
-    QStringList errors;
+    const char *symbols[] = {
+        "CryptEnumProvidersA",
+        "CryptAcquireContextA",
+        "CryptReleaseContext",
+        "CryptGetProvParam",
+        "CertOpenSystemStoreA",
+        "CertEnumCertificatesInStore",
+        "CertGetCertificateContextProperty",
+        "CertFreeCertificateContext",
+        "CryptAcquireCertificatePrivateKey",
+        "CertCloseStore"
+    };
+
+    QLibrary library;
+    QVector<QFunctionPointer> functions;
+    QString libraryPath;
     for (const QString &candidate : candidates) {
-        m_library.setFileName(candidate);
-        if (!m_library.load()) {
-            errors << m_library.errorString();
+        library.setFileName(candidate);
+        if (!library.load())
             continue;
-        }
-        const char *symbols[] = {
-            "CryptEnumProvidersA",
-            "CryptAcquireContextA",
-            "CryptReleaseContext",
-            "CryptGetProvParam",
-            "CertOpenSystemStoreA",
-            "CertEnumCertificatesInStore",
-            "CertGetCertificateContextProperty",
-            "CryptAcquireCertificatePrivateKey",
-            "CertCloseStore"
-        };
-        m_functions.clear();
+        functions.clear();
         bool complete = true;
         for (const char *symbol : symbols) {
-            const QFunctionPointer function = m_library.resolve(symbol);
+            const QFunctionPointer function = library.resolve(symbol);
             if (!function) {
                 complete = false;
                 break;
             }
-            m_functions.append(function);
+            functions.append(function);
         }
         if (complete) {
-            m_libraryPath = candidate;
-            return true;
+            libraryPath = candidate;
+            break;
         }
-        errors << QStringLiteral("%1: отсутствуют функции CapiLite").arg(candidate);
-        m_functions.clear();
-        m_library.unload();
+        functions.clear();
+        library.unload();
     }
-    m_status = QStringLiteral("КриптоПро CSP не установлен");
-    if (!errors.isEmpty())
-        m_status += QStringLiteral(" (libcapi20.so не найдена)");
-    return false;
+
+    if (functions.size() != 10) {
+        QVariantMap result;
+        result.insert(QStringLiteral("available"), false);
+        result.insert(QStringLiteral("status"),
+                      QStringLiteral("КриптоПро CSP не установлен "
+                                     "(libcapi20.so не найдена)"));
+        result.insert(QStringLiteral("providers"), QVariantList());
+        result.insert(QStringLiteral("containers"), QVariantList());
+        result.insert(QStringLiteral("certificates"), QVariantList());
+        return result;
+    }
+
+    Api api;
+    api.enumProviders = reinterpret_cast<capi::CryptEnumProvidersAFn>(functions.at(0));
+    api.acquireContext = reinterpret_cast<capi::CryptAcquireContextAFn>(functions.at(1));
+    api.releaseContext = reinterpret_cast<capi::CryptReleaseContextFn>(functions.at(2));
+    api.getProvParam = reinterpret_cast<capi::CryptGetProvParamFn>(functions.at(3));
+    api.openSystemStore = reinterpret_cast<capi::CertOpenSystemStoreAFn>(functions.at(4));
+    api.enumCertificates =
+            reinterpret_cast<capi::CertEnumCertificatesInStoreFn>(functions.at(5));
+    api.getCertificateProperty =
+            reinterpret_cast<capi::CertGetCertificateContextPropertyFn>(functions.at(6));
+    api.freeCertificate =
+            reinterpret_cast<capi::CertFreeCertificateContextFn>(functions.at(7));
+    api.acquireCertificateKey =
+            reinterpret_cast<capi::CryptAcquireCertificatePrivateKeyFn>(functions.at(8));
+    api.closeStore = reinterpret_cast<capi::CertCloseStoreFn>(functions.at(9));
+
+    QVariantMap result = scan(api, libraryPath);
+    result.insert(QStringLiteral("available"), true);
+    return result;
+}
+
+} // namespace
+
+CryptoProSession::CryptoProSession(QObject *parent)
+    : QObject(parent)
+{
+    m_helper.setProcessChannelMode(QProcess::SeparateChannels);
+    m_helperTimer.setSingleShot(true);
+    connect(&m_helper, &QProcess::readyReadStandardOutput,
+            this, &CryptoProSession::readHelperOutput);
+    connect(&m_helper, &QProcess::readyReadStandardError, this, [this]() {
+        m_helper.readAllStandardError();
+    });
+    connect(&m_helper,
+            static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+            this, &CryptoProSession::finishHelper);
+    connect(&m_helper, &QProcess::errorOccurred,
+            this, &CryptoProSession::helperError);
+    connect(&m_helperTimer, &QTimer::timeout,
+            this, &CryptoProSession::helperTimedOut);
+}
+
+CryptoProSession::~CryptoProSession()
+{
+    m_helperTimer.stop();
+    if (m_helper.state() != QProcess::NotRunning) {
+        m_helper.kill();
+        m_helper.waitForFinished(1000);
+    }
+}
+
+int CryptoProSession::runScanHelper()
+{
+    const QByteArray payload = QJsonDocument::fromVariant(executeScan())
+            .toJson(QJsonDocument::Compact);
+    if (payload.size() > MaxHelperOutputBytes)
+        return 2;
+    std::fwrite(HelperMarker, 1, sizeof(HelperMarker) - 1, stdout);
+    std::fwrite(payload.constData(), 1, static_cast<size_t>(payload.size()), stdout);
+    std::fputc('\n', stdout);
+    return std::fflush(stdout) == 0 ? 0 : 3;
 }
 
 void CryptoProSession::refresh()
@@ -528,44 +648,92 @@ void CryptoProSession::refresh()
         return;
     m_busy = true;
     m_status = QStringLiteral("Чтение КриптоПро CSP…");
+    m_helperOutput.clear();
     emit changed();
 
-    if (!loadLibrary()) {
-        m_available = false;
-        m_busy = false;
-        m_providers.clear();
-        m_containers.clear();
-        m_certificates.clear();
-        emit changed();
+    m_helper.setProgram(QCoreApplication::applicationFilePath());
+    m_helper.setArguments(QStringList(QStringLiteral("--cryptopro-scan-helper")));
+    m_helper.start(QIODevice::ReadOnly);
+    m_helperTimer.start(HelperTimeoutMs);
+}
+
+void CryptoProSession::readHelperOutput()
+{
+    if (!m_busy) {
+        m_helper.readAllStandardOutput();
+        return;
+    }
+    m_helperOutput.append(m_helper.readAllStandardOutput());
+    if (m_helperOutput.size() > MaxHelperOutputBytes) {
+        m_helper.kill();
+        failRefresh(QStringLiteral("Ответ КриптоПро CSP слишком большой"));
+    }
+}
+
+void CryptoProSession::finishHelper(int exitCode, QProcess::ExitStatus exitStatus)
+{
+    readHelperOutput();
+    m_helperTimer.stop();
+    if (!m_busy)
+        return;
+    if (exitStatus != QProcess::NormalExit || exitCode != 0) {
+        failRefresh(QStringLiteral("КриптоПро CSP завершил чтение с ошибкой"));
         return;
     }
 
-    m_available = true;
-    Api api;
-    api.enumProviders = reinterpret_cast<capi::CryptEnumProvidersAFn>(m_functions.at(0));
-    api.acquireContext = reinterpret_cast<capi::CryptAcquireContextAFn>(m_functions.at(1));
-    api.releaseContext = reinterpret_cast<capi::CryptReleaseContextFn>(m_functions.at(2));
-    api.getProvParam = reinterpret_cast<capi::CryptGetProvParamFn>(m_functions.at(3));
-    api.openSystemStore = reinterpret_cast<capi::CertOpenSystemStoreAFn>(m_functions.at(4));
-    api.enumCertificates =
-            reinterpret_cast<capi::CertEnumCertificatesInStoreFn>(m_functions.at(5));
-    api.getCertificateProperty =
-            reinterpret_cast<capi::CertGetCertificateContextPropertyFn>(m_functions.at(6));
-    api.acquireCertificateKey =
-            reinterpret_cast<capi::CryptAcquireCertificatePrivateKeyFn>(m_functions.at(7));
-    api.closeStore = reinterpret_cast<capi::CertCloseStoreFn>(m_functions.at(8));
-    const QString path = m_libraryPath;
-    m_watcher.setFuture(QtConcurrent::run([api, path]() { return scan(api, path); }));
-}
+    const QByteArray marker(HelperMarker, sizeof(HelperMarker) - 1);
+    const int markerPosition = m_helperOutput.lastIndexOf(marker);
+    if (markerPosition < 0) {
+        failRefresh(QStringLiteral("КриптоПро CSP вернул некорректный ответ"));
+        return;
+    }
+    const QByteArray json = m_helperOutput.mid(markerPosition + marker.size()).trimmed();
+    QJsonParseError parseError;
+    const QJsonDocument document = QJsonDocument::fromJson(json, &parseError);
+    if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
+        failRefresh(QStringLiteral("КриптоПро CSP вернул некорректный ответ"));
+        return;
+    }
 
-void CryptoProSession::finishRefresh()
-{
-    const QVariantMap result = m_watcher.result();
+    const QVariantMap result = document.toVariant().toMap();
+    m_available = result.value(QStringLiteral("available")).toBool();
     m_libraryPath = result.value(QStringLiteral("libraryPath")).toString();
     m_providers = result.value(QStringLiteral("providers")).toList();
     m_containers = result.value(QStringLiteral("containers")).toList();
     m_certificates = result.value(QStringLiteral("certificates")).toList();
     m_status = result.value(QStringLiteral("status")).toString();
     m_busy = false;
+    emit changed();
+}
+
+void CryptoProSession::helperError(QProcess::ProcessError error)
+{
+    if (!m_busy || error == QProcess::Crashed)
+        return;
+    failRefresh(error == QProcess::FailedToStart
+                ? QStringLiteral("Не удалось запустить безопасное чтение КриптоПро CSP")
+                : QStringLiteral("Ошибка безопасного чтения КриптоПро CSP"));
+}
+
+void CryptoProSession::helperTimedOut()
+{
+    if (!m_busy)
+        return;
+    m_helper.kill();
+    failRefresh(QStringLiteral("КриптоПро CSP не ответил за 30 секунд"));
+}
+
+void CryptoProSession::failRefresh(const QString &message)
+{
+    m_helperTimer.stop();
+    if (m_helper.state() != QProcess::NotRunning)
+        m_helper.kill();
+    m_available = false;
+    m_busy = false;
+    m_status = message;
+    m_libraryPath.clear();
+    m_providers.clear();
+    m_containers.clear();
+    m_certificates.clear();
     emit changed();
 }

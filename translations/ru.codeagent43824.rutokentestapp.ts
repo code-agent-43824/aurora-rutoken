@@ -1096,7 +1096,7 @@
     <message><source>Rutoken containers</source><translation>Rutoken containers</translation></message>
     <message><source>No Rutoken containers found through CryptoPro CSP</source><translation>No Rutoken containers found through CryptoPro CSP</translation></message>
     <message><source>Unnamed container</source><translation>Unnamed container</translation></message>
-    <message><source>%1 · provider type %2 · certificates: %3</source><translation>%1 · provider type %2 · certificates: %3</translation></message>
+    <message><source>provider types %1 · certificates: %2</source><translation>provider types %1 · certificates: %2</translation></message>
     <message><source>Linked certificates</source><translation>Linked certificates</translation></message>
     <message><source>No linked certificates found in the personal store</source><translation>No linked certificates found in the personal store</translation></message>
     <message><source>Certificate</source><translation>Certificate</translation></message>

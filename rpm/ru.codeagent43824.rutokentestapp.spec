@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.2.0
-Release:    2
+Release:    3
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -49,6 +49,10 @@ the runtime-loaded CapiLite API. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 30 2026 Watson <noreply@openai.com> - 1.2.0-3
+- Isolate read-only CapiLite scans in a bounded helper process so a CSP crash
+  cannot terminate the UI. Group provider aliases of one physical container.
+
 * Thu Jul 30 2026 Watson <noreply@openai.com> - 1.2.0-2
 - Load CapiLite from the CryptoPro CSP Aurora sandbox package and grant the
   application access to the CSP D-Bus service. Keep CSP optional and read-only.

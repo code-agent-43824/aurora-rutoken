@@ -1,4 +1,5 @@
 #include <auroraapp.h>
+#include <QtCore/QCoreApplication>
 #include <QtQuick>
 
 #include "cryptoprosession.h"
@@ -8,10 +9,16 @@
 
 // Версия приложения (для показа в диагностике). Держать синхронной с
 // rpm/*.spec (Version-Release).
-static const char *const kAppVersion = "1.2.0-2";
+static const char *const kAppVersion = "1.2.0-3";
 
 int main(int argc, char *argv[])
 {
+    if (argc == 2
+            && QByteArray(argv[1]) == QByteArrayLiteral("--cryptopro-scan-helper")) {
+        QCoreApplication helperApplication(argc, argv);
+        return CryptoProSession::runScanHelper();
+    }
+
     QScopedPointer<QGuiApplication> application(Aurora::Application::application(argc, argv));
     application->setOrganizationName(QStringLiteral("ru.codeagent43824"));
     application->setApplicationName(QStringLiteral("rutokentestapp"));

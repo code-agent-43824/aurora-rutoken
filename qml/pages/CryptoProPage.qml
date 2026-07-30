@@ -5,6 +5,14 @@ Page {
     id: page
     objectName: "cryptoProPage"
     allowedOrientations: Orientation.All
+    property bool initialRefreshStarted: false
+
+    onStatusChanged: {
+        if (status === PageStatus.Active && !initialRefreshStarted) {
+            initialRefreshStarted = true
+            cryptoProSession.refresh()
+        }
+    }
 
     SilicaFlickable {
         anchors.fill: parent
@@ -91,9 +99,8 @@ Page {
                         width: parent.width - 2 * Theme.horizontalPageMargin
                         wrapMode: Text.Wrap
                         textFormat: Text.PlainText
-                        text: qsTr("%1 · provider type %2 · certificates: %3")
-                              .arg(modelData.algorithm)
-                              .arg(modelData.providerType)
+                        text: qsTr("provider types %1 · certificates: %2")
+                              .arg(modelData.providerTypesText)
                               .arg(modelData.certificateCount)
                         color: Theme.secondaryColor
                         font.pixelSize: Theme.fontSizeExtraSmall

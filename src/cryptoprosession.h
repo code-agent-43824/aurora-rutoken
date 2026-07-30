@@ -1,12 +1,11 @@
 #ifndef CRYPTOPROSESSION_H
 #define CRYPTOPROSESSION_H
 
-#include <QtCore/QFutureWatcher>
-#include <QtCore/QLibrary>
 #include <QtCore/QObject>
+#include <QtCore/QProcess>
+#include <QtCore/QTimer>
 #include <QtCore/QVariantList>
 #include <QtCore/QVariantMap>
-#include <QtCore/QVector>
 
 class CryptoProSession : public QObject
 {
@@ -23,6 +22,8 @@ public:
     explicit CryptoProSession(QObject *parent = nullptr);
     ~CryptoProSession() override;
 
+    static int runScanHelper();
+
     bool available() const { return m_available; }
     bool busy() const { return m_busy; }
     QString status() const { return m_status; }
@@ -37,12 +38,15 @@ signals:
     void changed();
 
 private:
-    bool loadLibrary();
-    void finishRefresh();
+    void readHelperOutput();
+    void finishHelper(int exitCode, QProcess::ExitStatus exitStatus);
+    void helperError(QProcess::ProcessError error);
+    void helperTimedOut();
+    void failRefresh(const QString &message);
 
-    QLibrary m_library;
-    QFutureWatcher<QVariantMap> m_watcher;
-    QVector<QFunctionPointer> m_functions;
+    QProcess m_helper;
+    QTimer m_helperTimer;
+    QByteArray m_helperOutput;
     bool m_available = false;
     bool m_busy = false;
     QString m_status;

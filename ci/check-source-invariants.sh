@@ -37,6 +37,7 @@ for SYMBOL in \
     CertOpenSystemStoreA \
     CertEnumCertificatesInStore \
     CertGetCertificateContextProperty \
+    CertFreeCertificateContext \
     CryptAcquireCertificatePrivateKey; do
     grep -Fq "\"$SYMBOL\"" "$CRYPTOPRO_SOURCE"
 done
@@ -53,10 +54,24 @@ grep -Fq 'exactDuplicateCount' "$CRYPTOPRO_SOURCE"
 grep -Fq 'containerCertificateCount' "$CRYPTOPRO_SOURCE"
 grep -Fq 'metadataConflict' "$CRYPTOPRO_SOURCE"
 grep -Fq 'typedef wchar_t WideChar;' "$CRYPTOPRO_HEADER"
+grep -Fq 'QCoreApplication::applicationFilePath()' "$CRYPTOPRO_SOURCE"
+grep -Fq 'QStringLiteral("--cryptopro-scan-helper")' "$CRYPTOPRO_SOURCE"
+grep -Fq 'RUTOKEN_CRYPTOPRO_JSON:' "$CRYPTOPRO_SOURCE"
+grep -Fq 'const int MaxProviders = 128;' "$CRYPTOPRO_SOURCE"
+grep -Fq 'const int MaxContainersPerProvider = 512;' "$CRYPTOPRO_SOURCE"
+grep -Fq 'const int MaxCertificates = 4096;' "$CRYPTOPRO_SOURCE"
+grep -Fq 'const int MaxHelperOutputBytes = 4 * 1024 * 1024;' "$CRYPTOPRO_SOURCE"
+grep -Fq 'physicalContainerKey' "$CRYPTOPRO_SOURCE"
+grep -Fq 'logicalContainerByKey' "$CRYPTOPRO_SOURCE"
+grep -Fq 'status === PageStatus.Active' "$CRYPTOPRO_PAGE"
+if grep -Fq 'cryptoProSession.refresh()' "$TOKEN_PAGE"; then
+    echo "CryptoPro scan must start only after its page becomes active" >&2
+    exit 1
+fi
 
-if grep -Eq 'pkcs11|QProcess|certmgr|cryptcp|C_Set|CertSet|CryptGen|CryptDestroy' \
+if grep -Eiq 'pkcs11|certmgr|cryptcp|/bin/(sh|bash)|C_Set|CertSet|CryptGen|CryptDestroy' \
         "$CRYPTOPRO_SOURCE" "$CRYPTOPRO_HEADER"; then
-    echo "CryptoPro v1.2 adapter must stay CapiLite-only and read-only" >&2
+    echo "CryptoPro v1.2 adapter must stay internal-helper, CapiLite-only and read-only" >&2
     exit 1
 fi
 if grep -Eiq '^(Requires|BuildRequires):.*(cprocsp|cryptopro)' "$SPEC"; then
