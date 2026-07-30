@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.2.0
-Release:    8
+Release:    9
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,19 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 30 2026 Claude <noreply@anthropic.com> - 1.2.0-9
+- Fix CryptoPro objects never showing over NFC. The container filter required the
+  name to contain rutoken/aktiv, which holds for the USB reader "Aktiv Rutoken
+  ECP 00" but not for the NFC bridge "ifd-nfcd-handler 00", so every container of
+  a held device was dropped inside the helper; the NFC reader is now recognised
+  too, while per-device matching still happens by reader name. Also remove the
+  race for the card: a token change no longer starts an automatic CAPI pass for
+  NFC readers (the hold wizard owns that channel and scans only after the PKCS#11
+  session is closed), and the wizard waits for its own pass through a scan
+  counter instead of the first completion it sees. Show the object source on the
+  certificate screen, so an object found through both interfaces is marked there
+  as well, not only in the list.
+
 * Thu Jul 30 2026 Claude <noreply@anthropic.com> - 1.2.0-8
 - Bring the CryptoPro view to the NFC path: the container scan now runs inside
   the same hold, right after the PKCS#11 read, and its result is kept as a

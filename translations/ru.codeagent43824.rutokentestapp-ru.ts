@@ -142,6 +142,10 @@
 <context>
     <name>CertificatePage</name>
     <message>
+        <source>Source</source>
+        <translation>Источник</translation>
+    </message>
+    <message>
         <source>Container</source>
         <translation>Контейнер</translation>
     </message>

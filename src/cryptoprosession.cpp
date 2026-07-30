@@ -167,9 +167,15 @@ bool isRutokenContainer(const Container &container)
 {
     const QString haystack = (container.uniqueName + QLatin1Char(' ')
                               + container.friendlyName).toLower();
+    // По USB считыватель называется «Aktiv Rutoken ECP 00», а по NFC — это мост
+    // к nfcd «ifd-nfcd-handler 00», в имени которого нет ни «rutoken», ни
+    // «aktiv». Без признака NFC все контейнеры поднесённого устройства
+    // отсеивались бы здесь же. Принадлежность контейнера конкретному устройству
+    // всё равно проверяется сопоставлением имени считывателя в интерфейсе.
     return haystack.contains(QStringLiteral("rutoken"))
             || haystack.contains(QStringLiteral("актив"))
-            || haystack.contains(QStringLiteral("aktiv"));
+            || haystack.contains(QStringLiteral("aktiv"))
+            || haystack.contains(QStringLiteral("nfc"));
 }
 
 QVector<Container> enumerateContainers(const Api &api, capi::CryptProv provider,
@@ -1095,8 +1101,16 @@ void CryptoProSession::syncWithTokens(const QVariantList &tokens)
 
     QStringList readers;
     for (const QVariant &value : tokens) {
-        const QString reader = value.toMap()
-                .value(QStringLiteral("slotName")).toString().trimmed();
+        const QVariantMap card = value.toMap();
+        // NFC-считыватель существует только на время поднесения, и в этот момент
+        // по тому же каналу идёт операция PKCS#11 — автоматический проход мешал
+        // бы ей и всё равно пришёлся бы на занятый канал. Чтением по NFC
+        // управляет мастер поднесения, уже после закрытия сессии PKCS#11.
+        if (card.value(QStringLiteral("connection")).toString()
+                == QStringLiteral("NFC"))
+            continue;
+        const QString reader = card.value(QStringLiteral("slotName"))
+                .toString().trimmed();
         if (!reader.isEmpty() && !readers.contains(reader))
             readers.append(reader);
     }
@@ -1202,6 +1216,7 @@ void CryptoProSession::finishHelper(int exitCode, QProcess::ExitStatus exitStatu
     m_certificates = result.value(QStringLiteral("certificates")).toList();
     m_status = result.value(QStringLiteral("status")).toString();
     m_busy = false;
+    ++m_scanSerial;
     emit changed();
     if (m_refreshPending) {
         m_refreshPending = false;
@@ -1233,6 +1248,7 @@ void CryptoProSession::failRefresh(const QString &message)
         m_helper.kill();
     m_available = false;
     m_busy = false;
+    ++m_scanSerial;
     m_status = message;
     m_libraryPath.clear();
     m_loadedLibraries.clear();

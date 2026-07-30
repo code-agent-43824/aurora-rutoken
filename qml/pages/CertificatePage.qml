@@ -151,6 +151,10 @@ Page {
                 value: page.container.length > 0 ? page.container : "—"
             }
             DetailItem {
+                label: qsTr("Source")
+                value: page.source.length > 0 ? page.source : "—"
+            }
+            DetailItem {
                 label: qsTr("Key on Rutoken")
                 value: !page.keysKnown ? qsTr("unknown until PIN login")
                        : (page.hasKey ? qsTr("yes") : qsTr("no (standalone)"))

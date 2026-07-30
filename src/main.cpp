@@ -10,7 +10,7 @@
 
 // Версия приложения (для показа в диагностике). Держать синхронной с
 // rpm/*.spec (Version-Release).
-static const char *const kAppVersion = "1.2.0-8";
+static const char *const kAppVersion = "1.2.0-9";
 
 int main(int argc, char *argv[])
 {

@@ -147,6 +147,16 @@ grep -Fq 'diagnostics.setCryptoProVersion(cryptoProSession.cspVersion());' src/m
 # КриптоПро на NFC: чтение идёт в том же поднесении, результат — снимком.
 grep -Fq 'tokenSession.setNfcCryptoPro(cryptoProSession.certificates,' "$NFC_CONNECT_PAGE"
 grep -Fq 'page.operation === "connect" && appSettings.cryptoProEnabled' "$NFC_CONNECT_PAGE"
+# NFC-считыватель называется ifd-nfcd-handler, поэтому без признака NFC фильтр
+# отбрасывал бы все контейнеры поднесённого устройства.
+grep -Fq 'haystack.contains(QStringLiteral("nfc"))' "$CRYPTOPRO_SOURCE"
+# Автопроход не трогает NFC: там каналом распоряжается мастер поднесения,
+# и мастер обязан дождаться ИМЕННО своего прохода.
+grep -Fq 'card.value(QStringLiteral("connection")).toString()' "$CRYPTOPRO_SOURCE"
+grep -Fq 'cryptoProSession.scanSerial === page.cryptoProSerial' "$NFC_CONNECT_PAGE"
+grep -Fq 'if (tokenSession.busy || cryptoProSession.busy)' "$NFC_CONNECT_PAGE"
+# Источник объекта виден и на экране сертификата.
+grep -Fq 'label: qsTr("Source")' "$CERTIFICATE_PAGE"
 grep -Fq 'tokenSession.nfcCryptoProCertificates' "$TOKEN_PAGE"
 # Лишних CAPI-проходов быть не должно: решение принимает syncWithTokens.
 grep -Fq 'cryptoProSession.syncWithTokens(tokenWatcher.tokens());' src/main.cpp

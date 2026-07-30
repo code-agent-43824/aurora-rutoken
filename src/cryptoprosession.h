@@ -17,6 +17,9 @@ class CryptoProSession : public QObject
     Q_PROPERTY(QString status READ status NOTIFY changed)
     Q_PROPERTY(QString libraryPath READ libraryPath NOTIFY changed)
     Q_PROPERTY(QString cspVersion READ cspVersion NOTIFY changed)
+    // Счётчик завершённых проходов: мастер NFC ждёт именно свой результат, а не
+    // первое попавшееся завершение.
+    Q_PROPERTY(int scanSerial READ scanSerial NOTIFY changed)
     Q_PROPERTY(QStringList loadedLibraries READ loadedLibraries NOTIFY changed)
     Q_PROPERTY(QVariantList providers READ providers NOTIFY changed)
     Q_PROPERTY(QVariantList containers READ containers NOTIFY changed)
@@ -34,6 +37,7 @@ public:
     QString status() const { return m_status; }
     QString libraryPath() const { return m_libraryPath; }
     QString cspVersion() const { return m_cspVersion; }
+    int scanSerial() const { return m_scanSerial; }
     QStringList loadedLibraries() const { return m_loadedLibraries; }
     QVariantList providers() const { return m_providers; }
     QVariantList containers() const { return m_containers; }
@@ -67,6 +71,7 @@ private:
     QString m_cspVersion;
     QStringList m_scannedReaders;
     bool m_syncedOnce = false;
+    int m_scanSerial = 0;
     QStringList m_loadedLibraries;
     QVariantList m_providers;
     QVariantList m_containers;
