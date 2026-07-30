@@ -66,6 +66,9 @@ Page {
                                    appSettings.cryptoProEnabled,
                                    page.slotName)
     property int objectCount: page.objectsModel.length
+    // Чтение ещё идёт: экран уже открыт, но счётчик объектов промежуточный.
+    property bool objectsLoading: tokenSession.busy
+                                  || (appSettings.cryptoProEnabled && cryptoProSession.busy)
 
     function normalizedReader(value) {
         return value ? value.toString().trim().toLowerCase().replace(/\s+/g, " ") : ""
@@ -442,13 +445,26 @@ Page {
                     width: switcher.width / 2
                     height: switcher.height
                     onClicked: page.view = "objects"
-                    Label {
+                    Row {
                         anchors.centerIn: parent
-                        text: page.objectCount > 0 ? qsTr("Objects · %1").arg(page.objectCount)
-                                                   : qsTr("Objects")
-                        color: page.view === "objects" ? Theme.highlightColor
-                                                       : Theme.secondaryColor
-                        font.pixelSize: Theme.fontSizeMedium
+                        spacing: Theme.paddingSmall
+
+                        Label {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: page.objectCount > 0
+                                  ? qsTr("Objects · %1").arg(page.objectCount)
+                                  : qsTr("Objects")
+                            color: page.view === "objects" ? Theme.highlightColor
+                                                           : Theme.secondaryColor
+                            font.pixelSize: Theme.fontSizeMedium
+                        }
+                        // Пока чтение не закончилось, счётчик может измениться.
+                        BusyIndicator {
+                            anchors.verticalCenter: parent.verticalCenter
+                            running: page.objectsLoading
+                            visible: page.objectsLoading
+                            size: BusyIndicatorSize.ExtraSmall
+                        }
                     }
                     Rectangle {
                         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }

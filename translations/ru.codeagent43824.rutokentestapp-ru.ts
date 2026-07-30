@@ -142,8 +142,8 @@
 <context>
     <name>CertificatePage</name>
     <message>
-        <source>Source</source>
-        <translation>Источник</translation>
+        <source>Certificate — via %1</source>
+        <translation>Сертификат — через %1</translation>
     </message>
     <message>
         <source>Container</source>
@@ -156,14 +156,6 @@
     <message>
         <source>Certificate</source>
         <translation>Сертификат</translation>
-    </message>
-    <message>
-        <source>Certificate — via PKCS#11</source>
-        <translation>Сертификат — через PKCS#11</translation>
-    </message>
-    <message>
-        <source>Certificate — via CryptoPro CSP</source>
-        <translation>Сертификат — через КриптоПро CSP</translation>
     </message>
     <message>
         <source>Common Name</source>

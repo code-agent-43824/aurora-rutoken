@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.2.0
-Release:    9
+Release:    10
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,16 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 30 2026 Claude <noreply@anthropic.com> - 1.2.0-10
+- Build the certificate screen header from the actual object source, so a
+  certificate found through both backends is marked "via PKCS#11 and CryptoPro
+  CSP" there as well; previously the header was chosen by the backend flag and
+  always said PKCS#11 for such objects. The separate Source row added in 1.2.0-9
+  is removed as a duplicate. Show a progress indicator next to the object count
+  while the device is still being read, so an intermediate count is visible as
+  work in progress. Record the CryptoPro reader and container names reported on
+  the device in the research notes.
+
 * Thu Jul 30 2026 Claude <noreply@anthropic.com> - 1.2.0-9
 - Fix CryptoPro objects never showing over NFC. The container filter required the
   name to contain rutoken/aktiv, which holds for the USB reader "Aktiv Rutoken

@@ -120,8 +120,11 @@ Page {
 
             PageHeader {
                 title: page.title()
-                description: page.cryptoPro ? qsTr("Certificate — via CryptoPro CSP")
-                                            : qsTr("Certificate — via PKCS#11")
+                // Источник берём фактический: объект может быть виден и через
+                // PKCS#11, и через КриптоПро одновременно.
+                description: page.source.length > 0
+                             ? qsTr("Certificate — via %1").arg(page.source)
+                             : qsTr("Certificate")
             }
 
             DetailItem {
@@ -149,10 +152,6 @@ Page {
                 visible: page.cryptoPro
                 label: qsTr("Container")
                 value: page.container.length > 0 ? page.container : "—"
-            }
-            DetailItem {
-                label: qsTr("Source")
-                value: page.source.length > 0 ? page.source : "—"
             }
             DetailItem {
                 label: qsTr("Key on Rutoken")

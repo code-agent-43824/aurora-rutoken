@@ -155,8 +155,15 @@ grep -Fq 'haystack.contains(QStringLiteral("nfc"))' "$CRYPTOPRO_SOURCE"
 grep -Fq 'card.value(QStringLiteral("connection")).toString()' "$CRYPTOPRO_SOURCE"
 grep -Fq 'cryptoProSession.scanSerial === page.cryptoProSerial' "$NFC_CONNECT_PAGE"
 grep -Fq 'if (tokenSession.busy || cryptoProSession.busy)' "$NFC_CONNECT_PAGE"
-# Источник объекта виден и на экране сертификата.
-grep -Fq 'label: qsTr("Source")' "$CERTIFICATE_PAGE"
+# Шапка экрана сертификата строится из ФАКТИЧЕСКОГО источника: объект может быть
+# виден обоими интерфейсами сразу.
+grep -Fq 'qsTr("Certificate — via %1").arg(page.source)' "$CERTIFICATE_PAGE"
+if grep -Fq 'qsTr("Certificate — via PKCS#11")' "$CERTIFICATE_PAGE"; then
+    echo "The certificate header must follow the actual source, not the backend flag" >&2
+    exit 1
+fi
+# Пока идёт чтение, у счётчика объектов виден индикатор прогресса.
+grep -Fq 'running: page.objectsLoading' "$TOKEN_PAGE"
 grep -Fq 'tokenSession.nfcCryptoProCertificates' "$TOKEN_PAGE"
 # Лишних CAPI-проходов быть не должно: решение принимает syncWithTokens.
 grep -Fq 'cryptoProSession.syncWithTokens(tokenWatcher.tokens());' src/main.cpp
