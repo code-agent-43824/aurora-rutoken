@@ -39,10 +39,14 @@ fi
 
 # v1.1: launcher перехода на CMS может скомпилироваться, даже если новый QML
 # случайно не попал в RPM. Проверяем оба runtime-экрана внутри каждого пакета.
-for QML_PAGE in SignFilePage.qml SignDataFilePickerPage.qml; do
+for QML_PAGE in \
+    SignFilePage.qml \
+    SignDataFilePickerPage.qml \
+    CryptoProPage.qml \
+    CryptoProCertificatePage.qml; do
     QML_PATH="$VERIFY_DIR/usr/share/$APP_ID/qml/pages/$QML_PAGE"
     if [ ! -s "$QML_PATH" ]; then
-        echo "CMS signing QML is missing or empty: $QML_PATH" >&2
+        echo "Required runtime QML is missing or empty: $QML_PATH" >&2
         exit 1
     fi
 done
@@ -83,4 +87,4 @@ printf '%s\n' "$SIGNATURE_INFO" | grep -Fq 'Subject: Noname developer (for testi
 printf '%s\n' "$SIGNATURE_INFO" | grep -Fq 'Subgroup: regular'
 printf '%s\n' "$SIGNATURE_INFO" | grep -Eq '^Signature: .+'
 
-echo "Verified: rpm_arch=$RPM_ARCH; elf_machine=$MACHINE; loader=$INTERPRETER; cms_qml=present; icon=$APP_ID; signature=OMP regular test"
+echo "Verified: rpm_arch=$RPM_ARCH; elf_machine=$MACHINE; loader=$INTERPRETER; cms_and_capi_qml=present; icon=$APP_ID; signature=OMP regular test"

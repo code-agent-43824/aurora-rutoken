@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    1.1.0
-Release:    2
+Version:    1.2.0
+Release:    1
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -26,6 +26,9 @@ PIN, unblock the user PIN). NFC uses a guided connect wizard; the certificate
 is auto-attached to its key pair by public key on import. Files can be signed
 as detached or attached CMS/PKCS#7 with a certificate and private key stored
 on the Rutoken.
+When an independently installed CryptoPro CSP is present, the application also
+provides a strictly read-only view of Rutoken containers and linked certificates
+through the runtime-loaded CapiLite API. CryptoPro CSP is not bundled or required.
 
 %prep
 %autosetup
@@ -46,6 +49,12 @@ on the Rutoken.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 30 2026 Watson <noreply@openai.com> - 1.2.0-1
+- Add an optional read-only CryptoPro CapiLite view. Detect libcapi20 at
+  runtime, enumerate Rutoken containers and linked certificates through
+  CryptoAPI, show key availability and certificate/container consistency
+  diagnostics. Do not bundle CSP and do not affect the existing PKCS#11 path.
+
 * Thu Jul 30 2026 Watson <noreply@openai.com> - 1.1.0-2
 - Speed up CMS signing by using the PKCS#11 library hashing path. Sort expired
   certificates last, render them inactive and prevent signing with them.

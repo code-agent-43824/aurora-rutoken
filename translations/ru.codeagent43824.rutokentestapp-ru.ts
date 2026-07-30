@@ -36,6 +36,10 @@
         <translation>Диагностика</translation>
     </message>
     <message>
+        <source>CryptoPro CSP</source>
+        <translation>КриптоПро CSP</translation>
+    </message>
+    <message>
         <source>Refresh</source>
         <translation>Обновить</translation>
     </message>
@@ -1082,5 +1086,48 @@
         <source>Pull down for administration: change or unblock PINs, change the label.</source>
         <translation>Потяните шторку вниз для администрирования: смена/разблокировка PIN-кодов, смена метки.</translation>
     </message>
+</context>
+<context>
+    <name>CryptoProPage</name>
+    <message><source>Refresh</source><translation>Обновить</translation></message>
+    <message><source>CryptoPro CSP</source><translation>КриптоПро CSP</translation></message>
+    <message><source>Library: %1</source><translation>Библиотека: %1</translation></message>
+    <message><source>CryptoPro CSP is optional and is not included with the application</source><translation>КриптоПро CSP является опциональным и не входит в приложение</translation></message>
+    <message><source>Rutoken containers</source><translation>Контейнеры Рутокена</translation></message>
+    <message><source>No Rutoken containers found through CryptoPro CSP</source><translation>КриптоПро CSP не нашёл контейнеры Рутокена</translation></message>
+    <message><source>Unnamed container</source><translation>Контейнер без имени</translation></message>
+    <message><source>%1 · provider type %2 · certificates: %3</source><translation>%1 · тип провайдера %2 · сертификатов: %3</translation></message>
+    <message><source>Linked certificates</source><translation>Связанные сертификаты</translation></message>
+    <message><source>No linked certificates found in the personal store</source><translation>В личном хранилище нет связанных сертификатов</translation></message>
+    <message><source>Certificate</source><translation>Сертификат</translation></message>
+    <message><source>Container: %1</source><translation>Контейнер: %1</translation></message>
+    <message><source>Private key is available</source><translation>Закрытый ключ доступен</translation></message>
+    <message><source>Private key is unavailable</source><translation>Закрытый ключ недоступен</translation></message>
+    <message><source>exact DER copies: %1</source><translation>точных DER-копий: %1</translation></message>
+    <message><source>different certificates for this container: %1</source><translation>разных сертификатов этого контейнера: %1</translation></message>
+    <message><source>metadata conflict</source><translation>конфликт метаданных</translation></message>
+</context>
+<context>
+    <name>CryptoProCertificatePage</name>
+    <message><source>Certificate</source><translation>Сертификат</translation></message>
+    <message><source>CryptoPro CSP · read-only</source><translation>КриптоПро CSP · только просмотр</translation></message>
+    <message><source>Subject</source><translation>Субъект</translation></message>
+    <message><source>Issuer</source><translation>Издатель</translation></message>
+    <message><source>Serial number</source><translation>Серийный номер</translation></message>
+    <message><source>Valid from</source><translation>Действует с</translation></message>
+    <message><source>Valid until</source><translation>Действует до</translation></message>
+    <message><source>Algorithm</source><translation>Алгоритм</translation></message>
+    <message><source>Provider</source><translation>Провайдер</translation></message>
+    <message><source>Provider type</source><translation>Тип провайдера</translation></message>
+    <message><source>Container</source><translation>Контейнер</translation></message>
+    <message><source>Private key</source><translation>Закрытый ключ</translation></message>
+    <message><source>available</source><translation>доступен</translation></message>
+    <message><source>unavailable</source><translation>недоступен</translation></message>
+    <message><source>Certificate SHA-256</source><translation>SHA-256 сертификата</translation></message>
+    <message><source>Consistency</source><translation>Согласованность</translation></message>
+    <message><source>Exact DER copies in the store: %1</source><translation>Точных DER-копий в хранилище: %1</translation></message>
+    <message><source>Different certificates linked to this container: %1</source><translation>Разных сертификатов, связанных с контейнером: %1</translation></message>
+    <message><source>The same DER certificate has conflicting provider or container metadata</source><translation>Один DER-сертификат имеет противоречивые сведения о провайдере или контейнере</translation></message>
+    <message><source>This screen does not change certificates or containers</source><translation>Этот экран не изменяет сертификаты и контейнеры</translation></message>
 </context>
 </TS>

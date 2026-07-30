@@ -25,6 +25,13 @@ Page {
 
         PullDownMenu {
             MenuItem {
+                text: qsTr("CryptoPro CSP")
+                onClicked: {
+                    cryptoProSession.refresh()
+                    pageStack.push(Qt.resolvedUrl("CryptoProPage.qml"))
+                }
+            }
+            MenuItem {
                 text: qsTr("Diagnostics")
                 onClicked: pageStack.push(Qt.resolvedUrl("DiagnosticsPage.qml"))
             }

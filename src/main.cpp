@@ -1,13 +1,14 @@
 #include <auroraapp.h>
 #include <QtQuick>
 
+#include "cryptoprosession.h"
 #include "diagnostics.h"
 #include "tokensession.h"
 #include "tokenwatcher.h"
 
 // Версия приложения (для показа в диагностике). Держать синхронной с
 // rpm/*.spec (Version-Release).
-static const char *const kAppVersion = "1.1.0-2";
+static const char *const kAppVersion = "1.2.0-1";
 
 int main(int argc, char *argv[])
 {
@@ -17,6 +18,7 @@ int main(int argc, char *argv[])
 
     TokenWatcher tokenWatcher;
     TokenSession tokenSession;
+    CryptoProSession cryptoProSession;
     Diagnostics diagnostics;
 
     // Изменение набора токенов: сброс входа при пропаже USB-слота и снятие
@@ -28,6 +30,7 @@ int main(int argc, char *argv[])
     QScopedPointer<QQuickView> view(Aurora::Application::createView());
     view->rootContext()->setContextProperty(QStringLiteral("tokenWatcher"), &tokenWatcher);
     view->rootContext()->setContextProperty(QStringLiteral("tokenSession"), &tokenSession);
+    view->rootContext()->setContextProperty(QStringLiteral("cryptoProSession"), &cryptoProSession);
     view->rootContext()->setContextProperty(QStringLiteral("diag"), &diagnostics);
     view->rootContext()->setContextProperty(QStringLiteral("appVersion"), QString::fromLatin1(kAppVersion));
     view->setSource(Aurora::Application::pathTo(QStringLiteral("qml/rutokentestapp.qml")));

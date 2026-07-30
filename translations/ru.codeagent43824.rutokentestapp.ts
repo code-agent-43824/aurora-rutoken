@@ -36,6 +36,10 @@
         <translation>Diagnostics</translation>
     </message>
     <message>
+        <source>CryptoPro CSP</source>
+        <translation>CryptoPro CSP</translation>
+    </message>
+    <message>
         <source>Refresh</source>
         <translation>Refresh</translation>
     </message>
@@ -1082,5 +1086,48 @@
         <source>Pull down for administration: change or unblock PINs, change the label.</source>
         <translation>Pull down for administration: change or unblock PINs, change the label.</translation>
     </message>
+</context>
+<context>
+    <name>CryptoProPage</name>
+    <message><source>Refresh</source><translation>Refresh</translation></message>
+    <message><source>CryptoPro CSP</source><translation>CryptoPro CSP</translation></message>
+    <message><source>Library: %1</source><translation>Library: %1</translation></message>
+    <message><source>CryptoPro CSP is optional and is not included with the application</source><translation>CryptoPro CSP is optional and is not included with the application</translation></message>
+    <message><source>Rutoken containers</source><translation>Rutoken containers</translation></message>
+    <message><source>No Rutoken containers found through CryptoPro CSP</source><translation>No Rutoken containers found through CryptoPro CSP</translation></message>
+    <message><source>Unnamed container</source><translation>Unnamed container</translation></message>
+    <message><source>%1 · provider type %2 · certificates: %3</source><translation>%1 · provider type %2 · certificates: %3</translation></message>
+    <message><source>Linked certificates</source><translation>Linked certificates</translation></message>
+    <message><source>No linked certificates found in the personal store</source><translation>No linked certificates found in the personal store</translation></message>
+    <message><source>Certificate</source><translation>Certificate</translation></message>
+    <message><source>Container: %1</source><translation>Container: %1</translation></message>
+    <message><source>Private key is available</source><translation>Private key is available</translation></message>
+    <message><source>Private key is unavailable</source><translation>Private key is unavailable</translation></message>
+    <message><source>exact DER copies: %1</source><translation>exact DER copies: %1</translation></message>
+    <message><source>different certificates for this container: %1</source><translation>different certificates for this container: %1</translation></message>
+    <message><source>metadata conflict</source><translation>metadata conflict</translation></message>
+</context>
+<context>
+    <name>CryptoProCertificatePage</name>
+    <message><source>Certificate</source><translation>Certificate</translation></message>
+    <message><source>CryptoPro CSP · read-only</source><translation>CryptoPro CSP · read-only</translation></message>
+    <message><source>Subject</source><translation>Subject</translation></message>
+    <message><source>Issuer</source><translation>Issuer</translation></message>
+    <message><source>Serial number</source><translation>Serial number</translation></message>
+    <message><source>Valid from</source><translation>Valid from</translation></message>
+    <message><source>Valid until</source><translation>Valid until</translation></message>
+    <message><source>Algorithm</source><translation>Algorithm</translation></message>
+    <message><source>Provider</source><translation>Provider</translation></message>
+    <message><source>Provider type</source><translation>Provider type</translation></message>
+    <message><source>Container</source><translation>Container</translation></message>
+    <message><source>Private key</source><translation>Private key</translation></message>
+    <message><source>available</source><translation>available</translation></message>
+    <message><source>unavailable</source><translation>unavailable</translation></message>
+    <message><source>Certificate SHA-256</source><translation>Certificate SHA-256</translation></message>
+    <message><source>Consistency</source><translation>Consistency</translation></message>
+    <message><source>Exact DER copies in the store: %1</source><translation>Exact DER copies in the store: %1</translation></message>
+    <message><source>Different certificates linked to this container: %1</source><translation>Different certificates linked to this container: %1</translation></message>
+    <message><source>The same DER certificate has conflicting provider or container metadata</source><translation>The same DER certificate has conflicting provider or container metadata</translation></message>
+    <message><source>This screen does not change certificates or containers</source><translation>This screen does not change certificates or containers</translation></message>
 </context>
 </TS>

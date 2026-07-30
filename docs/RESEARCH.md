@@ -191,6 +191,36 @@ CertificationRequestInfo  ::= SEQUENCE { version INTEGER(0), subject Name, spki 
 detached — только `PKCS7_DETACHED_SIGNATURE`. Закрытый ключ и сама операция
 подписи по-прежнему остаются в Рутокене.
 
+### 5е. Read-only интеграция КриптоПро CSP/CapiLite — для v1.2
+
+Официальное руководство КриптоПро CSP 5.0 R3 для Авроры перечисляет
+`libcapi20.so` как библиотеку CryptoAPI 2.0; CSP поставляется отдельным
+лицензируемым продуктом для Авроры и не должен встраиваться в RPM приложения.
+Официальная документация CapiLite 5.0 R4 подтверждает нужный публичный
+read-only путь:
+
+- `CryptEnumProvidersA` перечисляет зарегистрированные провайдеры; на Unix их
+  настройки находятся в `/opt/CPROcsp/etc/config.ini`;
+- `CryptAcquireContextA(..., CRYPT_VERIFYCONTEXT | CRYPT_SILENT)` открывает
+  контекст без создания контейнера и без UI;
+- `CryptGetProvParam(PP_ENUMCONTAINERS)` перечисляет контейнеры; сочетание
+  `CRYPT_UNIQUE | CRYPT_FQCN` возвращает уникальное и дружественное FQCN,
+  позволяя определить физический ридер `Aktiv Rutoken`;
+- `CertOpenSystemStoreA("MY")` и `CertEnumCertificatesInStore` читают личное
+  хранилище, а `CertGetCertificateContextProperty` официально поддерживает
+  `CERT_KEY_PROV_INFO_PROP_ID` — связь сертификата с provider/type/container;
+- `CryptAcquireCertificatePrivateKey` с
+  `CRYPT_ACQUIRE_SILENT_FLAG | CRYPT_ACQUIRE_COMPARE_KEY_FLAG` проверяет,
+  доступен ли именно соответствующий закрытый ключ, без запроса PIN/UI.
+
+У CapiLite на Unix `CP_ACP` означает CP1251, а widechar-строки следуют
+платформенному `wchar_t` (на Linux/Aurora — UTF-32). Поэтому минимальный ABI
+адаптера использует 32-битный `DWORD`, pointer-sized `HCRYPTPROV`,
+платформенный `wchar_t` и явное декодирование CP1251. Адаптер динамически
+разрешает только перечисленные функции из внешнего `libcapi20.so`; compile-time
+зависимости от proprietary SDK нет. В v1.2 отсутствуют функции записи,
+PKCS#11-вызовы и запуск `certmgr`/`cryptcp`.
+
 ## 6. Открытые вопросы (проверять на следующих этапах)
 
 1. Входят ли `pcscd` и NFC-handler в стандартную поставку Авроры, или ставятся отдельными пакетами (например, вместе с приложением «Рутокен»)? Доступен ли pcscd стороннему приложению из песочницы?

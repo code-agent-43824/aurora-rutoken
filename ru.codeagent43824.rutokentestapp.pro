@@ -9,6 +9,7 @@ PKGCONFIG += \
 
 SOURCES += \
     src/main.cpp \
+    src/cryptoprosession.cpp \
     src/diagnostics.cpp \
     src/pkcs11_certimport.cpp \
     src/pkcs11_cms.cpp \
@@ -23,6 +24,8 @@ SOURCES += \
 
 HEADERS += \
     src/diagnostics.h \
+    src/cryptopro_capi_minimal.h \
+    src/cryptoprosession.h \
     src/pkcs11_certimport.h \
     src/pkcs11_cms.h \
     src/pkcs11_csr.h \
