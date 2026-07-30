@@ -13,6 +13,7 @@ typedef quint32 Dword;
 typedef qint32 Bool;
 typedef unsigned char Byte;
 typedef quintptr CryptProv;
+typedef quintptr CryptKey;
 typedef void *CertStore;
 // CapiLite следует платформенному wchar_t: на Linux/Aurora это UTF-32,
 // в отличие от 16-битного WCHAR Windows.
@@ -45,6 +46,14 @@ typedef Bool (*CryptAcquireContextAFn)(
 typedef Bool (*CryptReleaseContextFn)(CryptProv, Dword);
 typedef Bool (*CryptGetProvParamFn)(
         CryptProv, Dword, Byte *, Dword *, Dword);
+// Чтение сертификата, лежащего ВНУТРИ контейнера. Перечисление хранилища «MY»
+// возвращает только установленные (зарегистрированные) сертификаты, поэтому
+// носитель, на котором сертификат просто лежит в контейнере, через хранилище не
+// виден. Штатный путь CryptoAPI: получить ключ контейнера и прочитать
+// привязанный к нему сертификат параметром KP_CERTIFICATE.
+typedef Bool (*CryptGetUserKeyFn)(CryptProv, Dword, CryptKey *);
+typedef Bool (*CryptGetKeyParamFn)(CryptKey, Dword, Byte *, Dword *, Dword);
+typedef Bool (*CryptDestroyKeyFn)(CryptKey);
 typedef CertStore (*CertOpenSystemStoreAFn)(CryptProv, const char *);
 typedef const CertContext *(*CertEnumCertificatesInStoreFn)(
         CertStore, const CertContext *);
@@ -65,6 +74,11 @@ static const Dword CryptFirst = 0x00000001U;
 static const Dword CryptUnique = 0x00000008U;
 static const Dword CryptFqcn = 0x00000010U;
 static const Dword PpEnumContainers = 2;
+
+// Спецификации ключа контейнера и параметр чтения привязанного сертификата.
+static const Dword AtKeyExchange = 1;
+static const Dword AtSignature = 2;
+static const Dword KpCertificate = 26;
 
 static const Dword CertKeyProvInfoPropId = 2;
 static const Dword CryptAcquireCompareKeyFlag = 0x00000004U;

@@ -138,6 +138,10 @@
 <context>
     <name>CertificatePage</name>
     <message>
+        <source>Serial number</source>
+        <translation>Серийный номер</translation>
+    </message>
+    <message>
         <source>Certificate</source>
         <translation>Сертификат</translation>
     </message>
@@ -966,6 +970,14 @@
 </context>
 <context>
     <name>TokenPage</name>
+    <message>
+        <source>Key container</source>
+        <translation>Ключевой контейнер</translation>
+    </message>
+    <message>
+        <source>container: %1</source>
+        <translation>контейнер: %1</translation>
+    </message>
     <message>
         <source>User PIN</source>
         <translation>PIN-код пользователя</translation>

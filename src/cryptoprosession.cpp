@@ -23,6 +23,7 @@ const int MaxProviders = 128;
 const int MaxContainersPerProvider = 512;
 const int MaxCertificates = 4096;
 const capi::Dword MaxCapiTextBytes = 64U * 1024U;
+const capi::Dword MaxCertificateBytes = 64U * 1024U;
 const int MaxHelperOutputBytes = 4 * 1024 * 1024;
 const int HelperTimeoutMs = 30000;
 const char HelperMarker[] = "RUTOKEN_CRYPTOPRO_JSON:";
@@ -33,6 +34,10 @@ struct Api
     capi::CryptAcquireContextAFn acquireContext = nullptr;
     capi::CryptReleaseContextFn releaseContext = nullptr;
     capi::CryptGetProvParamFn getProvParam = nullptr;
+    // Необязательные: без них остаётся только хранилище «MY».
+    capi::CryptGetUserKeyFn getUserKey = nullptr;
+    capi::CryptGetKeyParamFn getKeyParam = nullptr;
+    capi::CryptDestroyKeyFn destroyKey = nullptr;
     capi::CertOpenSystemStoreAFn openSystemStore = nullptr;
     capi::CertEnumCertificatesInStoreFn enumCertificates = nullptr;
     capi::CertGetCertificateContextPropertyFn getCertificateProperty = nullptr;
@@ -311,8 +316,92 @@ QString physicalContainerKey(const Container &container)
     return normalizedContainerName(container.uniqueName);
 }
 
+struct ContainerCertificate
+{
+    QByteArray der;
+    capi::Dword keySpec = 0;
+};
+
+// Читает сертификат, лежащий ВНУТРИ контейнера. Хранилище «MY» перечисляет
+// только установленные (зарегистрированные) сертификаты, а приложение их не
+// регистрирует, поэтому лежащий в контейнере сертификат виден исключительно
+// этим путём: контекст самого контейнера → ключ → параметр KP_CERTIFICATE.
+QVector<ContainerCertificate> readContainerCertificates(const Api &api,
+                                                        const Container &container)
+{
+    QVector<ContainerCertificate> out;
+    if (!api.getUserKey || !api.getKeyParam || !api.destroyKey)
+        return out;
+
+    // Полное имя (FQCN) — основной способ открыть конкретный контейнер на
+    // конкретном считывателе; остальные имена пробуем как запасные.
+    QStringList names;
+    for (const QString &candidate : { container.friendlyName, container.uniqueName,
+                                      container.displayName }) {
+        const QString trimmed = candidate.trimmed();
+        if (!trimmed.isEmpty() && !names.contains(trimmed))
+            names.append(trimmed);
+    }
+
+    const QByteArray providerBytes = toCapiText(container.provider);
+    for (const QString &name : names) {
+        const QByteArray nameBytes = toCapiText(name);
+        capi::CryptProv provider = 0;
+        // Без CRYPT_VERIFYCONTEXT — нужен контекст самого контейнера.
+        // CRYPT_SILENT обязателен: CSP не должен поднимать системный запрос
+        // PIN-кода в ограниченном helper-процессе. Защищённый контейнер вернёт
+        // ошибку, и это штатная деградация, а не сбой сканирования.
+        if (!api.acquireContext(&provider, nameBytes.constData(),
+                                providerBytes.isEmpty() ? nullptr
+                                                        : providerBytes.constData(),
+                                container.providerType, capi::CryptSilent))
+            continue;
+
+        const capi::Dword keySpecs[] = { capi::AtKeyExchange, capi::AtSignature };
+        for (const capi::Dword keySpec : keySpecs) {
+            capi::CryptKey key = 0;
+            if (!api.getUserKey(provider, keySpec, &key))
+                continue;
+            capi::Dword size = 0;
+            if (api.getKeyParam(key, capi::KpCertificate, nullptr, &size, 0)
+                    && size > 0 && size <= MaxCertificateBytes) {
+                QByteArray der(static_cast<int>(size), '\0');
+                if (api.getKeyParam(key, capi::KpCertificate,
+                                    reinterpret_cast<capi::Byte *>(der.data()),
+                                    &size, 0)
+                        && size > 0 && static_cast<int>(size) <= der.size()) {
+                    der.truncate(static_cast<int>(size));
+                    bool known = false;
+                    for (const ContainerCertificate &existing : out)
+                        known = known || existing.der == der;
+                    if (!known) {
+                        ContainerCertificate row;
+                        row.der = der;
+                        row.keySpec = keySpec;
+                        out.append(row);
+                    }
+                }
+            }
+            api.destroyKey(key);
+        }
+        api.releaseContext(provider, 0);
+        if (!out.isEmpty())
+            break;
+    }
+    return out;
+}
+
 QStringList loadedCryptoProLibraries(const QString &directLibraryPath)
 {
+    // Модули КриптоПро могут лежать и вне известных каталогов, поэтому кроме
+    // пути распознаём характерные имена. Список намеренно узкий: посторонняя
+    // системная библиотека не должна попасть в диагностику.
+    static const QStringList moduleNamePrefixes = {
+        QStringLiteral("libcapi"), QStringLiteral("libcpsp"),
+        QStringLiteral("libcprocsp"), QStringLiteral("libcpcsp"),
+        QStringLiteral("librdrsup"), QStringLiteral("libasn1cp")
+    };
+
     QSet<QString> paths;
     const auto addPath = [&paths](QString path, bool requireCryptoProDirectory) {
         path = path.trimmed();
@@ -321,7 +410,11 @@ QStringList loadedCryptoProLibraries(const QString &directLibraryPath)
         if (path.isEmpty())
             return;
         const QString lower = path.toLower();
-        if (requireCryptoProDirectory
+        const QString fileName = QFileInfo(lower).fileName();
+        bool knownModuleName = false;
+        for (const QString &prefix : moduleNamePrefixes)
+            knownModuleName = knownModuleName || fileName.startsWith(prefix);
+        if (requireCryptoProDirectory && !knownModuleName
                 && !lower.contains(QStringLiteral("/ru.cryptopro.csp/"))
                 && !lower.contains(QStringLiteral("/cprocsp/")))
             return;
@@ -346,6 +439,57 @@ QStringList loadedCryptoProLibraries(const QString &directLibraryPath)
     QStringList out = paths.values();
     out.sort(Qt::CaseInsensitive);
     return out;
+}
+
+// Единый вид строки сертификата КриптоПро — и для установленного сертификата из
+// хранилища «MY», и для сертификата, прочитанного изнутри контейнера.
+QVariantMap buildCertificateRow(const QByteArray &der, const QString &provider,
+                                capi::Dword providerType, const QString &containerName,
+                                const QString &containerKey, const QString &readerName,
+                                bool privateKeyAvailable, capi::Dword keySpec,
+                                const QString &origin, int logicalContainerIndex)
+{
+    const QSslCertificate certificate(der, QSsl::Der);
+    QVariantMap row;
+    row.insert(QStringLiteral("subject"), certificate.isNull()
+               ? QString() : distinguishedName(certificate, false));
+    row.insert(QStringLiteral("commonName"), certificate.isNull()
+               ? QString()
+               : firstInfo(certificate.subjectInfo(QSslCertificate::CommonName)));
+    row.insert(QStringLiteral("issuer"), certificate.isNull()
+               ? QString() : distinguishedName(certificate, true));
+    row.insert(QStringLiteral("serial"), certificate.isNull()
+               ? QString() : QString::fromLatin1(certificate.serialNumber()));
+    row.insert(QStringLiteral("notBefore"), certificate.effectiveDate().isValid()
+               ? certificate.effectiveDate().toUTC().toString(
+                     QStringLiteral("yyyy-MM-dd HH:mm:ss 'UTC'"))
+               : QString());
+    row.insert(QStringLiteral("notAfter"), certificate.expiryDate().isValid()
+               ? certificate.expiryDate().toUTC().toString(
+                     QStringLiteral("yyyy-MM-dd HH:mm:ss 'UTC'"))
+               : QString());
+    row.insert(QStringLiteral("notAfterMs"), certificate.expiryDate().isValid()
+               ? certificate.expiryDate().toUTC().toMSecsSinceEpoch() : 0);
+    row.insert(QStringLiteral("expired"), certificate.expiryDate().isValid()
+               && QDateTime::currentDateTimeUtc() > certificate.expiryDate().toUTC());
+    row.insert(QStringLiteral("algorithm"), certificateAlgorithm(der, providerType));
+    row.insert(QStringLiteral("sha256"), QString::fromLatin1(
+                   QCryptographicHash::hash(der, QCryptographicHash::Sha256).toHex()));
+    row.insert(QStringLiteral("derB64"), QString::fromLatin1(der.toBase64()));
+    row.insert(QStringLiteral("provider"), provider);
+    row.insert(QStringLiteral("providerType"), providerType);
+    row.insert(QStringLiteral("container"), containerName);
+    row.insert(QStringLiteral("containerKey"), containerKey);
+    row.insert(QStringLiteral("readerName"), readerName);
+    row.insert(QStringLiteral("privateKeyAvailable"), privateKeyAvailable);
+    row.insert(QStringLiteral("keySpec"), keySpec);
+    row.insert(QStringLiteral("origin"), origin);
+    row.insert(QStringLiteral("exactDuplicateCount"), 1);
+    row.insert(QStringLiteral("containerCertificateCount"), 1);
+    row.insert(QStringLiteral("metadataConflict"), false);
+    row.insert(QStringLiteral("_containerIndex"), logicalContainerIndex);
+    row.insert(QStringLiteral("_bindingKey"), containerKey);
+    return row;
 }
 
 QVariantMap scan(const Api &api, const QString &libraryPath)
@@ -484,7 +628,6 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
 
             const Container &container = rutokenContainers.at(containerIndex);
             const int logicalContainerIndex = logicalContainerIndices.at(containerIndex);
-            const QSslCertificate certificate(der, QSsl::Der);
             capi::CryptProv keyProvider = 0;
             capi::Dword keySpec = 0;
             capi::Bool callerFree = 0;
@@ -495,57 +638,64 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
             if (privateKeyAvailable && callerFree)
                 api.releaseContext(keyProvider, 0);
 
-            QVariantMap row;
-            const QString sha256 = QString::fromLatin1(
-                        QCryptographicHash::hash(der, QCryptographicHash::Sha256).toHex());
-            row.insert(QStringLiteral("subject"), certificate.isNull()
-                       ? QString() : distinguishedName(certificate, false));
-            row.insert(QStringLiteral("commonName"), certificate.isNull()
-                       ? QString()
-                       : firstInfo(certificate.subjectInfo(
-                                       QSslCertificate::CommonName)));
-            row.insert(QStringLiteral("issuer"), certificate.isNull()
-                       ? QString() : distinguishedName(certificate, true));
-            row.insert(QStringLiteral("serial"), certificate.isNull()
-                       ? QString() : QString::fromLatin1(certificate.serialNumber()));
-            row.insert(QStringLiteral("notBefore"), certificate.effectiveDate().isValid()
-                       ? certificate.effectiveDate().toUTC().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss 'UTC'"))
-                       : QString());
-            row.insert(QStringLiteral("notAfter"), certificate.expiryDate().isValid()
-                       ? certificate.expiryDate().toUTC().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss 'UTC'"))
-                       : QString());
-            row.insert(QStringLiteral("notAfterMs"), certificate.expiryDate().isValid()
-                       ? certificate.expiryDate().toUTC().toMSecsSinceEpoch()
-                       : 0);
-            row.insert(QStringLiteral("expired"), certificate.expiryDate().isValid()
-                       && QDateTime::currentDateTimeUtc() > certificate.expiryDate().toUTC());
-            row.insert(QStringLiteral("algorithm"),
-                       certificateAlgorithm(der, info->providerType));
-            row.insert(QStringLiteral("sha256"), sha256);
-            row.insert(QStringLiteral("derB64"), QString::fromLatin1(der.toBase64()));
-            row.insert(QStringLiteral("provider"),
-                       boundProvider.isEmpty() ? container.provider : boundProvider);
-            row.insert(QStringLiteral("providerType"), info->providerType);
-            row.insert(QStringLiteral("container"),
-                       boundContainer.isEmpty() ? container.displayName : boundContainer);
-            row.insert(QStringLiteral("containerKey"),
-                       containerRows.at(logicalContainerIndex).toMap()
-                       .value(QStringLiteral("_physicalKey")).toString());
-            row.insert(QStringLiteral("readerName"), containerReaderName(container));
-            row.insert(QStringLiteral("privateKeyAvailable"), privateKeyAvailable);
-            row.insert(QStringLiteral("keySpec"), keySpec);
-            row.insert(QStringLiteral("exactDuplicateCount"), 1);
-            row.insert(QStringLiteral("containerCertificateCount"), 1);
-            row.insert(QStringLiteral("metadataConflict"), false);
-            row.insert(QStringLiteral("_containerIndex"), logicalContainerIndex);
-            row.insert(QStringLiteral("_bindingKey"),
-                       containerRows.at(logicalContainerIndex).toMap()
-                       .value(QStringLiteral("_physicalKey")).toString());
-            certificates.append(row);
+            const QString containerKey = containerRows.at(logicalContainerIndex).toMap()
+                    .value(QStringLiteral("_physicalKey")).toString();
+            certificates.append(buildCertificateRow(
+                                    der,
+                                    boundProvider.isEmpty() ? container.provider
+                                                            : boundProvider,
+                                    info->providerType,
+                                    boundContainer.isEmpty() ? container.displayName
+                                                             : boundContainer,
+                                    containerKey,
+                                    containerReaderName(container),
+                                    privateKeyAvailable, keySpec,
+                                    QStringLiteral("store"), logicalContainerIndex));
         }
         if (context)
             api.freeCertificate(context);
         api.closeStore(store, 0);
+    }
+
+    // Основной источник для нашего сценария: сертификат, лежащий ВНУТРИ
+    // контейнера. Приложение сертификаты не устанавливает, поэтому в хранилище
+    // «MY» их нет, и без этого прохода носитель выглядит пустым. Проходим по
+    // логическим контейнерам и берём первый вариант провайдера, который отдал
+    // сертификат; уже известный по хранилищу DER не дублируем.
+    QSet<QString> knownCertificateHashes;
+    for (const QVariant &value : certificates) {
+        knownCertificateHashes.insert(
+                    value.toMap().value(QStringLiteral("sha256")).toString());
+    }
+    QVector<bool> logicalContainerScanned(containerRows.size(), false);
+    for (int rawIndex = 0; rawIndex < rutokenContainers.size(); ++rawIndex) {
+        const int logicalIndex = logicalContainerIndices.at(rawIndex);
+        if (logicalIndex < 0 || logicalIndex >= logicalContainerScanned.size()
+                || logicalContainerScanned.at(logicalIndex))
+            continue;
+        const Container &container = rutokenContainers.at(rawIndex);
+        const QVector<ContainerCertificate> embedded =
+                readContainerCertificates(api, container);
+        if (embedded.isEmpty())
+            continue;
+        logicalContainerScanned[logicalIndex] = true;
+
+        const QString containerKey = containerRows.at(logicalIndex).toMap()
+                .value(QStringLiteral("_physicalKey")).toString();
+        for (const ContainerCertificate &item : embedded) {
+            const QString sha256 = QString::fromLatin1(
+                        QCryptographicHash::hash(item.der,
+                                                 QCryptographicHash::Sha256).toHex());
+            if (knownCertificateHashes.contains(sha256))
+                continue;
+            knownCertificateHashes.insert(sha256);
+            certificates.append(buildCertificateRow(
+                                    item.der, container.provider,
+                                    container.providerType, container.displayName,
+                                    containerKey, containerReaderName(container),
+                                    true, item.keySpec,
+                                    QStringLiteral("container"), logicalIndex));
+        }
     }
 
     QHash<QString, int> derCounts;
@@ -669,6 +819,16 @@ QVariantMap executeScan()
     api.acquireCertificateKey =
             reinterpret_cast<capi::CryptAcquireCertificatePrivateKeyFn>(functions.at(8));
     api.closeStore = reinterpret_cast<capi::CertCloseStoreFn>(functions.at(9));
+
+    // Необязательные символы: нужны, чтобы прочитать сертификат ВНУТРИ
+    // контейнера. Их отсутствие не отменяет сканирование — остаётся прежний
+    // путь через установленные сертификаты хранилища «MY».
+    api.getUserKey = reinterpret_cast<capi::CryptGetUserKeyFn>(
+                library.resolve("CryptGetUserKey"));
+    api.getKeyParam = reinterpret_cast<capi::CryptGetKeyParamFn>(
+                library.resolve("CryptGetKeyParam"));
+    api.destroyKey = reinterpret_cast<capi::CryptDestroyKeyFn>(
+                library.resolve("CryptDestroyKey"));
 
     QVariantMap result = scan(api, libraryPath);
     result.insert(QStringLiteral("loadedLibraries"),

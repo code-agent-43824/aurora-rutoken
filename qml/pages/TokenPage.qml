@@ -102,6 +102,10 @@ Page {
             idHex: "",
             idText: certificate.serial ? certificate.serial : "",
             label: "",
+            // Путь контейнера показываем в строке метаданных — там же, где для
+            // PKCS#11-сертификатов выводятся CKA_LABEL/CKA_ID, а не в заголовке:
+            // в заголовке должен быть Common Name.
+            container: certificate.container ? certificate.container : "",
             derB64: certificate.derB64 ? certificate.derB64 : "",
             source: qsTr("CryptoPro CSP"),
             keysKnown: true,
@@ -112,13 +116,15 @@ Page {
     }
 
     function cryptoProContainerObject(container) {
-        var label = container.name ? container.name
-                                   : (container.uniqueName ? container.uniqueName : "")
+        // Путь контейнера — в строке метаданных (место CKA_ID), а не в
+        // заголовке. Заголовок контейнера без сертификата — родовое название.
+        var path = container.name ? container.name
+                                  : (container.uniqueName ? container.uniqueName : "")
         return {
             kind: "key",
             idHex: "",
-            idText: container.uniqueName ? container.uniqueName : "",
-            label: label,
+            idText: path,
+            label: qsTr("Key container"),
             keyType: container.algorithm ? container.algorithm : "",
             keyClass: qsTr("CryptoPro key container"),
             source: qsTr("CryptoPro CSP"),
@@ -605,6 +611,8 @@ Page {
                                         } else if (modelData.idText && modelData.idText.length > 0) {
                                             parts.push(qsTr("ID: %1").arg(modelData.idText))
                                         }
+                                        if (modelData.container && modelData.container.length > 0)
+                                            parts.push(qsTr("container: %1").arg(modelData.container))
                                         parts.push(modelData.source)
                                     }
                                     return parts.join("  •  ")

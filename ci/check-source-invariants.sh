@@ -110,9 +110,31 @@ grep -Fq 'loadedCryptoProLibraries(library.fileName())' "$CRYPTOPRO_SOURCE"
 grep -Fq 'diagnostics.setCryptoProLibraries(cryptoProSession.loadedLibraries())' src/main.cpp
 grep -Fq 'if (!modelData.cryptoPro)' "$TOKEN_PAGE"
 
-if grep -Eiq 'pkcs11|certmgr|cryptcp|/bin/(sh|bash)|C_Set|CertSet|CryptGen|CryptDestroy' \
+# Read-only инвариант перечисляет фактически изменяющие операции. CryptDestroyKey
+# намеренно разрешён: это освобождение дескриптора ключа в памяти, парное к
+# CryptGetUserKey, оно ничего не удаляет на носителе. Удаление контейнера в
+# CryptoAPI выполняется флагом CRYPT_DELETEKEYSET и здесь запрещено.
+if grep -Eiq 'pkcs11|certmgr|cryptcp|/bin/(sh|bash)|C_Set|CertSet|CertAdd|CertDelete|CryptGen|CryptImportKey|CryptSetProvParam|CryptSetKeyParam|DELETEKEYSET|DeleteKeyset' \
         "$CRYPTOPRO_SOURCE" "$CRYPTOPRO_HEADER"; then
     echo "CryptoPro v1.2 adapter must stay internal-helper, CapiLite-only and read-only" >&2
+    exit 1
+fi
+
+# Сертификат должен читаться ИЗНУТРИ контейнера: перечисление хранилища «MY»
+# возвращает только установленные сертификаты, которых у нас нет.
+grep -Fq 'capi::KpCertificate' "$CRYPTOPRO_SOURCE"
+grep -Fq 'api.getUserKey(provider, keySpec, &key)' "$CRYPTOPRO_SOURCE"
+grep -Fq 'readContainerCertificates(api, container)' "$CRYPTOPRO_SOURCE"
+# Открытие контейнера обязано быть тихим, иначе CSP поднимет системный запрос
+# PIN-кода в ограниченном helper-процессе.
+grep -Fq 'container.providerType, capi::CryptSilent)' "$CRYPTOPRO_SOURCE"
+# Дубликат по точному DER не плодим.
+grep -Fq 'knownCertificateHashes.contains(sha256)' "$CRYPTOPRO_SOURCE"
+# Заголовок карточки — Common Name; путь контейнера — в строке метаданных.
+grep -Fq 'qsTr("container: %1").arg(modelData.container)' "$TOKEN_PAGE"
+grep -Fq 'label: qsTr("Key container")' "$TOKEN_PAGE"
+if grep -Fq 'var label = container.name ? container.name' "$TOKEN_PAGE"; then
+    echo "Container path must not be the card title" >&2
     exit 1
 fi
 if grep -Eiq '^(Requires|BuildRequires):.*(cprocsp|cryptopro)' "$SPEC"; then
