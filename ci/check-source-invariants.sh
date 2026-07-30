@@ -10,6 +10,7 @@ CRYPTOPRO_SOURCE="src/cryptoprosession.cpp"
 CRYPTOPRO_HEADER="src/cryptopro_capi_minimal.h"
 CRYPTOPRO_PAGE="qml/pages/CryptoProPage.qml"
 CRYPTOPRO_CERT_PAGE="qml/pages/CryptoProCertificatePage.qml"
+DESKTOP="ru.codeagent43824.rutokentestapp.desktop"
 SPEC="rpm/ru.codeagent43824.rutokentestapp.spec"
 
 grep -Fq \
@@ -39,7 +40,12 @@ for SYMBOL in \
     CryptAcquireCertificatePrivateKey; do
     grep -Fq "\"$SYMBOL\"" "$CRYPTOPRO_SOURCE"
 done
-grep -Fq 'QStringLiteral("libcapi20.so")' "$CRYPTOPRO_SOURCE"
+grep -Fq \
+    'QStringLiteral("/usr/lib/3rdparty/ru.cryptopro.csp/lib/libcapi20.so")' \
+    "$CRYPTOPRO_SOURCE"
+grep -Fq \
+    'Permissions=NFC;UserDirs;ru.cryptopro.gui@ru.cryptopro.csp' \
+    "$DESKTOP"
 grep -Fq 'CryptVerifyContext | capi::CryptSilent' "$CRYPTOPRO_SOURCE"
 grep -Fq 'CryptAcquireSilentFlag | capi::CryptAcquireCompareKeyFlag' "$CRYPTOPRO_SOURCE"
 grep -Fq 'QCryptographicHash::Sha256' "$CRYPTOPRO_SOURCE"

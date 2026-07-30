@@ -473,6 +473,7 @@ bool CryptoProSession::loadLibrary()
         return true;
 
     const QStringList candidates = {
+        QStringLiteral("/usr/lib/3rdparty/ru.cryptopro.csp/lib/libcapi20.so"),
         QStringLiteral("/opt/cprocsp/lib/arm/libcapi20.so"),
         QStringLiteral("/opt/cprocsp/lib/arm64/libcapi20.so"),
         QStringLiteral("/opt/cprocsp/lib/aarch64/libcapi20.so"),

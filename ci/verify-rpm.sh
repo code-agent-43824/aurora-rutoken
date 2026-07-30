@@ -56,6 +56,12 @@ if [ ! -f "$DESKTOP_FILE" ] || ! grep -Fxq "Icon=$APP_ID" "$DESKTOP_FILE"; then
     echo "Desktop Icon must match the RPM package name: $APP_ID" >&2
     exit 1
 fi
+if ! grep -Fxq \
+        'Permissions=NFC;UserDirs;ru.cryptopro.gui@ru.cryptopro.csp' \
+        "$DESKTOP_FILE"; then
+    echo "Desktop must have the CryptoPro CSP Aurora D-Bus permission" >&2
+    exit 1
+fi
 for ICON_SIZE in 86x86 108x108 128x128 172x172; do
     ICON_PATH="$VERIFY_DIR/usr/share/icons/hicolor/$ICON_SIZE/apps/$APP_ID.png"
     if [ ! -s "$ICON_PATH" ]; then
@@ -87,4 +93,4 @@ printf '%s\n' "$SIGNATURE_INFO" | grep -Fq 'Subject: Noname developer (for testi
 printf '%s\n' "$SIGNATURE_INFO" | grep -Fq 'Subgroup: regular'
 printf '%s\n' "$SIGNATURE_INFO" | grep -Eq '^Signature: .+'
 
-echo "Verified: rpm_arch=$RPM_ARCH; elf_machine=$MACHINE; loader=$INTERPRETER; cms_and_capi_qml=present; icon=$APP_ID; signature=OMP regular test"
+echo "Verified: rpm_arch=$RPM_ARCH; elf_machine=$MACHINE; loader=$INTERPRETER; cms_and_capi_qml=present; cryptopro_permission=present; icon=$APP_ID; signature=OMP regular test"

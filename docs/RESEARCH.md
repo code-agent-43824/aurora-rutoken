@@ -196,6 +196,15 @@ detached — только `PKCS7_DETACHED_SIGNATURE`. Закрытый ключ 
 Официальное руководство КриптоПро CSP 5.0 R3 для Авроры перечисляет
 `libcapi20.so` как библиотеку CryptoAPI 2.0; CSP поставляется отдельным
 лицензируемым продуктом для Авроры и не должен встраиваться в RPM приложения.
+В отличие от обычного Linux, Aurora RPM размещает библиотеку по точному пути
+`/usr/lib/3rdparty/ru.cryptopro.csp/lib/libcapi20.so`. Из sandbox стороннего
+приложения доступ к общей конфигурации CSP идёт через D-Bus; сотрудник
+КриптоПро указывает минимальное desktop-разрешение
+`ru.cryptopro.gui@ru.cryptopro.csp` (вместе с `PublicDir`) и вариант
+`UserDirs;Internet;ru.cryptopro.gui@ru.cryptopro.csp` для файлов/проверки
+цепочек. Наш read-only просмотр уже имеет `UserDirs`, не проверяет цепочки и
+поэтому добавляет только точное разрешение сервиса. Этот набор подтверждён
+автором обращения на нескольких версиях Авроры.
 Официальная документация CapiLite 5.0 R4 подтверждает нужный публичный
 read-only путь:
 
@@ -294,6 +303,7 @@ Run `29701204751` подтвердил корректную пару `0.0.2-2`. 
 - https://dev.rutoken.ru/pages/viewpage.action?pageId=78479413 — начало работы с Рутокен ЭЦП 3.0 NFC
 - https://auroraos.ru/applications/rutoken — приложение «Рутокен» в каталоге Авроры
 - https://forum.rutoken.ru/topic/3779/ — Bluetooth-Рутокен на Авроре не поддерживается; ограничение КриптоПро CSP
+- https://cryptopro.ru/forum2/default.aspx?g=posts&t=23518 — официальный ответ сотрудника КриптоПро: Aurora-путь `libcapi20.so` и обязательное desktop-разрешение D-Bus-сервиса CSP
 - https://developer.auroraos.ru/doc/extended/flutter — документация Flutter для Авроры
 - https://developer.auroraos.ru/doc/software_development/guidelines/rpm_requirements — требования к установочным пакетам (обязательная подпись)
 - https://developer.auroraos.ru/doc/sdk/app_development/packaging/package_signing — подписание пакетов; ссылки на тестовую пару regular_key/regular_cert; про блокировку общедоступных ключей без режима разработчика на Аврора 5
