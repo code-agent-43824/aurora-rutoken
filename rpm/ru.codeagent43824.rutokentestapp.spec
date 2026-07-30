@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.1.0
-Release:    1
+Release:    2
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -46,6 +46,10 @@ on the Rutoken.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 30 2026 Watson <noreply@openai.com> - 1.1.0-2
+- Speed up CMS signing by using the PKCS#11 library hashing path. Sort expired
+  certificates last, render them inactive and prevent signing with them.
+
 * Tue Jul 28 2026 Watson <noreply@openai.com> - 1.1.0-1
 - Add detached (.p7s) and attached (.p7m) CMS file signing through the
   official Rutoken C_EX_PKCS7Sign extension. Select the exact certificate,

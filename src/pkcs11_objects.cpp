@@ -156,8 +156,11 @@ QString firstInfo(const QStringList &values)
 // Возвращает true, если удалось извлечь хоть одно поле (иначе — fallback на
 // CKA_LABEL на стороне вызывающего; например, для ГОСТ без поддержки в OpenSSL).
 bool parseCertificate(const QByteArray &der, QString &commonName, QString &issuer,
-                      QString &expiry)
+                      QString &expiry, qint64 &notAfterMs, bool &expired,
+                      const QDateTime &nowUtc)
 {
+    notAfterMs = 0;
+    expired = false;
     if (der.isEmpty())
         return false;
     const QSslCertificate cert(der, QSsl::Der);
@@ -170,8 +173,12 @@ bool parseCertificate(const QByteArray &der, QString &commonName, QString &issue
         issuer = firstInfo(cert.issuerInfo(QSslCertificate::Organization));
 
     const QDateTime notAfter = cert.expiryDate();
-    if (notAfter.isValid())
-        expiry = notAfter.toUTC().toString(QStringLiteral("yyyy-MM-dd"));
+    if (notAfter.isValid()) {
+        const QDateTime notAfterUtc = notAfter.toUTC();
+        expiry = notAfterUtc.toString(QStringLiteral("yyyy-MM-dd"));
+        notAfterMs = notAfterUtc.toMSecsSinceEpoch();
+        expired = nowUtc > notAfterUtc;
+    }
 
     return !commonName.isEmpty() || !issuer.isEmpty() || notAfter.isValid();
 }
@@ -203,6 +210,9 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
         return out;
 
     const CK_SESSION_HANDLE session = static_cast<CK_SESSION_HANDLE>(sessionHandle);
+    const QDateTime nowUtc = QDateTime::currentDateTimeUtc();
+    QVariantList activeCertificates;
+    QVariantList expiredCertificates;
 
     // Ключи читаем только в залогиненной сессии: приватные ключи не видны без
     // входа, а до входа наличие ключа у сертификата неизвестно.
@@ -240,7 +250,10 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
 
         const QByteArray der = readByteAttr(fns, session, obj, CKA_VALUE);
         QString commonName, issuer, expiry;
-        const bool parsed = parseCertificate(der, commonName, issuer, expiry);
+        qint64 notAfterMs = 0;
+        bool expired = false;
+        const bool parsed = parseCertificate(
+            der, commonName, issuer, expiry, notAfterMs, expired, nowUtc);
 
         QVariantList certKeys;
         if (loggedIn && !idHex.isEmpty()) {
@@ -257,6 +270,8 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
         cert.insert(QStringLiteral("commonName"), commonName);
         cert.insert(QStringLiteral("issuer"), issuer);
         cert.insert(QStringLiteral("expiry"), expiry);
+        cert.insert(QStringLiteral("notAfterMs"), notAfterMs);
+        cert.insert(QStringLiteral("expired"), expired);
         cert.insert(QStringLiteral("parsed"), parsed);
         cert.insert(QStringLiteral("idHex"), idHex);
         cert.insert(QStringLiteral("idText"), idText);
@@ -266,8 +281,15 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
         cert.insert(QStringLiteral("keysKnown"), loggedIn);
         cert.insert(QStringLiteral("hasKey"), !certKeys.isEmpty());
         cert.insert(QStringLiteral("keys"), certKeys);
-        out.append(cert);
+        if (expired)
+            expiredCertificates.append(cert);
+        else
+            activeCertificates.append(cert);
     }
+
+    // Действующие сертификаты идут первыми. Отдельные ключи остаются между
+    // группами, поэтому все просроченные сертификаты оказываются внизу.
+    out.append(activeCertificates);
 
     // Ключи без сертификата — на верхний уровень (только когда вошли).
     for (int j = 0; j < keys.size(); ++j) {
@@ -278,6 +300,7 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
         out.append(orphan);
     }
 
+    out.append(expiredCertificates);
     return out;
 }
 

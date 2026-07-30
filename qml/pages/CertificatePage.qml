@@ -15,10 +15,20 @@ Page {
     property string label: ""
     property string source: ""
     property string derB64: ""
+    property double notAfterMs: 0
+    property double currentTimeMs: Date.now()
+    property bool expired: page.notAfterMs > 0 && page.currentTimeMs > page.notAfterMs
     property bool hasKey: false
     property bool keysKnown: false
     property var slotId: 0
     property string connection: ""
+
+    Timer {
+        interval: 30000
+        repeat: true
+        running: true
+        onTriggered: page.currentTimeMs = Date.now()
+    }
 
     function title() {
         if (page.parsed && page.commonName.length > 0)
@@ -64,7 +74,8 @@ Page {
 
         PullDownMenu {
             MenuItem {
-                visible: page.idHex.length > 0 && page.derB64.length > 0 && page.hasKey
+                visible: !page.expired && page.idHex.length > 0
+                         && page.derB64.length > 0 && page.hasKey
                 text: qsTr("Sign a file")
                 onClicked: pageStack.push(Qt.resolvedUrl("SignFilePage.qml"), {
                     slotId: page.slotId,

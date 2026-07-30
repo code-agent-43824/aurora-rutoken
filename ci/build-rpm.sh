@@ -12,6 +12,8 @@ case "$TARGET_ARCH" in
     *) echo "Unsupported TARGET_ARCH: $TARGET_ARCH" >&2; exit 2 ;;
 esac
 
+./ci/check-source-invariants.sh
+
 if ! "$PSDK_DIR/sdk-chroot" which rpmsign-external >/dev/null 2>&1; then
     echo "== rpmsign-external not found in tooling, installing"
     "$PSDK_DIR/sdk-chroot" sudo zypper --non-interactive install rpmsign-external-tool

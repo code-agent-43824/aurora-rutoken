@@ -3,12 +3,14 @@
 #include "pkcs11_errors.h"
 #include "pkcs11_minimal.h"
 
+#include <QtCore/QDateTime>
 #include <QtCore/QDir>
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
 #include <QtCore/QList>
 #include <QtCore/QPair>
 #include <QtCore/QTemporaryFile>
+#include <QtNetwork/QSslCertificate>
 
 namespace {
 
@@ -18,7 +20,6 @@ namespace {
 const qint64 kMaximumInputSize = 64LL * 1024LL * 1024LL;
 
 const CK_ULONG PKCS7_DETACHED_SIGNATURE = 0x01UL;
-const CK_ULONG USE_HARDWARE_HASH = 0x02UL;
 
 typedef CK_RV (*ExPkcs7SignFn)(CK_SESSION_HANDLE, CK_BYTE *, CK_ULONG,
                                CK_OBJECT_HANDLE, CK_BYTE **, CK_ULONG *,
@@ -161,6 +162,19 @@ CmsResult signFileCms(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessionHandle,
         return result;
     }
 
+    // UI скрывает действие для просроченного сертификата, а эта проверка
+    // защищает саму операцию от устаревшего экрана и изменения времени.
+    const QSslCertificate selectedCertificate(certificateDer, QSsl::Der);
+    if (!selectedCertificate.isNull()) {
+        const QDateTime notAfter = selectedCertificate.expiryDate();
+        if (notAfter.isValid()
+                && QDateTime::currentDateTimeUtc() > notAfter.toUTC()) {
+            result.message = QStringLiteral(
+                "Срок действия выбранного сертификата истёк");
+            return result;
+        }
+    }
+
     QFile input(sourcePath);
     const QFileInfo inputInfo(input);
     if (!inputInfo.exists() || !inputInfo.isFile()) {
@@ -228,8 +242,9 @@ CmsResult signFileCms(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessionHandle,
         ? &empty : reinterpret_cast<CK_BYTE *>(inputData.data());
     CK_BYTE *envelope = nullptr;
     CK_ULONG envelopeSize = 0;
-    const CK_ULONG flags = USE_HARDWARE_HASH
-        | (detached ? PKCS7_DETACHED_SIGNATURE : 0UL);
+    // По API C_EX_PKCS7Sign отсутствие USE_HARDWARE_HASH выбирает быструю
+    // реализацию хеширования в librtpkcs11ecp. Формат CMS задаётся независимо.
+    const CK_ULONG flags = detached ? PKCS7_DETACHED_SIGNATURE : 0UL;
     const CK_RV rv = sign(session, source, static_cast<CK_ULONG>(inputData.size()),
                           certificate, &envelope, &envelopeSize, privateKeys.first(),
                           nullptr, 0, flags);

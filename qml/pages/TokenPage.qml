@@ -377,6 +377,8 @@ Page {
                     delegate: BackgroundItem {
                         width: objectsCol.width
                         height: card.height + Theme.paddingMedium
+                        opacity: modelData.kind === "certificate" && modelData.expired
+                                 ? 0.45 : 1.0
                         onClicked: {
                             if (modelData.kind === "certificate")
                                 pageStack.push(Qt.resolvedUrl("CertificatePage.qml"), {
@@ -389,6 +391,7 @@ Page {
                                     label: modelData.label ? modelData.label : "",
                                     source: modelData.source ? modelData.source : "",
                                     derB64: modelData.derB64 ? modelData.derB64 : "",
+                                    notAfterMs: modelData.notAfterMs ? modelData.notAfterMs : 0,
                                     hasKey: modelData.hasKey ? modelData.hasKey : false,
                                     keysKnown: modelData.keysKnown ? modelData.keysKnown : false,
                                     slotId: page.slotId,
@@ -422,7 +425,9 @@ Page {
                                     width: kindBadgeLabel.width + 2 * Theme.paddingMedium
                                     height: kindBadgeLabel.height + Theme.paddingSmall
                                     radius: Theme.paddingSmall
-                                    color: modelData.kind === "certificate" ? "#00695c" : "#5d4037"
+                                    color: modelData.kind === "certificate"
+                                           ? (modelData.expired ? Theme.secondaryColor : "#00695c")
+                                           : "#5d4037"
                                     Label {
                                         id: kindBadgeLabel
                                         anchors.centerIn: parent

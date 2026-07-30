@@ -176,6 +176,21 @@ CertificationRequestInfo  ::= SEQUENCE { version INTEGER(0), subject Name, spki 
 - **Subject Name (DN):** `SEQUENCE OF RDN`, RDN = `SET { SEQUENCE { OID, value } }`. OID: CN 2.5.4.3 (`55 04 03`), O 2.5.4.10 (`…0A`), OU 2.5.4.11 (`…0B`), C 2.5.4.6 (`…06`, `PrintableString`), L 2.5.4.7, ST 2.5.4.8, emailAddress 1.2.840.113549.1.9.1 (`2A 86 48 86 F7 0D 01 09 01`, `IA5String`). Текстовые значения — `UTF8String` (0x0C).
 - **Проверка:** экспорт CSR в PEM (`-----BEGIN CERTIFICATE REQUEST-----`), затем на ПК `openssl req -in req.pem -verify -noout -text` с ГОСТ-движком (задокументировать как).
 
+### 5д. Хеширование для CMS через `C_EX_PKCS7Sign` — для v1.1
+
+Официальное [описание функций расширения Рутокен](https://dev.rutoken.ru/pages/viewpage.action?pageId=3178555)
+задаёт режим `C_EX_PKCS7Sign` битами `flags`:
+
+- `0` — хеширование выполняется программной реализацией библиотеки, исходные
+  данные включаются в attached CMS;
+- `PKCS7_DETACHED_SIGNATURE` (`0x01`) — исходные данные не включаются в CMS;
+- `USE_HARDWARE_HASH` (`0x02`) — хеширование выполняется устройством.
+
+Флаги формата и места хеширования независимы. Для быстрой подписи файлов
+приложение не передаёт `USE_HARDWARE_HASH`: attached использует `flags=0`,
+detached — только `PKCS7_DETACHED_SIGNATURE`. Закрытый ключ и сама операция
+подписи по-прежнему остаются в Рутокене.
+
 ## 6. Открытые вопросы (проверять на следующих этапах)
 
 1. Входят ли `pcscd` и NFC-handler в стандартную поставку Авроры, или ставятся отдельными пакетами (например, вместе с приложением «Рутокен»)? Доступен ли pcscd стороннему приложению из песочницы?
