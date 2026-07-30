@@ -32,6 +32,12 @@ class TokenSession : public QObject
     // Логически подключённый NFC-токен и его снимок объектов (см. ниже).
     Q_PROPERTY(QVariantMap nfcToken READ nfcToken NOTIFY changed)
     Q_PROPERTY(QVariantList nfcObjects READ nfcObjects NOTIFY changed)
+    // Снимок объектов КриптоПро для NFC: читать CAPI можно только пока
+    // устройство поднесено, поэтому результат сохраняется рядом с nfcObjects.
+    Q_PROPERTY(QVariantList nfcCryptoProCertificates
+               READ nfcCryptoProCertificates NOTIFY changed)
+    Q_PROPERTY(QVariantList nfcCryptoProContainers
+               READ nfcCryptoProContainers NOTIFY changed)
     Q_PROPERTY(bool nfcConnected READ nfcConnected NOTIFY changed)
     Q_PROPERTY(bool nfcAuthenticated READ nfcAuthenticated NOTIFY changed)
     // Серийники USB-токенов, логически отключённых (скрыты из списка).
@@ -49,6 +55,8 @@ public:
     QString lastCsr() const { return m_lastCsr; }
     QVariantMap nfcToken() const { return m_nfcToken; }
     QVariantList nfcObjects() const { return m_nfcObjects; }
+    QVariantList nfcCryptoProCertificates() const { return m_nfcCryptoProCertificates; }
+    QVariantList nfcCryptoProContainers() const { return m_nfcCryptoProContainers; }
     bool nfcConnected() const { return !m_nfcToken.isEmpty(); }
     bool nfcAuthenticated() const { return m_nfcAuthenticated; }
     QStringList suppressedUsb() const { return m_suppressedUsb; }
@@ -120,6 +128,9 @@ public:
     // вернуться к его сертификатам без повторного поднесения.
     Q_INVOKABLE void commitNfc(const QVariantMap &token, bool authenticated);
     Q_INVOKABLE void updateNfcObjects();                  // обновить снимок после операции по NFC
+    // Сохранить снимок объектов КриптоПро, прочитанный в том же поднесении.
+    Q_INVOKABLE void setNfcCryptoPro(const QVariantList &certificates,
+                                     const QVariantList &containers);
     Q_INVOKABLE void setNfcLabel(const QString &label);   // обновить метку в снимке (после смены по NFC)
     Q_INVOKABLE void disconnectNfc();                     // логически отключить NFC-токен
     // Логически отключить USB-токен: скрыть из списка до физического переподключения.
@@ -192,6 +203,8 @@ private:
     // Логически подключённый NFC-токен: дескриптор и снимок объектов.
     QVariantMap m_nfcToken;
     QVariantList m_nfcObjects;
+    QVariantList m_nfcCryptoProCertificates;
+    QVariantList m_nfcCryptoProContainers;
     bool m_nfcAuthenticated = false;
     // Серийники логически отключённых USB-токенов (скрыты до переподключения).
     QStringList m_suppressedUsb;

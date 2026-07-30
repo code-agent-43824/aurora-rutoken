@@ -10,7 +10,7 @@
 
 // Версия приложения (для показа в диагностике). Держать синхронной с
 // rpm/*.spec (Version-Release).
-static const char *const kAppVersion = "1.2.0-7";
+static const char *const kAppVersion = "1.2.0-8";
 
 int main(int argc, char *argv[])
 {
@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
         const bool enabled = appSettings.cryptoProEnabled();
         diagnostics.setCryptoProEnabled(enabled);
         cryptoProSession.setEnabled(enabled);
+        cryptoProSession.syncWithTokens(tokenWatcher.tokens());
     };
     QObject::connect(&appSettings, &AppSettings::cryptoProEnabledChanged,
                      &cryptoProSession, applyCryptoProSetting);
@@ -53,8 +54,7 @@ int main(int argc, char *argv[])
     // подавления с отключённых USB-токенов.
     QObject::connect(&tokenWatcher, &TokenWatcher::tokensChanged, &tokenSession, [&]() {
         tokenSession.syncWithTokens(tokenWatcher.tokens());
-        if (appSettings.cryptoProEnabled())
-            cryptoProSession.refresh();
+        cryptoProSession.syncWithTokens(tokenWatcher.tokens());
     });
 
     QScopedPointer<QQuickView> view(Aurora::Application::createView());

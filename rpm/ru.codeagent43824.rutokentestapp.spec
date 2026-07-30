@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.2.0
-Release:    7
+Release:    8
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,18 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 30 2026 Claude <noreply@anthropic.com> - 1.2.0-8
+- Bring the CryptoPro view to the NFC path: the container scan now runs inside
+  the same hold, right after the PKCS#11 read, and its result is kept as a
+  snapshot next to the NFC object snapshot, so CryptoPro objects stay visible
+  after the device is taken away. Avoid needless CAPI passes — reading through
+  CryptoPro is much slower than PKCS#11 — by scanning only when the set of
+  readers changes and at least one device is present; losing a device keeps the
+  last snapshot, and NFC write operations do not trigger a scan. An object found
+  through both interfaces now reports "PKCS#11 and CryptoPro CSP". Show the
+  CryptoPro version once instead of twice and extend it with the build number
+  discovered in the installed package metadata.
+
 * Thu Jul 30 2026 Claude <noreply@anthropic.com> - 1.2.0-7
 - Stop listing a CryptoPro key container separately when its key belongs to a
   certificate that is already shown: the container public key is exported and

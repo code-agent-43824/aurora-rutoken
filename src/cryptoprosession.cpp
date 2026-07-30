@@ -5,11 +5,13 @@
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QDateTime>
 #include <QtCore/QFile>
+#include <QtCore/QDir>
 #include <QtCore/QFileInfo>
 #include <QtCore/QHash>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonParseError>
 #include <QtCore/QLibrary>
+#include <QtCore/QRegularExpression>
 #include <QtCore/QSet>
 #include <QtCore/QStringList>
 #include <QtCore/QTextCodec>
@@ -490,8 +492,11 @@ ContainerScan readContainerCertificates(const Api &api, const Container &contain
 // Версия установленного пакета КриптоПро CSP из метаданных Авроры. Best-effort:
 // читаем только манифест приложения, ничего не запуская. Пусто — значит честно
 // не нашли, выдумывать версию нельзя.
-QString cryptoProPackageVersion()
+QString cryptoProPackageVersion(const QString &libraryPath)
 {
+    const QRegularExpression versionPattern(
+                QStringLiteral("\\b(\\d+\\.\\d+\\.\\d+(?:\\.\\d+)*)\\b"));
+
     static const QStringList manifests = {
         QStringLiteral("/usr/share/appmanifest/ru.cryptopro.csp.json"),
         QStringLiteral("/usr/share/appmanifest/ru.cryptopro.csp/manifest.json"),
@@ -510,6 +515,25 @@ QString cryptoProPackageVersion()
                 .value(QStringLiteral("version")).toString().trimmed();
         if (!version.isEmpty())
             return version;
+    }
+
+    // Номер сборки часто виден только в именах файлов пакета
+    // (например libcapi20.so.5.0.13000). Берём самую длинную такую версию.
+    const QDir directory = QFileInfo(libraryPath).dir();
+    if (directory.exists()) {
+        QString best;
+        const QStringList names = directory.entryList(QDir::Files | QDir::NoDotAndDotDot);
+        for (const QString &name : names) {
+            const QRegularExpressionMatch match = versionPattern.match(name);
+            if (!match.hasMatch())
+                continue;
+            const QString candidate = match.captured(1);
+            if (candidate.count(QLatin1Char('.')) > best.count(QLatin1Char('.'))
+                    || (best.isEmpty() && !candidate.isEmpty()))
+                best = candidate;
+        }
+        if (!best.isEmpty())
+            return best;
     }
     return QString();
 }
@@ -884,13 +908,16 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
         containerRows[i] = row;
     }
 
-    const QString packageVersion = cryptoProPackageVersion();
-    QString versionText = cspVersion.isEmpty()
-            ? QString() : QStringLiteral("провайдер %1").arg(cspVersion);
+    // PP_VERSION даёт только major.minor (5.0). Если в метаданных пакета нашлась
+    // более полная версия того же выпуска — показываем её, иначе честно
+    // ограничиваемся тем, что вернул провайдер.
+    const QString packageVersion = cryptoProPackageVersion(libraryPath);
+    QString versionText = cspVersion;
     if (!packageVersion.isEmpty()) {
-        versionText = versionText.isEmpty()
-                ? QStringLiteral("пакет %1").arg(packageVersion)
-                : versionText + QStringLiteral(", пакет %1").arg(packageVersion);
+        if (cspVersion.isEmpty() || packageVersion.startsWith(cspVersion + QLatin1Char('.')))
+            versionText = packageVersion;
+        else if (packageVersion != cspVersion)
+            versionText = QStringLiteral("%1 (пакет %2)").arg(cspVersion, packageVersion);
     }
     result.insert(QStringLiteral("cspVersion"), versionText);
     result.insert(QStringLiteral("libraryPath"), libraryPath);
@@ -1061,14 +1088,42 @@ void CryptoProSession::refresh()
     m_helperTimer.start(HelperTimeoutMs);
 }
 
+void CryptoProSession::syncWithTokens(const QVariantList &tokens)
+{
+    if (!m_enabled)
+        return;
+
+    QStringList readers;
+    for (const QVariant &value : tokens) {
+        const QString reader = value.toMap()
+                .value(QStringLiteral("slotName")).toString().trimmed();
+        if (!reader.isEmpty() && !readers.contains(reader))
+            readers.append(reader);
+    }
+    readers.sort(Qt::CaseInsensitive);
+    if (m_syncedOnce && readers == m_scannedReaders)
+        return;
+    const bool firstPass = !m_syncedOnce;
+    m_syncedOnce = true;
+    m_scannedReaders = readers;
+
+    // Устройств нет — читать нечего, и последний снимок сохраняем: по NFC он
+    // единственный способ увидеть объекты после отрыва устройства. Исключение —
+    // первый проход после включения: он даёт доступность, версию и диагностику.
+    if (readers.isEmpty() && !firstPass)
+        return;
+    refresh();
+}
+
 void CryptoProSession::setEnabled(bool enabled)
 {
     if (m_enabled == enabled)
         return;
     m_enabled = enabled;
     if (enabled) {
+        // Решение о проходе принимает syncWithTokens: иначе включение настройки
+        // дало бы лишнее чтение вдобавок к первому событию устройств.
         emit changed();
-        refresh();
         return;
     }
 
@@ -1081,6 +1136,8 @@ void CryptoProSession::setEnabled(bool enabled)
     m_available = false;
     m_busy = false;
     m_refreshPending = false;
+    m_scannedReaders.clear();
+    m_syncedOnce = false;
     m_status = QStringLiteral("КриптоПро CSP выключен в настройках");
     m_libraryPath.clear();
     m_loadedLibraries.clear();

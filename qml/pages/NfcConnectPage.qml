@@ -38,6 +38,9 @@ Page {
     property string pin: ""
     property bool noPin: false      // подключение без входа (только публичные сертификаты)
     property bool started: false
+    // Чтение КриптоПро запускается один раз за поднесение и только на
+    // подключении: операции записи CAPI-проход не требуют, а он медленный.
+    property bool cryptoProStarted: false
     property var lastToken: null
 
     // Успешное завершение записи по NFC (генерация/импорт). Форма-инициатор
@@ -106,11 +109,18 @@ Page {
         })
     }
 
+    // Дочитывать контейнеры КриптоПро имеет смысл только при подключении
+    // (чтение объектов) и только если backend включён в настройках.
+    function needsCryptoPro() {
+        return page.operation === "connect" && appSettings.cryptoProEnabled
+    }
+
     // Повтор после неудачи (например, токен убрали слишком рано): снова ждём
     // поднесения и выполняем ту же операцию с уже введённым PIN-кодом — без
     // повторного ввода PIN и данных.
     function retryNfc() {
         page.started = false
+        page.cryptoProStarted = false
         page.step = 3
         tokenWatcher.refresh()
         page.tryRun()
@@ -154,12 +164,32 @@ Page {
     }
     // Операция завершилась — переходим к «уберите токен». Для чтения без входа
     // (preview) outcome остаётся 0, поэтому там ориентируемся только на busy.
+    // При включённом КриптоПро на подключении дочитываем контейнеры в ЭТОМ ЖЕ
+    // поднесении: после отрыва устройства CAPI читать уже нечего.
     Connections {
         target: tokenSession
         onChanged: {
-            if (page.step === 3 && page.started && !tokenSession.busy
-                    && (tokenSession.outcome !== 0 || page.noPin))
+            if (page.step !== 3 || !page.started || tokenSession.busy
+                    || (tokenSession.outcome === 0 && !page.noPin))
+                return
+            if (page.needsCryptoPro() && !page.cryptoProStarted) {
+                page.cryptoProStarted = true
+                cryptoProSession.refresh()
+                return
+            }
+            if (!page.cryptoProStarted)
                 page.step = 4
+        }
+    }
+    // Чтение КриптоПро в том же поднесении завершилось — сохраняем снимок.
+    Connections {
+        target: cryptoProSession
+        onChanged: {
+            if (page.step !== 3 || !page.cryptoProStarted || cryptoProSession.busy)
+                return
+            tokenSession.setNfcCryptoPro(cryptoProSession.certificates,
+                                         cryptoProSession.containers)
+            page.step = 4
         }
     }
 

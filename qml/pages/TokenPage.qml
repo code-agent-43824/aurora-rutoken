@@ -53,10 +53,16 @@ Page {
     // среди видимых PKCS#11-объектов нет.
     property var pkcs11ObjectsModel: page.connection === "NFC"
                                      ? tokenSession.nfcObjects : tokenSession.objects
+    // По NFC объекты КриптоПро берутся из снимка, снятого в том же поднесении:
+    // после отрыва устройства читать CAPI уже нечего.
     property var objectsModel: page.mergeObjects(
                                    page.pkcs11ObjectsModel,
-                                   cryptoProSession.certificates,
-                                   cryptoProSession.containers,
+                                   page.connection === "NFC"
+                                       ? tokenSession.nfcCryptoProCertificates
+                                       : cryptoProSession.certificates,
+                                   page.connection === "NFC"
+                                       ? tokenSession.nfcCryptoProContainers
+                                       : cryptoProSession.containers,
                                    appSettings.cryptoProEnabled,
                                    page.slotName)
     property int objectCount: page.objectsModel.length
@@ -144,11 +150,11 @@ Page {
     // Контейнер принадлежит уже показанному сертификату, если экспортированный
     // открытый ключ контейнера содержит открытый ключ этого сертификата. Тогда
     // отдельной строкой контейнер не показываем — ключ виден дочерним объектом
-    // своего сертификата.
+    // своего сертификата. Возвращает совпавший открытый ключ или пустую строку.
     function containerBelongsToCertificate(container, publicKeys) {
         var blobs = container.publicKeyBlobs
         if (!blobs || blobs.length === 0 || publicKeys.length === 0)
-            return false
+            return ""
         for (var b = 0; b < blobs.length; ++b) {
             var blob = String(blobs[b]).toLowerCase()
             if (blob.length === 0)
@@ -158,10 +164,30 @@ Page {
                 if (key.length === 0)
                     continue
                 if (blob.indexOf(key) >= 0 || blob.indexOf(page.reversedHex(key)) >= 0)
-                    return true
+                    return publicKeys[k]
             }
         }
-        return false
+        return ""
+    }
+
+    // Объект, найденный обоими интерфейсами, должен честно об этом сообщать.
+    function relabelDualSource(list, bothDer, bothKey) {
+        var out = []
+        for (var i = 0; i < list.length; ++i) {
+            var o = list[i]
+            var both = (o.derB64 && bothDer[o.derB64])
+                    || (o.publicKeyHex && bothKey[o.publicKeyHex])
+            if (!both || o.cryptoPro) {
+                out.push(o)
+                continue
+            }
+            var copy = {}
+            for (var key in o)
+                copy[key] = o[key]
+            copy.source = qsTr("PKCS#11 and CryptoPro CSP")
+            out.push(copy)
+        }
+        return out
     }
 
     function mergeObjects(pkcs11Objects, cryptoProCertificates,
@@ -174,6 +200,9 @@ Page {
         // Открытые ключи всех показанных сертификатов — по ним ключевой
         // контейнер КриптоПро связывается со своим сертификатом.
         var shownPublicKeys = []
+        // Объекты, найденные и через PKCS#11, и через КриптоПро.
+        var bothDer = {}
+        var bothKey = {}
         var i
         pkcs11Objects = pkcs11Objects || []
         cryptoProCertificates = cryptoProCertificates || []
@@ -206,6 +235,7 @@ Page {
                 if (certificate.publicKeyHex && certificate.publicKeyHex.length > 0)
                     shownPublicKeys.push(certificate.publicKeyHex)
                 if (visibleDer[der]) {
+                    bothDer[der] = true
                     if (certificate.containerKey)
                         representedContainers[certificate.containerKey] = true
                     continue
@@ -224,12 +254,18 @@ Page {
                 if (wantedReader.length === 0
                         || !page.sameReader(container.readerName, wantedReader)
                         || (container.containerKey
-                            && representedContainers[container.containerKey])
-                        || page.containerBelongsToCertificate(container, shownPublicKeys))
+                            && representedContainers[container.containerKey]))
                     continue
+                var ownerKey = page.containerBelongsToCertificate(container, shownPublicKeys)
+                if (ownerKey.length > 0) {
+                    bothKey[ownerKey] = true
+                    continue
+                }
                 keys.push(page.cryptoProContainerObject(container))
             }
         }
+        active = page.relabelDualSource(active, bothDer, bothKey)
+        expired = page.relabelDualSource(expired, bothDer, bothKey)
         return active.concat(keys).concat(expired)
     }
 

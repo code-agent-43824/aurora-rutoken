@@ -41,6 +41,9 @@ public:
 
     void setEnabled(bool enabled);
     Q_INVOKABLE void refresh();
+    // Решает, нужен ли новый CAPI-проход: он заметно медленнее PKCS#11, а по
+    // NFC особенно, поэтому лишних чтений быть не должно.
+    void syncWithTokens(const QVariantList &tokens);
 
 signals:
     void changed();
@@ -62,6 +65,8 @@ private:
     QString m_status;
     QString m_libraryPath;
     QString m_cspVersion;
+    QStringList m_scannedReaders;
+    bool m_syncedOnce = false;
     QStringList m_loadedLibraries;
     QVariantList m_providers;
     QVariantList m_containers;

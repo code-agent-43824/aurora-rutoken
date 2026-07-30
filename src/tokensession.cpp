@@ -501,7 +501,17 @@ void TokenSession::disconnectNfc()
 {
     m_nfcToken.clear();
     m_nfcObjects.clear();
+    m_nfcCryptoProCertificates.clear();
+    m_nfcCryptoProContainers.clear();
     m_nfcAuthenticated = false;
+    emit changed();
+}
+
+void TokenSession::setNfcCryptoPro(const QVariantList &certificates,
+                                   const QVariantList &containers)
+{
+    m_nfcCryptoProCertificates = certificates;
+    m_nfcCryptoProContainers = containers;
     emit changed();
 }
 

@@ -93,8 +93,11 @@ Diagnostics::Diagnostics(QObject *parent)
     connect(this, &Diagnostics::backendRowsReady, this, [this](const QVariantList &backendRows) {
         QVariantList accepted;
         for (const QVariant &value : backendRows) {
-            if (value.toMap().value(QStringLiteral("id")).toString()
-                    != QStringLiteral("cryptoprolib"))
+            const QString rowId = value.toMap().value(QStringLiteral("id")).toString();
+            // Обе строки КриптоПро пересобираются ниже из последнего состояния
+            // главного потока; иначе версия попадёт в список дважды.
+            if (rowId != QStringLiteral("cryptoprolib")
+                    && rowId != QStringLiteral("cryptoprover"))
                 accepted.append(value);
         }
         // За время фоновой проверки CAPI-helper мог уже вернуть более полный

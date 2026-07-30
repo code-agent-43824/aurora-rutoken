@@ -979,6 +979,10 @@
 <context>
     <name>TokenPage</name>
     <message>
+        <source>PKCS#11 and CryptoPro CSP</source>
+        <translation>PKCS#11 and CryptoPro CSP</translation>
+    </message>
+    <message>
         <source>Key container</source>
         <translation>Key container</translation>
     </message>

@@ -12,6 +12,7 @@ CRYPTOPRO_PAGE="qml/pages/CryptoProPage.qml"
 CRYPTOPRO_CERT_PAGE="qml/pages/CryptoProCertificatePage.qml"
 SETTINGS_PAGE="qml/pages/SettingsPage.qml"
 TOKENS_PAGE="qml/pages/TokensPage.qml"
+NFC_CONNECT_PAGE="qml/pages/NfcConnectPage.qml"
 TOKEN_WATCHER="src/tokenwatcher.cpp"
 PKCS11_HEADER="src/pkcs11_minimal.h"
 APP_SETTINGS="src/appsettings.cpp"
@@ -143,6 +144,20 @@ grep -Fq 'publicKeyFromCertificate(der).toHex()' src/pkcs11_objects.cpp
 grep -Fq 'label: qsTr("Container")' "$CERTIFICATE_PAGE"
 grep -Fq 'capi::PpVersion' "$CRYPTOPRO_SOURCE"
 grep -Fq 'diagnostics.setCryptoProVersion(cryptoProSession.cspVersion());' src/main.cpp
+# КриптоПро на NFC: чтение идёт в том же поднесении, результат — снимком.
+grep -Fq 'tokenSession.setNfcCryptoPro(cryptoProSession.certificates,' "$NFC_CONNECT_PAGE"
+grep -Fq 'page.operation === "connect" && appSettings.cryptoProEnabled' "$NFC_CONNECT_PAGE"
+grep -Fq 'tokenSession.nfcCryptoProCertificates' "$TOKEN_PAGE"
+# Лишних CAPI-проходов быть не должно: решение принимает syncWithTokens.
+grep -Fq 'cryptoProSession.syncWithTokens(tokenWatcher.tokens());' src/main.cpp
+grep -Fq 'if (m_syncedOnce && readers == m_scannedReaders)' "$CRYPTOPRO_SOURCE"
+if grep -Fq 'cryptoProSession.refresh();' src/main.cpp; then
+    echo "Token changes must go through syncWithTokens, not an unconditional scan" >&2
+    exit 1
+fi
+# Двойной источник и единственная строка версии в диагностике.
+grep -Fq 'qsTr("PKCS#11 and CryptoPro CSP")' "$TOKEN_PAGE"
+grep -Fq 'rowId != QStringLiteral("cryptoprover")' src/diagnostics.cpp
 if grep -Fq 'var label = container.name ? container.name' "$TOKEN_PAGE"; then
     echo "Container path must not be the card title" >&2
     exit 1
