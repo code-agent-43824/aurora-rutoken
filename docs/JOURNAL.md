@@ -24,6 +24,26 @@ RC до `1.2.0-2`, собрать armv7hl/aarch64 и проверить офиц
 атомарно опубликованные RPM. Интеграция остаётся опциональной и строго
 read-only; CSP по-прежнему не включается в пакет приложения.
 
+**Реализация:** план зафиксирован `a32840f`; код `0c1b6ee` добавил
+`/usr/lib/3rdparty/ru.cryptopro.csp/lib/libcapi20.so` первым runtime-кандидатом
+и permission `ru.cryptopro.gui@ru.cryptopro.csp` к уже существующим
+`NFC;UserDirs`. Версия поднята до `1.2.0-2`. Source gate и проверка
+распакованного RPM теперь требуют оба Aurora-условия, поэтому возврат к
+неработающей обычной Unix-конфигурации не пройдёт CI.
+
+**Проверка:** Actions `30548329677` полностью зелёный. armv7hl и aarch64
+собраны независимо в Aurora PSDK 5.2.1.200, приняты официальным RPM validator,
+имеют правильные ARM/AArch64 ELF и loaders, OMP regular signature, оба
+CSP-экрана и desktop permission внутри RPM. Созданы artifacts
+`rutokentestapp-1.2.0-2-<arch>-rpms`; publish job атомарно разместил ровно
+четыре RPM в `ci-latest` и сверил remote SHA-256. Приложение: armv7hl
+`e151a936b8e9e249ba20a980152a382f1ffad29f3e65748b564fea21f9e9d7ec`,
+aarch64
+`c778f975b701aa91c5c780d2e35cf481335f57417b61a50308c9daec3cd1c29b`.
+
+Остаётся повторный device-smoke точной `1.2.0-2`; до него v1.2 не получает
+стабильный тег.
+
 ## 2026-07-30 — Watson: закрытие v1.1 и план реализации v1.2
 
 **Результат владельца:** исправленная сборка `1.1.0-2` работает на физическом
