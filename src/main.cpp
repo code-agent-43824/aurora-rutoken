@@ -10,7 +10,7 @@
 
 // Версия приложения (для показа в диагностике). Держать синхронной с
 // rpm/*.spec (Version-Release).
-static const char *const kAppVersion = "1.2.0-4";
+static const char *const kAppVersion = "1.2.0-5";
 
 int main(int argc, char *argv[])
 {
@@ -42,6 +42,10 @@ int main(int argc, char *argv[])
     };
     QObject::connect(&appSettings, &AppSettings::cryptoProEnabledChanged,
                      &cryptoProSession, applyCryptoProSetting);
+    QObject::connect(&cryptoProSession, &CryptoProSession::changed,
+                     &diagnostics, [&]() {
+        diagnostics.setCryptoProLibraries(cryptoProSession.loadedLibraries());
+    });
     applyCryptoProSetting();
 
     // Изменение набора токенов: сброс входа при пропаже USB-слота и снятие

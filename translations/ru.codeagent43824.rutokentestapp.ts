@@ -1102,6 +1102,10 @@
         <source>private key</source>
         <translation>private key</translation>
     </message>
+    <message>
+        <source>CryptoPro key container</source>
+        <translation>CryptoPro key container</translation>
+    </message>
 </context>
 <context>
     <name>SettingsPage</name>

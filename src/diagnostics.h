@@ -3,6 +3,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QVariantList>
+#include <QtCore/QStringList>
 
 // Диагностика: NFC (nfcd), PC/SC (pcscd, ридеры) и официальный PKCS#11-модуль
 // Рутокен (жизненный цикл: загрузка, C_Initialize/C_GetInfo/C_Finalize).
@@ -26,6 +27,7 @@ public:
     bool cryptoProEnabled() const { return m_cryptoProEnabled; }
 
     void setCryptoProEnabled(bool enabled);
+    void setCryptoProLibraries(const QStringList &paths);
     Q_INVOKABLE void refresh();
 
 signals:
@@ -35,16 +37,18 @@ signals:
     void backendRowsReady(const QVariantList &backendRows); // из рабочего потока
 
 private:
-    void probeBackends(bool includeCryptoPro); // рабочий поток
+    void probeBackends(bool includeCryptoPro,
+                       const QStringList &cryptoProLibraries); // рабочий поток
     QVariantList probePcsc() const;
     QVariantList probePkcs11() const;
-    QVariantList probeCryptoProLibrary() const;
+    QVariantList probeCryptoProLibraries(const QStringList &paths) const;
     QVariantList probeNfc() const;        // главный поток (QtDBus)
 
     bool m_running = false;
     QVariantList m_rows;
     QVariantList m_nfcRows;
     bool m_cryptoProEnabled = false;
+    QStringList m_cryptoProLibraries;
 };
 
 #endif // DIAGNOSTICS_H

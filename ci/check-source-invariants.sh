@@ -96,11 +96,18 @@ if grep -Fq 'pageStack.push(Qt.resolvedUrl("CryptoProPage.qml"))' "$TOKENS_PAGE"
     exit 1
 fi
 grep -Fq 'if (!m_enabled)' "$CRYPTOPRO_SOURCE"
-grep -Fq 'probeCryptoProLibrary' "$DIAGNOSTICS_SOURCE"
+grep -Fq 'probeCryptoProLibraries' "$DIAGNOSTICS_SOURCE"
 grep -Fq 'if (includeCryptoPro)' "$DIAGNOSTICS_SOURCE"
 grep -Fq 'page.mergeObjects(' "$TOKEN_PAGE"
 grep -Fq 'visibleDer[object.derB64] = true' "$TOKEN_PAGE"
 grep -Fq '!page.sameReader(certificate.readerName, wantedReader)' "$TOKEN_PAGE"
+grep -Fq 'cryptoProSession.containers' "$TOKEN_PAGE"
+grep -Fq 'representedContainers[certificate.containerKey] = true' "$TOKEN_PAGE"
+grep -Fq 'page.cryptoProContainerObject(container)' "$TOKEN_PAGE"
+grep -Fq 'row.insert(QStringLiteral("containerKey"), physicalKey);' "$CRYPTOPRO_SOURCE"
+grep -Fq 'QStringLiteral("/proc/self/maps")' "$CRYPTOPRO_SOURCE"
+grep -Fq 'loadedCryptoProLibraries(library.fileName())' "$CRYPTOPRO_SOURCE"
+grep -Fq 'diagnostics.setCryptoProLibraries(cryptoProSession.loadedLibraries())' src/main.cpp
 grep -Fq 'if (!modelData.cryptoPro)' "$TOKEN_PAGE"
 
 if grep -Eiq 'pkcs11|certmgr|cryptcp|/bin/(sh|bash)|C_Set|CertSet|CryptGen|CryptDestroy' \

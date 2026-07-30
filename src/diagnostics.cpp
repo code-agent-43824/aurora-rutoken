@@ -91,16 +91,16 @@ Diagnostics::Diagnostics(QObject *parent)
 {
     // Результаты PC/SC и PKCS#11 приходят из рабочего потока; соединение auto-queued.
     connect(this, &Diagnostics::backendRowsReady, this, [this](const QVariantList &backendRows) {
-        QVariantList accepted = backendRows;
-        if (!m_cryptoProEnabled) {
-            QVariantList filtered;
-            for (const QVariant &value : accepted) {
-                if (value.toMap().value(QStringLiteral("id")).toString()
-                        != QStringLiteral("cryptoprolib"))
-                    filtered.append(value);
-            }
-            accepted = filtered;
+        QVariantList accepted;
+        for (const QVariant &value : backendRows) {
+            if (value.toMap().value(QStringLiteral("id")).toString()
+                    != QStringLiteral("cryptoprolib"))
+                accepted.append(value);
         }
+        // За время фоновой проверки CAPI-helper мог уже вернуть более полный
+        // runtime-список. Всегда используем последнее состояние главного потока.
+        if (m_cryptoProEnabled)
+            accepted += probeCryptoProLibraries(m_cryptoProLibraries);
         m_rows = m_nfcRows + accepted;
         m_running = false;
         emit rowsChanged();
@@ -117,9 +117,32 @@ void Diagnostics::refresh()
 
     m_nfcRows = probeNfc(); // быстрые D-Bus-проверки — в главном потоке
     const bool includeCryptoPro = m_cryptoProEnabled;
-    QtConcurrent::run([this, includeCryptoPro]() {
-        probeBackends(includeCryptoPro);
+    const QStringList cryptoProLibraries = m_cryptoProLibraries;
+    QtConcurrent::run([this, includeCryptoPro, cryptoProLibraries]() {
+        probeBackends(includeCryptoPro, cryptoProLibraries);
     });
+}
+
+void Diagnostics::setCryptoProLibraries(const QStringList &paths)
+{
+    QStringList normalized = paths;
+    normalized.removeDuplicates();
+    normalized.sort(Qt::CaseInsensitive);
+    if (m_cryptoProLibraries == normalized)
+        return;
+    m_cryptoProLibraries = normalized;
+    if (!m_cryptoProEnabled)
+        return;
+
+    QVariantList updated;
+    for (const QVariant &value : m_rows) {
+        if (value.toMap().value(QStringLiteral("id")).toString()
+                != QStringLiteral("cryptoprolib"))
+            updated.append(value);
+    }
+    updated += probeCryptoProLibraries(m_cryptoProLibraries);
+    m_rows = updated;
+    emit rowsChanged();
 }
 
 void Diagnostics::setCryptoProEnabled(bool enabled)
@@ -198,25 +221,30 @@ QVariantList Diagnostics::probeNfc() const
     return rows;
 }
 
-void Diagnostics::probeBackends(bool includeCryptoPro)
+void Diagnostics::probeBackends(bool includeCryptoPro,
+                                const QStringList &cryptoProLibraries)
 {
     QVariantList rows = probePcsc() + probePkcs11();
     if (includeCryptoPro)
-        rows += probeCryptoProLibrary();
+        rows += probeCryptoProLibraries(cryptoProLibraries);
     emit backendRowsReady(rows);
 }
 
-QVariantList Diagnostics::probeCryptoProLibrary() const
+QVariantList Diagnostics::probeCryptoProLibraries(const QStringList &paths) const
 {
     QVariantList rows;
-    const QString path = QStringLiteral(
-                "/usr/lib/3rdparty/ru.cryptopro.csp/lib/libcapi20.so");
-    const QFileInfo info(path);
-    rows.append(makeRow(QStringLiteral("cryptoprolib"),
-                        info.isFile() && info.isReadable() ? 1 : 0,
-                        info.isFile() && info.isReadable()
-                        ? path
-                        : QStringLiteral("libcapi20.so не найдена: ") + path));
+    QStringList candidates = paths;
+    if (candidates.isEmpty())
+        candidates.append(QStringLiteral(
+                "/usr/lib/3rdparty/ru.cryptopro.csp/lib/libcapi20.so"));
+    for (const QString &path : candidates) {
+        const QFileInfo info(path);
+        const bool readable = info.isFile() && info.isReadable();
+        rows.append(makeRow(QStringLiteral("cryptoprolib"), readable ? 1 : 0,
+                            readable ? path
+                                     : QStringLiteral("библиотека не найдена: ") + path,
+                            QStringLiteral("КриптоПро: ") + info.fileName()));
+    }
     return rows;
 }
 

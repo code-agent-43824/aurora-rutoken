@@ -56,6 +56,7 @@ Page {
     property var objectsModel: page.mergeObjects(
                                    page.pkcs11ObjectsModel,
                                    cryptoProSession.certificates,
+                                   cryptoProSession.containers,
                                    appSettings.cryptoProEnabled,
                                    page.slotName)
     property int objectCount: page.objectsModel.length
@@ -110,12 +111,32 @@ Page {
         }
     }
 
-    function mergeObjects(pkcs11Objects, cryptoProCertificates, enabled, readerName) {
+    function cryptoProContainerObject(container) {
+        var label = container.name ? container.name
+                                   : (container.uniqueName ? container.uniqueName : "")
+        return {
+            kind: "key",
+            idHex: "",
+            idText: container.uniqueName ? container.uniqueName : "",
+            label: label,
+            keyType: container.algorithm ? container.algorithm : "",
+            keyClass: qsTr("CryptoPro key container"),
+            source: qsTr("CryptoPro CSP"),
+            cryptoPro: true
+        }
+    }
+
+    function mergeObjects(pkcs11Objects, cryptoProCertificates,
+                          cryptoProContainers, enabled, readerName) {
         var active = []
         var keys = []
         var expired = []
         var visibleDer = {}
+        var representedContainers = {}
         var i
+        pkcs11Objects = pkcs11Objects || []
+        cryptoProCertificates = cryptoProCertificates || []
+        cryptoProContainers = cryptoProContainers || []
         for (i = 0; i < pkcs11Objects.length; ++i) {
             var object = pkcs11Objects[i]
             if (object.kind === "certificate") {
@@ -137,14 +158,30 @@ Page {
                 var der = certificate.derB64 ? certificate.derB64 : ""
                 if (wantedReader.length === 0
                         || !page.sameReader(certificate.readerName, wantedReader)
-                        || der.length === 0 || visibleDer[der])
+                        || der.length === 0)
                     continue
+                if (visibleDer[der]) {
+                    if (certificate.containerKey)
+                        representedContainers[certificate.containerKey] = true
+                    continue
+                }
                 visibleDer[der] = true
+                if (certificate.containerKey)
+                    representedContainers[certificate.containerKey] = true
                 var mapped = page.cryptoProObject(certificate)
                 if (mapped.expired)
                     expired.push(mapped)
                 else
                     active.push(mapped)
+            }
+            for (i = 0; i < cryptoProContainers.length; ++i) {
+                var container = cryptoProContainers[i]
+                if (wantedReader.length === 0
+                        || !page.sameReader(container.readerName, wantedReader)
+                        || (container.containerKey
+                            && representedContainers[container.containerKey]))
+                    continue
+                keys.push(page.cryptoProContainerObject(container))
             }
         }
         return active.concat(keys).concat(expired)

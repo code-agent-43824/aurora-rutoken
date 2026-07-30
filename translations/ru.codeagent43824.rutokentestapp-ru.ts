@@ -1102,6 +1102,10 @@
         <source>private key</source>
         <translation>закрытый ключ</translation>
     </message>
+    <message>
+        <source>CryptoPro key container</source>
+        <translation>ключевой контейнер КриптоПро</translation>
+    </message>
 </context>
 <context>
     <name>SettingsPage</name>

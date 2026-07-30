@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.2.0
-Release:    4
+Release:    5
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,10 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 30 2026 Watson <noreply@openai.com> - 1.2.0-5
+- Show CryptoPro-only containers even when PKCS#11 object enumeration is empty
+  or fails. Report every CryptoPro shared library loaded by the CAPI helper.
+
 * Thu Jul 30 2026 Watson <noreply@openai.com> - 1.2.0-4
 - Replace periodic token enumeration with blocking C_WaitForSlotEvent. Make
   CryptoPro opt-in, diagnose it conditionally and merge non-duplicate CAPI

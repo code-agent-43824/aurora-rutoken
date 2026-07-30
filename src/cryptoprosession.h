@@ -4,6 +4,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QProcess>
 #include <QtCore/QTimer>
+#include <QtCore/QStringList>
 #include <QtCore/QVariantList>
 #include <QtCore/QVariantMap>
 
@@ -15,6 +16,7 @@ class CryptoProSession : public QObject
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
     Q_PROPERTY(QString libraryPath READ libraryPath NOTIFY changed)
+    Q_PROPERTY(QStringList loadedLibraries READ loadedLibraries NOTIFY changed)
     Q_PROPERTY(QVariantList providers READ providers NOTIFY changed)
     Q_PROPERTY(QVariantList containers READ containers NOTIFY changed)
     Q_PROPERTY(QVariantList certificates READ certificates NOTIFY changed)
@@ -30,6 +32,7 @@ public:
     bool busy() const { return m_busy; }
     QString status() const { return m_status; }
     QString libraryPath() const { return m_libraryPath; }
+    QStringList loadedLibraries() const { return m_loadedLibraries; }
     QVariantList providers() const { return m_providers; }
     QVariantList containers() const { return m_containers; }
     QVariantList certificates() const { return m_certificates; }
@@ -56,6 +59,7 @@ private:
     bool m_refreshPending = false;
     QString m_status;
     QString m_libraryPath;
+    QStringList m_loadedLibraries;
     QVariantList m_providers;
     QVariantList m_containers;
     QVariantList m_certificates;

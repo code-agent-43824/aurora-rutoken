@@ -4,6 +4,8 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QDateTime>
+#include <QtCore/QFile>
+#include <QtCore/QFileInfo>
 #include <QtCore/QHash>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonParseError>
@@ -309,6 +311,43 @@ QString physicalContainerKey(const Container &container)
     return normalizedContainerName(container.uniqueName);
 }
 
+QStringList loadedCryptoProLibraries(const QString &directLibraryPath)
+{
+    QSet<QString> paths;
+    const auto addPath = [&paths](QString path, bool requireCryptoProDirectory) {
+        path = path.trimmed();
+        if (path.endsWith(QStringLiteral(" (deleted)")))
+            path.chop(10);
+        if (path.isEmpty())
+            return;
+        const QString lower = path.toLower();
+        if (requireCryptoProDirectory
+                && !lower.contains(QStringLiteral("/ru.cryptopro.csp/"))
+                && !lower.contains(QStringLiteral("/cprocsp/")))
+            return;
+        const QFileInfo info(path);
+        const QString canonical = info.canonicalFilePath();
+        paths.insert(canonical.isEmpty() ? path : canonical);
+    };
+
+    QFile maps(QStringLiteral("/proc/self/maps"));
+    if (maps.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        while (!maps.atEnd()) {
+            const QString line = QString::fromLocal8Bit(maps.readLine());
+            const int pathStart = line.indexOf(QLatin1Char('/'));
+            if (pathStart >= 0)
+                addPath(line.mid(pathStart), true);
+        }
+    }
+    // Даже если /proc закрыт политикой песочницы, непосредственно загруженный
+    // CAPI-модуль остаётся достоверно известен.
+    addPath(directLibraryPath, false);
+
+    QStringList out = paths.values();
+    out.sort(Qt::CaseInsensitive);
+    return out;
+}
+
 QVariantMap scan(const Api &api, const QString &libraryPath)
 {
     QVariantMap result;
@@ -373,6 +412,7 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
             row.insert(QStringLiteral("algorithm"),
                        providerAlgorithm(container.providerType));
             row.insert(QStringLiteral("certificateCount"), 0);
+            row.insert(QStringLiteral("containerKey"), physicalKey);
             row.insert(QStringLiteral("_physicalKey"), physicalKey);
             logicalIndex = containerRows.size();
             containerRows.append(row);
@@ -488,6 +528,9 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
             row.insert(QStringLiteral("providerType"), info->providerType);
             row.insert(QStringLiteral("container"),
                        boundContainer.isEmpty() ? container.displayName : boundContainer);
+            row.insert(QStringLiteral("containerKey"),
+                       containerRows.at(logicalContainerIndex).toMap()
+                       .value(QStringLiteral("_physicalKey")).toString());
             row.insert(QStringLiteral("readerName"), containerReaderName(container));
             row.insert(QStringLiteral("privateKeyAvailable"), privateKeyAvailable);
             row.insert(QStringLiteral("keySpec"), keySpec);
@@ -628,6 +671,8 @@ QVariantMap executeScan()
     api.closeStore = reinterpret_cast<capi::CertCloseStoreFn>(functions.at(9));
 
     QVariantMap result = scan(api, libraryPath);
+    result.insert(QStringLiteral("loadedLibraries"),
+                  loadedCryptoProLibraries(library.fileName()));
     result.insert(QStringLiteral("available"), true);
     return result;
 }
@@ -716,6 +761,7 @@ void CryptoProSession::setEnabled(bool enabled)
     m_refreshPending = false;
     m_status = QStringLiteral("КриптоПро CSP выключен в настройках");
     m_libraryPath.clear();
+    m_loadedLibraries.clear();
     m_providers.clear();
     m_containers.clear();
     m_certificates.clear();
@@ -763,6 +809,14 @@ void CryptoProSession::finishHelper(int exitCode, QProcess::ExitStatus exitStatu
     const QVariantMap result = document.toVariant().toMap();
     m_available = result.value(QStringLiteral("available")).toBool();
     m_libraryPath = result.value(QStringLiteral("libraryPath")).toString();
+    m_loadedLibraries.clear();
+    const QVariantList loadedLibraries =
+            result.value(QStringLiteral("loadedLibraries")).toList();
+    for (const QVariant &value : loadedLibraries) {
+        const QString path = value.toString();
+        if (!path.isEmpty() && !m_loadedLibraries.contains(path))
+            m_loadedLibraries.append(path);
+    }
     m_providers = result.value(QStringLiteral("providers")).toList();
     m_containers = result.value(QStringLiteral("containers")).toList();
     m_certificates = result.value(QStringLiteral("certificates")).toList();
@@ -801,6 +855,7 @@ void CryptoProSession::failRefresh(const QString &message)
     m_busy = false;
     m_status = message;
     m_libraryPath.clear();
+    m_loadedLibraries.clear();
     m_providers.clear();
     m_containers.clear();
     m_certificates.clear();
