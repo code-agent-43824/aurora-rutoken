@@ -26,9 +26,9 @@ PIN, unblock the user PIN). NFC uses a guided connect wizard; the certificate
 is auto-attached to its key pair by public key on import. Files can be signed
 as detached or attached CMS/PKCS#7 with a certificate and private key stored
 on the Rutoken.
-When an independently installed CryptoPro CSP is present, the application also
-provides a strictly read-only view of Rutoken containers and linked certificates
-through the runtime-loaded CapiLite API. CryptoPro CSP is not bundled or required.
+When an independently installed CryptoPro CSP is present, the application
+provides a read-only view of Rutoken containers and linked certificates through
+the runtime-loaded CapiLite API. CryptoPro CSP is not bundled or required.
 
 %prep
 %autosetup
@@ -97,7 +97,7 @@ through the runtime-loaded CapiLite API. CryptoPro CSP is not bundled or require
   snapshot connected without a PIN: the existing NFC wizard now requires the PIN,
   re-reads the token during one hold and returns to the open Objects view.
 
-* Fri Jul 25 2026 Claude <noreply@anthropic.com> - 1.0.0-1
+* Sat Jul 25 2026 Claude <noreply@anthropic.com> - 1.0.0-1
 - Release 1.0. Move the token administration actions (change user/admin PIN,
   unblock the user PIN, change the label) from visible buttons on the Properties
   view into the top pull-down menu, which is now context-sensitive: the
