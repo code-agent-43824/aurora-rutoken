@@ -230,6 +230,17 @@ read-only путь:
 зависимости от proprietary SDK нет. В v1.2 отсутствуют функции записи,
 PKCS#11-вызовы и запуск `certmgr`/`cryptcp`.
 
+После первого device-smoke CapiLite изолирован от UI-процесса. Это не
+утверждение о конкретной причине единичного crash: без crash dump её
+доказать нельзя. Однако публично зафиксирован SIGSEGV внутри
+`libcapi20.so`/`CertGetCertificateContextProperty`, поэтому один только
+worker-поток не является границей отказа. Одноразовый helper-режим того же
+упакованного executable ограничен 30 секундами и 4 МБ JSON; crash/hang
+библиотеки не завершает приложение. `CRYPT_UNIQUE | CRYPT_FQCN` также
+возвращает provider-представления одного физического контейнера через
+75/80/81: UI группирует их по нормализованному FQCN, сохраняя raw-варианты
+только для точного certificate binding.
+
 ## 6. Открытые вопросы (проверять на следующих этапах)
 
 1. Входят ли `pcscd` и NFC-handler в стандартную поставку Авроры, или ставятся отдельными пакетами (например, вместе с приложением «Рутокен»)? Доступен ли pcscd стороннему приложению из песочницы?
@@ -304,6 +315,7 @@ Run `29701204751` подтвердил корректную пару `0.0.2-2`. 
 - https://auroraos.ru/applications/rutoken — приложение «Рутокен» в каталоге Авроры
 - https://forum.rutoken.ru/topic/3779/ — Bluetooth-Рутокен на Авроре не поддерживается; ограничение КриптоПро CSP
 - https://cryptopro.ru/forum2/default.aspx?g=posts&t=23518 — официальный ответ сотрудника КриптоПро: Aurora-путь `libcapi20.so` и обязательное desktop-разрешение D-Bus-сервиса CSP
+- https://cryptopro.ru/forum2/default.aspx?g=posts&t=20174 — публичный пример SIGSEGV внутри `libcapi20.so` при `CertGetCertificateContextProperty`, обоснование process isolation
 - https://developer.auroraos.ru/doc/extended/flutter — документация Flutter для Авроры
 - https://developer.auroraos.ru/doc/software_development/guidelines/rpm_requirements — требования к установочным пакетам (обязательная подпись)
 - https://developer.auroraos.ru/doc/sdk/app_development/packaging/package_signing — подписание пакетов; ссылки на тестовую пару regular_key/regular_cert; про блокировку общедоступных ключей без режима разработчика на Аврора 5
