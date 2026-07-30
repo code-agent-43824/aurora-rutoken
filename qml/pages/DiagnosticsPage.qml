@@ -17,6 +17,7 @@ Page {
         case "pkcs11init": return qsTr("PKCS#11 initialization")
         case "pkcs11info": return qsTr("PKCS#11 information")
         case "pkcs11finalize": return qsTr("PKCS#11 finalization")
+        case "cryptoprolib": return qsTr("CryptoPro CSP library")
         case "tokens": return qsTr("Connected Rutoken devices")
         case "token": return qsTr("Device")
         default: return id

@@ -15,29 +15,36 @@ class Diagnostics : public QObject
     Q_OBJECT
     Q_PROPERTY(bool running READ running NOTIFY runningChanged)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY rowsChanged)
+    Q_PROPERTY(bool cryptoProEnabled READ cryptoProEnabled WRITE setCryptoProEnabled
+               NOTIFY cryptoProEnabledChanged)
 
 public:
     explicit Diagnostics(QObject *parent = nullptr);
 
     bool running() const { return m_running; }
     QVariantList rows() const { return m_rows; }
+    bool cryptoProEnabled() const { return m_cryptoProEnabled; }
 
+    void setCryptoProEnabled(bool enabled);
     Q_INVOKABLE void refresh();
 
 signals:
     void runningChanged();
     void rowsChanged();
+    void cryptoProEnabledChanged();
     void backendRowsReady(const QVariantList &backendRows); // из рабочего потока
 
 private:
-    void probeBackends();                 // рабочий поток
+    void probeBackends(bool includeCryptoPro); // рабочий поток
     QVariantList probePcsc() const;
     QVariantList probePkcs11() const;
+    QVariantList probeCryptoProLibrary() const;
     QVariantList probeNfc() const;        // главный поток (QtDBus)
 
     bool m_running = false;
     QVariantList m_rows;
     QVariantList m_nfcRows;
+    bool m_cryptoProEnabled = false;
 };
 
 #endif // DIAGNOSTICS_H

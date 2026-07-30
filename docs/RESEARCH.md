@@ -241,6 +241,27 @@ worker-поток не является границей отказа. Одно�
 75/80/81: UI группирует их по нормализованному FQCN, сохраняя raw-варианты
 только для точного certificate binding.
 
+### 5ж. События слотов PKCS#11 и сопоставление CAPI с устройством — v1.2
+
+PKCS#11 определяет `C_WaitForSlotEvent(flags=0)` как блокирующее ожидание
+установки или удаления носителя; `CKF_DONT_BLOCK` нужен только для
+неблокирующего варианта. Официальная документация Рутокен отдельно показывает
+этот вызов и таблица поддерживаемых функций отмечает его для устройств
+Рутокен. Поэтому периодическое `C_GetSlotList/C_GetTokenInfo` не требуется:
+постоянный helper один раз инициализирует модуль и ждёт событие, а UI делает
+снимок только при старте, событии или ручном обновлении. Отдельный процесс
+позволяет завершить приложение, не оставляя UI-поток заблокированным во
+внешней функции.
+
+При `CRYPT_UNIQUE | CRYPT_FQCN` КриптоПро возвращает пару полного уникального
+и полного дружественного имени контейнера. Документированный формат FQCN —
+`\\.\<имя считывателя>\<имя контейнера>`; имя считывателя не содержит `\`.
+Следовательно, CAPI-сертификат можно консервативно отнести к открытой странице
+Рутокена по точному нормализованному совпадению этой части с
+`CK_SLOT_INFO.slotDescription`. Для удаления дублей используется не имя
+контейнера, а точное тело X.509 DER: если такой DER уже виден через PKCS#11,
+показывается только PKCS#11-объект.
+
 ## 6. Открытые вопросы (проверять на следующих этапах)
 
 1. Входят ли `pcscd` и NFC-handler в стандартную поставку Авроры, или ставятся отдельными пакетами (например, вместе с приложением «Рутокен»)? Доступен ли pcscd стороннему приложению из песочницы?
@@ -312,10 +333,14 @@ Run `29701204751` подтвердил корректную пару `0.0.2-2`. 
 - https://www.rutoken.ru/developers/sdk/ — Рутокен SDK
 - https://dev.rutoken.ru/pages/viewpage.action?pageId=3178509 — rtPKCS11ECP
 - https://dev.rutoken.ru/pages/viewpage.action?pageId=78479413 — начало работы с Рутокен ЭЦП 3.0 NFC
+- https://dev.rutoken.ru/pages/viewpage.action?pageId=13795364 — официальный пример Рутокен с блокирующим `C_WaitForSlotEvent`
+- https://dev.rutoken.ru/pages/viewpage.action?pageId=3178534 — таблица поддерживаемых устройствами Рутокен функций PKCS#11
+- https://docs.oasis-open.org/pkcs11/pkcs11-spec/v3.1/pkcs11-spec-v3.1.html — нормативное поведение `C_WaitForSlotEvent`
 - https://auroraos.ru/applications/rutoken — приложение «Рутокен» в каталоге Авроры
 - https://forum.rutoken.ru/topic/3779/ — Bluetooth-Рутокен на Авроре не поддерживается; ограничение КриптоПро CSP
 - https://cryptopro.ru/forum2/default.aspx?g=posts&t=23518 — официальный ответ сотрудника КриптоПро: Aurora-путь `libcapi20.so` и обязательное desktop-разрешение D-Bus-сервиса CSP
 - https://cryptopro.ru/forum2/default.aspx?g=posts&t=20174 — публичный пример SIGSEGV внутри `libcapi20.so` при `CertGetCertificateContextProperty`, обоснование process isolation
+- https://cryptopro.ru/forum2/default.aspx?g=posts&t=2349 — формат FQCN и пара unique/friendly при `CRYPT_UNIQUE`
 - https://developer.auroraos.ru/doc/extended/flutter — документация Flutter для Авроры
 - https://developer.auroraos.ru/doc/software_development/guidelines/rpm_requirements — требования к установочным пакетам (обязательная подпись)
 - https://developer.auroraos.ru/doc/sdk/app_development/packaging/package_signing — подписание пакетов; ссылки на тестовую пару regular_key/regular_cert; про блокировку общедоступных ключей без режима разработчика на Аврора 5

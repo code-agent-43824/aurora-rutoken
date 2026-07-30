@@ -20,6 +20,7 @@ Page {
     property bool expired: page.notAfterMs > 0 && page.currentTimeMs > page.notAfterMs
     property bool hasKey: false
     property bool keysKnown: false
+    property bool cryptoPro: false
     property var slotId: 0
     property string connection: ""
 
@@ -118,7 +119,8 @@ Page {
 
             PageHeader {
                 title: page.title()
-                description: qsTr("Certificate — via PKCS#11")
+                description: page.cryptoPro ? qsTr("Certificate — via CryptoPro CSP")
+                                            : qsTr("Certificate — via PKCS#11")
             }
 
             DetailItem {
@@ -134,11 +136,12 @@ Page {
                 value: page.parsed && page.expiry.length > 0 ? page.expiry : "—"
             }
             DetailItem {
+                visible: !page.cryptoPro
                 label: qsTr("CKA_LABEL")
                 value: page.label.length > 0 ? page.label : "—"
             }
             DetailItem {
-                label: qsTr("CKA_ID")
+                label: page.cryptoPro ? qsTr("Serial number") : qsTr("CKA_ID")
                 value: page.idText.length > 0 ? page.idText : "—"
             }
             DetailItem {

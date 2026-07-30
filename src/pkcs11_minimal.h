@@ -48,6 +48,8 @@ static const CK_RV CKR_PIN_LEN_RANGE = 0x000000A2UL;
 static const CK_RV CKR_PIN_LOCKED = 0x000000A4UL;
 static const CK_RV CKR_USER_ALREADY_LOGGED_IN = 0x00000100UL;
 static const CK_RV CKR_USER_PIN_NOT_INITIALIZED = 0x00000102UL;
+static const CK_RV CKR_CRYPTOKI_NOT_INITIALIZED = 0x00000190UL;
+static const CK_RV CKR_FUNCTION_NOT_SUPPORTED = 0x00000054UL;
 
 static const CK_USER_TYPE CKU_SO = 0;    // администратор (Security Officer)
 static const CK_USER_TYPE CKU_USER = 1;
@@ -212,6 +214,9 @@ typedef CK_RV (*CK_C_GenerateKeyPair)(CK_SESSION_HANDLE, CK_MECHANISM *,
                                       CK_ATTRIBUTE *, CK_ULONG,
                                       CK_ATTRIBUTE *, CK_ULONG,
                                       CK_OBJECT_HANDLE *, CK_OBJECT_HANDLE *);
+// C_WaitForSlotEvent (№68): flags=0 блокирует поток до установки/удаления
+// носителя. Нужен watcher'у вместо периодического C_GetSlotList.
+typedef CK_RV (*CK_C_WaitForSlotEvent)(CK_FLAGS, CK_SLOT_ID *, CK_VOID_PTR);
 // C_SignInit (№43) / C_Sign (№44): тестовая подпись фиксированного блока
 // закрытым ключом (после генерации). Длина подписи — двухпроходно (NULL → длина).
 typedef CK_RV (*CK_C_SignInit)(CK_SESSION_HANDLE, CK_MECHANISM *, CK_OBJECT_HANDLE);
@@ -224,7 +229,8 @@ typedef CK_RV (*CK_C_Verify)(CK_SESSION_HANDLE, CK_BYTE *, CK_ULONG, CK_BYTE *, 
 typedef CK_RV (*CK_SkippedFn)(void);
 
 // Реальный CK_FUNCTION_LIST продолжается остальными точками входа PKCS#11.
-// Порядок функций фиксирован стандартом; нам нужен префикс до C_GenerateKeyPair (№60).
+// Порядок функций фиксирован стандартом; watcher'у нужен
+// C_WaitForSlotEvent (№68), поэтому сохраняем все позиции до него.
 struct CK_FUNCTION_LIST_PREFIX {
     CK_VERSION version;
     CK_C_Initialize C_Initialize;             // 1
@@ -287,6 +293,14 @@ struct CK_FUNCTION_LIST_PREFIX {
     CK_SkippedFn C_DecryptVerifyUpdate;       // 58
     CK_SkippedFn C_GenerateKey;               // 59
     CK_C_GenerateKeyPair C_GenerateKeyPair;   // 60
+    CK_SkippedFn C_WrapKey;                   // 61
+    CK_SkippedFn C_UnwrapKey;                 // 62
+    CK_SkippedFn C_DeriveKey;                 // 63
+    CK_SkippedFn C_SeedRandom;                // 64
+    CK_SkippedFn C_GenerateRandom;            // 65
+    CK_SkippedFn C_GetFunctionStatus;         // 66
+    CK_SkippedFn C_CancelFunction;            // 67
+    CK_C_WaitForSlotEvent C_WaitForSlotEvent; // 68
 };
 
 // Контроль естественного выравнивания на обеих архитектурах Авроры.
@@ -355,6 +369,8 @@ static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_Verify) == 50 * sizeof(void *)
               "CK_FUNCTION_LIST: C_Verify offset");
 static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_GenerateKeyPair) == 60 * sizeof(void *),
               "CK_FUNCTION_LIST: C_GenerateKeyPair offset");
+static_assert(offsetof(CK_FUNCTION_LIST_PREFIX, C_WaitForSlotEvent) == 68 * sizeof(void *),
+              "CK_FUNCTION_LIST: C_WaitForSlotEvent offset");
 
 static_assert(offsetof(CK_ATTRIBUTE, pValue) == sizeof(void *), "CK_ATTRIBUTE.pValue offset");
 static_assert(offsetof(CK_ATTRIBUTE, ulValueLen) == 2 * sizeof(void *), "CK_ATTRIBUTE.ulValueLen offset");

@@ -36,8 +36,8 @@
         <translation>Diagnostics</translation>
     </message>
     <message>
-        <source>CryptoPro CSP</source>
-        <translation>CryptoPro CSP</translation>
+        <source>Settings</source>
+        <translation>Settings</translation>
     </message>
     <message>
         <source>Refresh</source>
@@ -115,6 +115,10 @@
         <translation>PKCS#11 finalization</translation>
     </message>
     <message>
+        <source>CryptoPro CSP library</source>
+        <translation>CryptoPro CSP library</translation>
+    </message>
+    <message>
         <source>Connected Rutoken devices</source>
         <translation>Connected Rutoken devices</translation>
     </message>
@@ -140,6 +144,10 @@
     <message>
         <source>Certificate — via PKCS#11</source>
         <translation>Certificate — via PKCS#11</translation>
+    </message>
+    <message>
+        <source>Certificate — via CryptoPro CSP</source>
+        <translation>Certificate — via CryptoPro CSP</translation>
     </message>
     <message>
         <source>Common Name</source>
@@ -1085,6 +1093,29 @@
     <message>
         <source>Pull down for administration: change or unblock PINs, change the label.</source>
         <translation>Pull down for administration: change or unblock PINs, change the label.</translation>
+    </message>
+    <message>
+        <source>CryptoPro CSP</source>
+        <translation>CryptoPro CSP</translation>
+    </message>
+    <message>
+        <source>private key</source>
+        <translation>private key</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Settings</source>
+        <translation>Settings</translation>
+    </message>
+    <message>
+        <source>Use CryptoPro CSP</source>
+        <translation>Use CryptoPro CSP</translation>
+    </message>
+    <message>
+        <source>When disabled, CryptoPro libraries are not loaded</source>
+        <translation>When disabled, CryptoPro libraries are not loaded</translation>
     </message>
 </context>
 <context>

@@ -25,8 +25,8 @@ Page {
 
         PullDownMenu {
             MenuItem {
-                text: qsTr("CryptoPro CSP")
-                onClicked: pageStack.push(Qt.resolvedUrl("CryptoProPage.qml"))
+                text: qsTr("Settings")
+                onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
             }
             MenuItem {
                 text: qsTr("Diagnostics")
@@ -34,7 +34,11 @@ Page {
             }
             MenuItem {
                 text: qsTr("Refresh")
-                onClicked: tokenWatcher.refresh()
+                onClicked: {
+                    tokenWatcher.refresh()
+                    if (appSettings.cryptoProEnabled)
+                        cryptoProSession.refresh()
+                }
             }
         }
 

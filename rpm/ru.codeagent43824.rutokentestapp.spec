@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.2.0
-Release:    3
+Release:    4
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -26,9 +26,10 @@ PIN, unblock the user PIN). NFC uses a guided connect wizard; the certificate
 is auto-attached to its key pair by public key on import. Files can be signed
 as detached or attached CMS/PKCS#7 with a certificate and private key stored
 on the Rutoken.
-When an independently installed CryptoPro CSP is present, the application
-provides a read-only view of Rutoken containers and linked certificates through
-the runtime-loaded CapiLite API. CryptoPro CSP is not bundled or required.
+When explicitly enabled in Settings, an independently installed CryptoPro CSP
+adds read-only certificates and linked keys to the same per-device object list
+through the runtime-loaded CapiLite API. PKCS#11 objects take precedence over
+exact duplicates. CryptoPro CSP is not bundled or required.
 
 %prep
 %autosetup
@@ -49,6 +50,11 @@ the runtime-loaded CapiLite API. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Thu Jul 30 2026 Watson <noreply@openai.com> - 1.2.0-4
+- Replace periodic token enumeration with blocking C_WaitForSlotEvent. Make
+  CryptoPro opt-in, diagnose it conditionally and merge non-duplicate CAPI
+  certificates into the per-device PKCS#11 object list.
+
 * Thu Jul 30 2026 Watson <noreply@openai.com> - 1.2.0-3
 - Isolate read-only CapiLite scans in a bounded helper process so a CSP crash
   cannot terminate the UI. Group provider aliases of one physical container.

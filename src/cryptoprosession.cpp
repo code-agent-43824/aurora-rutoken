@@ -122,6 +122,28 @@ QString containerLeaf(const QString &value)
     return normalized.mid(normalized.lastIndexOf(QLatin1Char('\\')) + 1);
 }
 
+QString readerNameFromFqcn(QString value)
+{
+    value = value.trimmed();
+    value.replace(QLatin1Char('/'), QLatin1Char('\\'));
+    const QString prefix = QStringLiteral("\\\\.\\");
+    if (!value.startsWith(prefix))
+        return QString();
+    const int readerStart = prefix.size();
+    const int separator = value.indexOf(QLatin1Char('\\'), readerStart);
+    if (separator <= readerStart)
+        return QString();
+    return value.mid(readerStart, separator - readerStart).trimmed();
+}
+
+QString containerReaderName(const Container &container)
+{
+    QString reader = readerNameFromFqcn(container.friendlyName);
+    if (reader.isEmpty())
+        reader = readerNameFromFqcn(container.uniqueName);
+    return reader;
+}
+
 bool sameContainerName(const QString &left, const QString &right)
 {
     const QString a = normalizedContainerName(left);
@@ -339,6 +361,7 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
             row.insert(QStringLiteral("name"), container.displayName);
             row.insert(QStringLiteral("uniqueName"), container.uniqueName);
             row.insert(QStringLiteral("friendlyName"), container.friendlyName);
+            row.insert(QStringLiteral("readerName"), containerReaderName(container));
             row.insert(QStringLiteral("provider"), container.provider);
             row.insert(QStringLiteral("providerType"), container.providerType);
             row.insert(QStringLiteral("providerTypes"),
@@ -437,6 +460,10 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
                         QCryptographicHash::hash(der, QCryptographicHash::Sha256).toHex());
             row.insert(QStringLiteral("subject"), certificate.isNull()
                        ? QString() : distinguishedName(certificate, false));
+            row.insert(QStringLiteral("commonName"), certificate.isNull()
+                       ? QString()
+                       : firstInfo(certificate.subjectInfo(
+                                       QSslCertificate::CommonName)));
             row.insert(QStringLiteral("issuer"), certificate.isNull()
                        ? QString() : distinguishedName(certificate, true));
             row.insert(QStringLiteral("serial"), certificate.isNull()
@@ -447,16 +474,21 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
             row.insert(QStringLiteral("notAfter"), certificate.expiryDate().isValid()
                        ? certificate.expiryDate().toUTC().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss 'UTC'"))
                        : QString());
+            row.insert(QStringLiteral("notAfterMs"), certificate.expiryDate().isValid()
+                       ? certificate.expiryDate().toUTC().toMSecsSinceEpoch()
+                       : 0);
             row.insert(QStringLiteral("expired"), certificate.expiryDate().isValid()
                        && QDateTime::currentDateTimeUtc() > certificate.expiryDate().toUTC());
             row.insert(QStringLiteral("algorithm"),
                        certificateAlgorithm(der, info->providerType));
             row.insert(QStringLiteral("sha256"), sha256);
+            row.insert(QStringLiteral("derB64"), QString::fromLatin1(der.toBase64()));
             row.insert(QStringLiteral("provider"),
                        boundProvider.isEmpty() ? container.provider : boundProvider);
             row.insert(QStringLiteral("providerType"), info->providerType);
             row.insert(QStringLiteral("container"),
                        boundContainer.isEmpty() ? container.displayName : boundContainer);
+            row.insert(QStringLiteral("readerName"), containerReaderName(container));
             row.insert(QStringLiteral("privateKeyAvailable"), privateKeyAvailable);
             row.insert(QStringLiteral("keySpec"), keySpec);
             row.insert(QStringLiteral("exactDuplicateCount"), 1);
@@ -644,17 +676,50 @@ int CryptoProSession::runScanHelper()
 
 void CryptoProSession::refresh()
 {
-    if (m_busy)
+    if (!m_enabled)
         return;
+    if (m_busy) {
+        m_refreshPending = true;
+        return;
+    }
     m_busy = true;
     m_status = QStringLiteral("Чтение КриптоПро CSP…");
     m_helperOutput.clear();
+    m_refreshPending = false;
     emit changed();
 
     m_helper.setProgram(QCoreApplication::applicationFilePath());
     m_helper.setArguments(QStringList(QStringLiteral("--cryptopro-scan-helper")));
     m_helper.start(QIODevice::ReadOnly);
     m_helperTimer.start(HelperTimeoutMs);
+}
+
+void CryptoProSession::setEnabled(bool enabled)
+{
+    if (m_enabled == enabled)
+        return;
+    m_enabled = enabled;
+    if (enabled) {
+        emit changed();
+        refresh();
+        return;
+    }
+
+    m_helperTimer.stop();
+    if (m_helper.state() != QProcess::NotRunning) {
+        m_helper.kill();
+        m_helper.waitForFinished(1000);
+    }
+    m_helperOutput.clear();
+    m_available = false;
+    m_busy = false;
+    m_refreshPending = false;
+    m_status = QStringLiteral("КриптоПро CSP выключен в настройках");
+    m_libraryPath.clear();
+    m_providers.clear();
+    m_containers.clear();
+    m_certificates.clear();
+    emit changed();
 }
 
 void CryptoProSession::readHelperOutput()
@@ -674,7 +739,7 @@ void CryptoProSession::finishHelper(int exitCode, QProcess::ExitStatus exitStatu
 {
     readHelperOutput();
     m_helperTimer.stop();
-    if (!m_busy)
+    if (!m_enabled || !m_busy)
         return;
     if (exitStatus != QProcess::NormalExit || exitCode != 0) {
         failRefresh(QStringLiteral("КриптоПро CSP завершил чтение с ошибкой"));
@@ -704,11 +769,15 @@ void CryptoProSession::finishHelper(int exitCode, QProcess::ExitStatus exitStatu
     m_status = result.value(QStringLiteral("status")).toString();
     m_busy = false;
     emit changed();
+    if (m_refreshPending) {
+        m_refreshPending = false;
+        QTimer::singleShot(0, this, &CryptoProSession::refresh);
+    }
 }
 
 void CryptoProSession::helperError(QProcess::ProcessError error)
 {
-    if (!m_busy || error == QProcess::Crashed)
+    if (!m_enabled || !m_busy || error == QProcess::Crashed)
         return;
     failRefresh(error == QProcess::FailedToStart
                 ? QStringLiteral("Не удалось запустить безопасное чтение КриптоПро CSP")
@@ -717,7 +786,7 @@ void CryptoProSession::helperError(QProcess::ProcessError error)
 
 void CryptoProSession::helperTimedOut()
 {
-    if (!m_busy)
+    if (!m_enabled || !m_busy)
         return;
     m_helper.kill();
     failRefresh(QStringLiteral("КриптоПро CSP не ответил за 30 секунд"));

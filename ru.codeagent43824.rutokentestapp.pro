@@ -8,6 +8,7 @@ QT += dbus concurrent network multimedia
 PKGCONFIG += \
 
 SOURCES += \
+    src/appsettings.cpp \
     src/main.cpp \
     src/cryptoprosession.cpp \
     src/diagnostics.cpp \
@@ -23,6 +24,7 @@ SOURCES += \
     src/tokenwatcher.cpp \
 
 HEADERS += \
+    src/appsettings.h \
     src/diagnostics.h \
     src/cryptopro_capi_minimal.h \
     src/cryptoprosession.h \

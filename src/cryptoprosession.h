@@ -10,6 +10,7 @@
 class CryptoProSession : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY changed)
     Q_PROPERTY(bool available READ available NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
@@ -24,6 +25,7 @@ public:
 
     static int runScanHelper();
 
+    bool enabled() const { return m_enabled; }
     bool available() const { return m_available; }
     bool busy() const { return m_busy; }
     QString status() const { return m_status; }
@@ -32,6 +34,7 @@ public:
     QVariantList containers() const { return m_containers; }
     QVariantList certificates() const { return m_certificates; }
 
+    void setEnabled(bool enabled);
     Q_INVOKABLE void refresh();
 
 signals:
@@ -47,8 +50,10 @@ private:
     QProcess m_helper;
     QTimer m_helperTimer;
     QByteArray m_helperOutput;
+    bool m_enabled = false;
     bool m_available = false;
     bool m_busy = false;
+    bool m_refreshPending = false;
     QString m_status;
     QString m_libraryPath;
     QVariantList m_providers;

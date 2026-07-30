@@ -36,8 +36,8 @@
         <translation>Диагностика</translation>
     </message>
     <message>
-        <source>CryptoPro CSP</source>
-        <translation>КриптоПро CSP</translation>
+        <source>Settings</source>
+        <translation>Настройки</translation>
     </message>
     <message>
         <source>Refresh</source>
@@ -115,6 +115,10 @@
         <translation>Финализация PKCS#11</translation>
     </message>
     <message>
+        <source>CryptoPro CSP library</source>
+        <translation>Библиотека КриптоПро CSP</translation>
+    </message>
+    <message>
         <source>Connected Rutoken devices</source>
         <translation>Подключённые устройства Рутокен</translation>
     </message>
@@ -140,6 +144,10 @@
     <message>
         <source>Certificate — via PKCS#11</source>
         <translation>Сертификат — через PKCS#11</translation>
+    </message>
+    <message>
+        <source>Certificate — via CryptoPro CSP</source>
+        <translation>Сертификат — через КриптоПро CSP</translation>
     </message>
     <message>
         <source>Common Name</source>
@@ -1085,6 +1093,29 @@
     <message>
         <source>Pull down for administration: change or unblock PINs, change the label.</source>
         <translation>Потяните шторку вниз для администрирования: смена/разблокировка PIN-кодов, смена метки.</translation>
+    </message>
+    <message>
+        <source>CryptoPro CSP</source>
+        <translation>КриптоПро CSP</translation>
+    </message>
+    <message>
+        <source>private key</source>
+        <translation>закрытый ключ</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsPage</name>
+    <message>
+        <source>Settings</source>
+        <translation>Настройки</translation>
+    </message>
+    <message>
+        <source>Use CryptoPro CSP</source>
+        <translation>Использовать КриптоПро CSP</translation>
+    </message>
+    <message>
+        <source>When disabled, CryptoPro libraries are not loaded</source>
+        <translation>Когда настройка выключена, библиотеки КриптоПро не загружаются</translation>
     </message>
 </context>
 <context>

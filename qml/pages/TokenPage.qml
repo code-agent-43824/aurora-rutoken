@@ -48,10 +48,107 @@ Page {
         return page.tokenLabel
     }
 
-    // Объекты: USB — живые из сессии, NFC — снимок.
-    property var objectsModel: page.connection === "NFC" ? tokenSession.nfcObjects
-                                                          : tokenSession.objects
+    // PKCS#11 — основной источник. При opt-in КриптоПро его сертификаты
+    // добавляются только для этого же считывателя и только если точного DER
+    // среди видимых PKCS#11-объектов нет.
+    property var pkcs11ObjectsModel: page.connection === "NFC"
+                                     ? tokenSession.nfcObjects : tokenSession.objects
+    property var objectsModel: page.mergeObjects(
+                                   page.pkcs11ObjectsModel,
+                                   cryptoProSession.certificates,
+                                   appSettings.cryptoProEnabled,
+                                   page.slotName)
     property int objectCount: page.objectsModel.length
+
+    function normalizedReader(value) {
+        return value ? value.toString().trim().toLowerCase().replace(/\s+/g, " ") : ""
+    }
+
+    function sameReader(left, right) {
+        var a = page.normalizedReader(left)
+        var b = page.normalizedReader(right)
+        if (a.length === 0 || b.length === 0)
+            return false
+        if (a === b)
+            return true
+        // CK_SLOT_INFO у rtPKCS11ECP добавляет к имени PC/SC-ридера номер
+        // слота (" ... 00"), которого нет в CAPI FQCN.
+        if (a.indexOf(b + " ") === 0 && /^[0-9]{2}$/.test(a.slice(b.length + 1)))
+            return true
+        return b.indexOf(a + " ") === 0
+                && /^[0-9]{2}$/.test(b.slice(a.length + 1))
+    }
+
+    function cryptoProObject(certificate) {
+        var linkedKeys = []
+        if (certificate.privateKeyAvailable) {
+            linkedKeys.push({
+                keyClass: qsTr("private key"),
+                keyType: certificate.algorithm ? certificate.algorithm : "",
+                label: certificate.container ? certificate.container : "",
+                source: qsTr("CryptoPro CSP")
+            })
+        }
+        return {
+            kind: "certificate",
+            commonName: certificate.commonName ? certificate.commonName : "",
+            issuer: certificate.issuer ? certificate.issuer : "",
+            expiry: certificate.notAfter ? certificate.notAfter : "",
+            notAfterMs: certificate.notAfterMs ? certificate.notAfterMs : 0,
+            expired: certificate.expired ? true : false,
+            parsed: (certificate.commonName && certificate.commonName.length > 0)
+                    || (certificate.issuer && certificate.issuer.length > 0),
+            idHex: "",
+            idText: certificate.serial ? certificate.serial : "",
+            label: "",
+            derB64: certificate.derB64 ? certificate.derB64 : "",
+            source: qsTr("CryptoPro CSP"),
+            keysKnown: true,
+            hasKey: certificate.privateKeyAvailable ? true : false,
+            keys: linkedKeys,
+            cryptoPro: true
+        }
+    }
+
+    function mergeObjects(pkcs11Objects, cryptoProCertificates, enabled, readerName) {
+        var active = []
+        var keys = []
+        var expired = []
+        var visibleDer = {}
+        var i
+        for (i = 0; i < pkcs11Objects.length; ++i) {
+            var object = pkcs11Objects[i]
+            if (object.kind === "certificate") {
+                if (object.derB64 && object.derB64.length > 0)
+                    visibleDer[object.derB64] = true
+                if (object.expired)
+                    expired.push(object)
+                else
+                    active.push(object)
+            } else {
+                keys.push(object)
+            }
+        }
+
+        if (enabled) {
+            var wantedReader = page.normalizedReader(readerName)
+            for (i = 0; i < cryptoProCertificates.length; ++i) {
+                var certificate = cryptoProCertificates[i]
+                var der = certificate.derB64 ? certificate.derB64 : ""
+                if (wantedReader.length === 0
+                        || !page.sameReader(certificate.readerName, wantedReader)
+                        || der.length === 0 || visibleDer[der])
+                    continue
+                visibleDer[der] = true
+                var mapped = page.cryptoProObject(certificate)
+                if (mapped.expired)
+                    expired.push(mapped)
+                else
+                    active.push(mapped)
+            }
+        }
+        return active.concat(keys).concat(expired)
+    }
 
     function certTitle(o) {
         if (o.parsed && o.commonName && o.commonName.length > 0)
@@ -394,6 +491,7 @@ Page {
                                     notAfterMs: modelData.notAfterMs ? modelData.notAfterMs : 0,
                                     hasKey: modelData.hasKey ? modelData.hasKey : false,
                                     keysKnown: modelData.keysKnown ? modelData.keysKnown : false,
+                                    cryptoPro: modelData.cryptoPro ? true : false,
                                     slotId: page.slotId,
                                     connection: page.connection
                                 })
@@ -406,7 +504,10 @@ Page {
                                     connection: page.connection
                                 })
                         }
-                        onPressAndHold: page.confirmDelete(modelData)
+                        onPressAndHold: {
+                            if (!modelData.cryptoPro)
+                                page.confirmDelete(modelData)
+                        }
 
                         Column {
                             id: card

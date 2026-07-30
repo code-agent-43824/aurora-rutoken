@@ -10,6 +10,12 @@ CRYPTOPRO_SOURCE="src/cryptoprosession.cpp"
 CRYPTOPRO_HEADER="src/cryptopro_capi_minimal.h"
 CRYPTOPRO_PAGE="qml/pages/CryptoProPage.qml"
 CRYPTOPRO_CERT_PAGE="qml/pages/CryptoProCertificatePage.qml"
+SETTINGS_PAGE="qml/pages/SettingsPage.qml"
+TOKENS_PAGE="qml/pages/TokensPage.qml"
+TOKEN_WATCHER="src/tokenwatcher.cpp"
+PKCS11_HEADER="src/pkcs11_minimal.h"
+APP_SETTINGS="src/appsettings.cpp"
+DIAGNOSTICS_SOURCE="src/diagnostics.cpp"
 DESKTOP="ru.codeagent43824.rutokentestapp.desktop"
 SPEC="rpm/ru.codeagent43824.rutokentestapp.spec"
 
@@ -63,11 +69,39 @@ grep -Fq 'const int MaxCertificates = 4096;' "$CRYPTOPRO_SOURCE"
 grep -Fq 'const int MaxHelperOutputBytes = 4 * 1024 * 1024;' "$CRYPTOPRO_SOURCE"
 grep -Fq 'physicalContainerKey' "$CRYPTOPRO_SOURCE"
 grep -Fq 'logicalContainerByKey' "$CRYPTOPRO_SOURCE"
+grep -Fq 'readerNameFromFqcn' "$CRYPTOPRO_SOURCE"
+grep -Fq 'row.insert(QStringLiteral("derB64")' "$CRYPTOPRO_SOURCE"
 grep -Fq 'status === PageStatus.Active' "$CRYPTOPRO_PAGE"
 if grep -Fq 'cryptoProSession.refresh()' "$TOKEN_PAGE"; then
     echo "CryptoPro scan must start only after its page becomes active" >&2
     exit 1
 fi
+
+grep -Fq 'C_WaitForSlotEvent(0, &slot, nullptr)' "$TOKEN_WATCHER"
+grep -Fq 'QStringLiteral("--pkcs11-slot-event-helper")' "$TOKEN_WATCHER"
+grep -Fq 'RUTOKEN_SLOT_EVENT_READY' "$TOKEN_WATCHER"
+grep -Fq 'CK_C_WaitForSlotEvent C_WaitForSlotEvent; // 68' "$PKCS11_HEADER"
+if grep -Eq 'kPollInterval|setInterval\(|QTimer::timeout' "$TOKEN_WATCHER"; then
+    echo "TokenWatcher must use C_WaitForSlotEvent, not timer polling" >&2
+    exit 1
+fi
+
+grep -Fq 'features/cryptoProEnabled' "$APP_SETTINGS"
+grep -Fq 'false).toBool()' "$APP_SETTINGS"
+grep -Fq 'text: qsTr("Use CryptoPro CSP")' "$SETTINGS_PAGE"
+grep -Fq 'checked: appSettings.cryptoProEnabled' "$SETTINGS_PAGE"
+grep -Fq 'text: qsTr("Settings")' "$TOKENS_PAGE"
+if grep -Fq 'pageStack.push(Qt.resolvedUrl("CryptoProPage.qml"))' "$TOKENS_PAGE"; then
+    echo "The start menu must open Settings, not a separate CryptoPro page" >&2
+    exit 1
+fi
+grep -Fq 'if (!m_enabled)' "$CRYPTOPRO_SOURCE"
+grep -Fq 'probeCryptoProLibrary' "$DIAGNOSTICS_SOURCE"
+grep -Fq 'if (includeCryptoPro)' "$DIAGNOSTICS_SOURCE"
+grep -Fq 'page.mergeObjects(' "$TOKEN_PAGE"
+grep -Fq 'visibleDer[object.derB64] = true' "$TOKEN_PAGE"
+grep -Fq '!page.sameReader(certificate.readerName, wantedReader)' "$TOKEN_PAGE"
+grep -Fq 'if (!modelData.cryptoPro)' "$TOKEN_PAGE"
 
 if grep -Eiq 'pkcs11|certmgr|cryptcp|/bin/(sh|bash)|C_Set|CertSet|CryptGen|CryptDestroy' \
         "$CRYPTOPRO_SOURCE" "$CRYPTOPRO_HEADER"; then

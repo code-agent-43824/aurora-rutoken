@@ -2,17 +2,16 @@
 #define TOKENWATCHER_H
 
 #include <QtCore/QObject>
+#include <QtCore/QFuture>
 #include <QtCore/QLibrary>
+#include <QtCore/QProcess>
 #include <QtCore/QString>
 #include <QtCore/QVariantList>
 
-class QTimer;
-
-// Живое наблюдение за подключёнными токенами Рутокен (USB и NFC).
-// Библиотека PKCS#11 загружается один раз; каждый опрос в рабочем потоке
-// выполняет свежий C_Initialize → перечисление → C_Finalize, поэтому
-// подхватывает и появление нового USB-ридера, и появление/исчезновение
-// NFC-карты. UI-свойство tokens обновляется только при изменении набора.
+// Живое наблюдение за подключёнными Рутокенами (USB и NFC).
+// Отдельный helper-процесс блокируется в C_WaitForSlotEvent; основной процесс
+// перечисляет устройства только после реального события, при старте или по
+// ручному refresh. Поэтому фонового опроса и мигания устройства нет.
 class TokenWatcher : public QObject
 {
     Q_OBJECT
@@ -24,6 +23,8 @@ public:
     explicit TokenWatcher(QObject *parent = nullptr);
     ~TokenWatcher() override;
 
+    static int runSlotEventHelper();
+
     QVariantList tokens() const { return m_tokens; }
     QString status() const { return m_status; }
     bool libraryReady() const { return m_getFunctionList != nullptr; }
@@ -34,20 +35,29 @@ public:
 signals:
     void tokensChanged();
     void statusChanged();
-    void polled(const QVariantList &cards, const QString &error); // из рабочего потока
+    void snapshotReady(const QVariantList &cards, const QString &error);
 
 private:
-    void doPoll();
-    void onPolled(const QVariantList &cards, const QString &error);
+    void startEventHelper();
+    void readEventHelperOutput();
+    void eventHelperFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void eventHelperError(QProcess::ProcessError error);
+    void doSnapshot();
+    void onSnapshotReady(const QVariantList &cards, const QString &error);
     void setStatus(const QString &status);
 
     QLibrary m_library;
     QFunctionPointer m_getFunctionList = nullptr;
-    QTimer *m_timer = nullptr;
+    QProcess m_eventHelper;
+    QFuture<void> m_snapshotFuture;
+    QByteArray m_eventHelperOutput;
     QVariantList m_tokens;
     QString m_status;
     QString m_signature;
-    bool m_polling = false;
+    bool m_snapshotRunning = false;
+    bool m_snapshotPending = false;
+    bool m_eventHelperReady = false;
+    bool m_stopping = false;
 };
 
 #endif // TOKENWATCHER_H

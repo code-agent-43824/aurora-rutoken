@@ -3,6 +3,7 @@
 
 #include <QtConcurrent/QtConcurrent>
 #include <QtCore/QLibrary>
+#include <QtCore/QFileInfo>
 #include <QtCore/QVector>
 #include <QtDBus/QDBusConnection>
 #include <QtDBus/QDBusConnectionInterface>
@@ -90,7 +91,17 @@ Diagnostics::Diagnostics(QObject *parent)
 {
     // Результаты PC/SC и PKCS#11 приходят из рабочего потока; соединение auto-queued.
     connect(this, &Diagnostics::backendRowsReady, this, [this](const QVariantList &backendRows) {
-        m_rows = m_nfcRows + backendRows;
+        QVariantList accepted = backendRows;
+        if (!m_cryptoProEnabled) {
+            QVariantList filtered;
+            for (const QVariant &value : accepted) {
+                if (value.toMap().value(QStringLiteral("id")).toString()
+                        != QStringLiteral("cryptoprolib"))
+                    filtered.append(value);
+            }
+            accepted = filtered;
+        }
+        m_rows = m_nfcRows + accepted;
         m_running = false;
         emit rowsChanged();
         emit runningChanged();
@@ -105,7 +116,30 @@ void Diagnostics::refresh()
     emit runningChanged();
 
     m_nfcRows = probeNfc(); // быстрые D-Bus-проверки — в главном потоке
-    QtConcurrent::run(this, &Diagnostics::probeBackends);
+    const bool includeCryptoPro = m_cryptoProEnabled;
+    QtConcurrent::run([this, includeCryptoPro]() {
+        probeBackends(includeCryptoPro);
+    });
+}
+
+void Diagnostics::setCryptoProEnabled(bool enabled)
+{
+    if (m_cryptoProEnabled == enabled)
+        return;
+    m_cryptoProEnabled = enabled;
+    if (!enabled) {
+        QVariantList filtered;
+        for (const QVariant &value : m_rows) {
+            if (value.toMap().value(QStringLiteral("id")).toString()
+                    != QStringLiteral("cryptoprolib"))
+                filtered.append(value);
+        }
+        if (filtered.size() != m_rows.size()) {
+            m_rows = filtered;
+            emit rowsChanged();
+        }
+    }
+    emit cryptoProEnabledChanged();
 }
 
 QVariantList Diagnostics::probeNfc() const
@@ -164,9 +198,26 @@ QVariantList Diagnostics::probeNfc() const
     return rows;
 }
 
-void Diagnostics::probeBackends()
+void Diagnostics::probeBackends(bool includeCryptoPro)
 {
-    emit backendRowsReady(probePcsc() + probePkcs11());
+    QVariantList rows = probePcsc() + probePkcs11();
+    if (includeCryptoPro)
+        rows += probeCryptoProLibrary();
+    emit backendRowsReady(rows);
+}
+
+QVariantList Diagnostics::probeCryptoProLibrary() const
+{
+    QVariantList rows;
+    const QString path = QStringLiteral(
+                "/usr/lib/3rdparty/ru.cryptopro.csp/lib/libcapi20.so");
+    const QFileInfo info(path);
+    rows.append(makeRow(QStringLiteral("cryptoprolib"),
+                        info.isFile() && info.isReadable() ? 1 : 0,
+                        info.isFile() && info.isReadable()
+                        ? path
+                        : QStringLiteral("libcapi20.so не найдена: ") + path));
+    return rows;
 }
 
 QVariantList Diagnostics::probePcsc() const

@@ -41,12 +41,18 @@ if ! grep -aFq -- '--cryptopro-scan-helper' "$APP_BINARY" \
     echo "Bounded CryptoPro scan helper mode is missing from the application" >&2
     exit 1
 fi
+if ! grep -aFq -- '--pkcs11-slot-event-helper' "$APP_BINARY" \
+        || ! grep -aFq 'RUTOKEN_SLOT_EVENT_READY' "$APP_BINARY"; then
+    echo "PKCS#11 C_WaitForSlotEvent helper mode is missing from the application" >&2
+    exit 1
+fi
 
 # v1.1: launcher перехода на CMS может скомпилироваться, даже если новый QML
 # случайно не попал в RPM. Проверяем оба runtime-экрана внутри каждого пакета.
 for QML_PAGE in \
     SignFilePage.qml \
     SignDataFilePickerPage.qml \
+    SettingsPage.qml \
     CryptoProPage.qml \
     CryptoProCertificatePage.qml; do
     QML_PATH="$VERIFY_DIR/usr/share/$APP_ID/qml/pages/$QML_PAGE"
