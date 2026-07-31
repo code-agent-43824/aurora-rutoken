@@ -111,13 +111,41 @@ grep -Fq 'loadedCryptoProLibraries(library.fileName())' "$CRYPTOPRO_SOURCE"
 grep -Fq 'diagnostics.setCryptoProLibraries(cryptoProSession.loadedLibraries())' src/main.cpp
 grep -Fq 'if (!modelData.cryptoPro)' "$TOKEN_PAGE"
 
-# Read-only инвариант перечисляет фактически изменяющие операции. CryptDestroyKey
-# намеренно разрешён: это освобождение дескриптора ключа в памяти, парное к
-# CryptGetUserKey, оно ничего не удаляет на носителе. Удаление контейнера в
-# CryptoAPI выполняется флагом CRYPT_DELETEKEYSET и здесь запрещено.
-if grep -Eiq 'pkcs11|certmgr|cryptcp|/bin/(sh|bash)|C_Set|CertSet|CertAdd|CertDelete|CryptGen|CryptImportKey|CryptSetProvParam|CryptSetKeyParam|DELETEKEYSET|DeleteKeyset' \
+# Инвариант адаптера КриптоПро. С v1.3 разрешена запись (создание контейнера и
+# ключевой пары), поэтому запрет точечный: остаются запрещёнными сторонние
+# утилиты и shell, смешивание с PKCS#11, запись в хранилище сертификатов и
+# импорт чужого ключа. CryptDestroyKey — освобождение дескриптора в памяти.
+if grep -Eiq 'pkcs11|certmgr|cryptcp|/bin/(sh|bash)|C_Set|CertSet|CertAdd|CertDelete|CryptImportKey|CryptSetKeyParam' \
         "$CRYPTOPRO_SOURCE" "$CRYPTOPRO_HEADER"; then
-    echo "CryptoPro v1.2 adapter must stay internal-helper, CapiLite-only and read-only" >&2
+    echo "CryptoPro adapter must stay internal-helper, CapiLite-only, without store writes" >&2
+    exit 1
+fi
+
+# --- v1.3: запись через КриптоПро ---
+# Запись живёт в отдельном одноразовом helper-режиме.
+grep -Fq 'QStringLiteral("--cryptopro-create-helper")' "$CRYPTOPRO_SOURCE"
+grep -Fq 'CryptoProSession::runCreateHelper()' src/main.cpp
+# PIN-код передаётся ТОЛЬКО через stdin: аргументы процесса видны в системе.
+grep -Fq 'm_createHelper.setArguments(QStringList(QStringLiteral("--cryptopro-create-helper")))' \
+    "$CRYPTOPRO_SOURCE"
+grep -Fq 'm_createHelper.write(payload);' "$CRYPTOPRO_SOURCE"
+if grep -Eq 'setArguments\(.*(pin|Pin)' "$CRYPTOPRO_SOURCE"; then
+    echo "The PIN must never be passed as a process argument" >&2
+    exit 1
+fi
+# Ключевая пара создаётся неэкспортируемой (без CRYPT_EXPORTABLE).
+grep -Fq 'api.genKey(provider, capi::AtSignature, 0, &key)' "$CRYPTOPRO_SOURCE"
+if grep -Fq 'CryptExportable' "$CRYPTOPRO_SOURCE"; then
+    echo "Generated CryptoPro keys must not be exportable" >&2
+    exit 1
+fi
+# Удаление контейнера разрешено ТОЛЬКО как откат собственного создания и живёт
+# в одной выделенной функции; создание — тоже ровно в одном месте.
+grep -Fq 'bool rollbackCreatedContainer(' "$CRYPTOPRO_SOURCE"
+DELETE_USES=$(grep -c 'capi::CryptDeleteKeyset' "$CRYPTOPRO_SOURCE")
+NEW_USES=$(grep -c 'capi::CryptNewKeyset' "$CRYPTOPRO_SOURCE")
+if [ "$DELETE_USES" -ne 1 ] || [ "$NEW_USES" -ne 1 ]; then
+    echo "Container creation and rollback deletion must each exist in exactly one place" >&2
     exit 1
 fi
 

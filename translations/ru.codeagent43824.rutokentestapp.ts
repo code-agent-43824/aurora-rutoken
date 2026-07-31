@@ -975,6 +975,10 @@
 <context>
     <name>TokenPage</name>
     <message>
+        <source>New CryptoPro container</source>
+        <translation>New CryptoPro container</translation>
+    </message>
+    <message>
         <source>PKCS#11 and CryptoPro CSP</source>
         <translation>PKCS#11 and CryptoPro CSP</translation>
     </message>
@@ -1184,5 +1188,52 @@
     <message><source>Different certificates linked to this container: %1</source><translation>Different certificates linked to this container: %1</translation></message>
     <message><source>The same DER certificate has conflicting provider or container metadata</source><translation>The same DER certificate has conflicting provider or container metadata</translation></message>
     <message><source>This screen does not change certificates or containers</source><translation>This screen does not change certificates or containers</translation></message>
+</context>
+<context>
+    <name>CryptoProContainerPage</name>
+    <message>
+        <source>Algorithm</source>
+        <translation>Algorithm</translation>
+    </message>
+    <message>
+        <source>Container name</source>
+        <translation>Container name</translation>
+    </message>
+    <message>
+        <source>Create</source>
+        <translation>Create</translation>
+    </message>
+    <message>
+        <source>Create container</source>
+        <translation>Create container</translation>
+    </message>
+    <message>
+        <source>Creating…</source>
+        <translation>Creating…</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2012 (256)</source>
+        <translation>GOST R 34.10-2012 (256)</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2012 (512)</source>
+        <translation>GOST R 34.10-2012 (512)</translation>
+    </message>
+    <message>
+        <source>New CryptoPro container</source>
+        <translation>New CryptoPro container</translation>
+    </message>
+    <message>
+        <source>Rutoken</source>
+        <translation>Rutoken</translation>
+    </message>
+    <message>
+        <source>The private key is generated inside the device and is not exportable. If the key pair cannot be created, the container is removed automatically.</source>
+        <translation>The private key is generated inside the device and is not exportable. If the key pair cannot be created, the container is removed automatically.</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>User PIN</translation>
+    </message>
 </context>
 </TS>

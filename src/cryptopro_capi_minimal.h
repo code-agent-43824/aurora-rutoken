@@ -57,6 +57,10 @@ typedef Bool (*CryptDestroyKeyFn)(CryptKey);
 // Экспорт ОТКРЫТОГО ключа контейнера: публичные данные, нужны только для
 // сопоставления контейнера с сертификатом по открытому ключу.
 typedef Bool (*CryptExportKeyFn)(CryptKey, CryptKey, Dword, Dword, Byte *, Dword *);
+// Запись (v1.3): создание контейнера и генерация ключевой пары внутри него.
+// Используются ТОЛЬКО в отдельном helper-режиме записи.
+typedef Bool (*CryptGenKeyFn)(CryptProv, Dword, Dword, CryptKey *);
+typedef Bool (*CryptSetProvParamFn)(CryptProv, Dword, const Byte *, Dword);
 typedef CertStore (*CertOpenSystemStoreAFn)(CryptProv, const char *);
 typedef const CertContext *(*CertEnumCertificatesInStoreFn)(
         CertStore, const CertContext *);
@@ -83,6 +87,13 @@ static const Dword AtKeyExchange = 1;
 static const Dword AtSignature = 2;
 static const Dword KpCertificate = 26;
 static const Dword PublicKeyBlob = 6;
+// Флаги CryptAcquireContext для записи: создание нового контейнера и удаление
+// контейнера (последнее допустимо только как откат собственного создания).
+static const Dword CryptNewKeyset = 0x00000008U;
+static const Dword CryptDeleteKeyset = 0x00000010U;
+// PIN-код контейнера передаём сами, чтобы CSP не поднимал системный диалог.
+static const Dword PpKeyExchangePin = 32;
+static const Dword PpSignaturePin = 33;
 // Версия провайдера (старший/младший байт) — для строки версии КриптоПро CSP.
 static const Dword PpVersion = 5;
 

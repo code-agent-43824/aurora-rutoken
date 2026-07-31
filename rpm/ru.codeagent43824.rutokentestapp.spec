@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    1.2.0
-Release:    10
+Version:    1.3.0
+Release:    1
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,20 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Fri Jul 31 2026 Claude <noreply@anthropic.com> - 1.3.0-1
+- Start v1.3: create a CryptoPro key container on a chosen Rutoken over USB and
+  generate a non-exportable GOST R 34.10-2012 (256/512) key pair inside it. This
+  is the first write path through CryptoPro, so it is isolated: the write runs in
+  its own one-shot helper mode of the same binary, the PIN is passed through the
+  helper's stdin and never as a process argument, and the key is generated
+  without CRYPT_EXPORTABLE. If the key pair cannot be created after the container
+  already exists, only that container is rolled back; when the rollback itself
+  fails the app says so explicitly instead of leaving a silent leftover. Reachable
+  from the Objects pull-down when CryptoPro is enabled. The read-only invariant is
+  reworked accordingly: third-party tools, shell, PKCS#11 mixing, certificate
+  store writes and key import stay forbidden, and container creation and rollback
+  deletion must each exist in exactly one place.
+
 * Thu Jul 30 2026 Claude <noreply@anthropic.com> - 1.2.0-10
 - Build the certificate screen header from the actual object source, so a
   certificate found through both backends is marked "via PKCS#11 and CryptoPro

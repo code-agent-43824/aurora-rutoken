@@ -27,6 +27,7 @@ const int MaxCertificates = 4096;
 const capi::Dword MaxCapiTextBytes = 64U * 1024U;
 const capi::Dword MaxCertificateBytes = 64U * 1024U;
 const int MaxHelperOutputBytes = 4 * 1024 * 1024;
+const int MaxHelperInputBytes = 64 * 1024;
 const int HelperTimeoutMs = 30000;
 const char HelperMarker[] = "RUTOKEN_CRYPTOPRO_JSON:";
 
@@ -41,6 +42,9 @@ struct Api
     capi::CryptGetKeyParamFn getKeyParam = nullptr;
     capi::CryptDestroyKeyFn destroyKey = nullptr;
     capi::CryptExportKeyFn exportKey = nullptr;
+    // Только для helper-режима записи (v1.3).
+    capi::CryptGenKeyFn genKey = nullptr;
+    capi::CryptSetProvParamFn setProvParam = nullptr;
     capi::CertOpenSystemStoreAFn openSystemStore = nullptr;
     capi::CertEnumCertificatesInStoreFn enumCertificates = nullptr;
     capi::CertGetCertificateContextPropertyFn getCertificateProperty = nullptr;
@@ -937,7 +941,8 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
     return result;
 }
 
-QVariantMap executeScan()
+// Загружает CapiLite и разрешает нужные символы. Общая часть чтения и записи.
+bool loadCapi(QLibrary &library, Api &api, QString &libraryPath)
 {
     const QStringList candidates = {
         QStringLiteral("/usr/lib/3rdparty/ru.cryptopro.csp/lib/libcapi20.so"),
@@ -985,19 +990,9 @@ QVariantMap executeScan()
         library.unload();
     }
 
-    if (functions.size() != 10) {
-        QVariantMap result;
-        result.insert(QStringLiteral("available"), false);
-        result.insert(QStringLiteral("status"),
-                      QStringLiteral("КриптоПро CSP не установлен "
-                                     "(libcapi20.so не найдена)"));
-        result.insert(QStringLiteral("providers"), QVariantList());
-        result.insert(QStringLiteral("containers"), QVariantList());
-        result.insert(QStringLiteral("certificates"), QVariantList());
-        return result;
-    }
+    if (functions.size() != 10)
+        return false;
 
-    Api api;
     api.enumProviders = reinterpret_cast<capi::CryptEnumProvidersAFn>(functions.at(0));
     api.acquireContext = reinterpret_cast<capi::CryptAcquireContextAFn>(functions.at(1));
     api.releaseContext = reinterpret_cast<capi::CryptReleaseContextFn>(functions.at(2));
@@ -1024,6 +1019,173 @@ QVariantMap executeScan()
                 library.resolve("CryptDestroyKey"));
     api.exportKey = reinterpret_cast<capi::CryptExportKeyFn>(
                 library.resolve("CryptExportKey"));
+    // Функции записи разрешаются здесь, но вызываются только из режима записи.
+    api.genKey = reinterpret_cast<capi::CryptGenKeyFn>(
+                library.resolve("CryptGenKey"));
+    api.setProvParam = reinterpret_cast<capi::CryptSetProvParamFn>(
+                library.resolve("CryptSetProvParam"));
+    return true;
+}
+
+
+// ---------------------------------------------------------------------------
+// Запись (v1.3). Выполняется ТОЛЬКО в отдельном helper-режиме: падение чужого
+// провайдера не должно ронять интерфейс, а PIN-код не должен попадать в
+// аргументы командной строки — он приходит helper'у через stdin.
+// ---------------------------------------------------------------------------
+
+QString providerNameForType(const Api &api, capi::Dword type)
+{
+    for (capi::Dword index = 0; index < static_cast<capi::Dword>(MaxProviders); ++index) {
+        capi::Dword found = 0;
+        capi::Dword size = 0;
+        if (!api.enumProviders(index, nullptr, 0, &found, nullptr, &size))
+            break;
+        if (found != type || size == 0 || size > MaxCapiTextBytes)
+            continue;
+        QByteArray name(static_cast<int>(size), '\0');
+        if (!api.enumProviders(index, nullptr, 0, &found, name.data(), &size))
+            continue;
+        return fromCapiText(name.constData(), name.size());
+    }
+    return QString();
+}
+
+// ЕДИНСТВЕННОЕ место удаления контейнера во всём приложении: откат контейнера,
+// созданного этой же операцией. Ничего чужого этим путём удалить нельзя —
+// имя приходит только из только что выполненного создания.
+bool rollbackCreatedContainer(const Api &api, const QByteArray &fqcn,
+                              const QByteArray &provider, capi::Dword type)
+{
+    capi::CryptProv provisional = 0;
+    return api.acquireContext(&provisional, fqcn.constData(),
+                              provider.isEmpty() ? nullptr : provider.constData(),
+                              type, capi::CryptDeleteKeyset | capi::CryptSilent) != 0;
+}
+
+QVariantMap executeCreate(const QVariantMap &request)
+{
+    QVariantMap result;
+    result.insert(QStringLiteral("ok"), false);
+    result.insert(QStringLiteral("rolledBack"), false);
+
+    const QString reader = request.value(QStringLiteral("reader")).toString().trimmed();
+    const QString name = request.value(QStringLiteral("container")).toString().trimmed();
+    const capi::Dword type = static_cast<capi::Dword>(
+                request.value(QStringLiteral("providerType")).toUInt());
+    QString pin = request.value(QStringLiteral("pin")).toString();
+
+    if (reader.isEmpty() || name.isEmpty()) {
+        result.insert(QStringLiteral("message"),
+                      QStringLiteral("не указаны считыватель или имя контейнера"));
+        return result;
+    }
+    // Имя контейнера не должно уводить FQCN на другой считыватель.
+    if (name.contains(QLatin1Char('\\')) || name.contains(QLatin1Char('/'))) {
+        result.insert(QStringLiteral("message"),
+                      QStringLiteral("имя контейнера не должно содержать разделителей пути"));
+        return result;
+    }
+    if (!isGostProvider(type)) {
+        result.insert(QStringLiteral("message"),
+                      QStringLiteral("неизвестный тип провайдера"));
+        return result;
+    }
+
+    QLibrary library;
+    Api api;
+    QString libraryPath;
+    if (!loadCapi(library, api, libraryPath)) {
+        result.insert(QStringLiteral("message"),
+                      QStringLiteral("КриптоПро CSP не установлен "
+                                     "(libcapi20.so не найдена)"));
+        return result;
+    }
+    if (!api.genKey || !api.setProvParam) {
+        result.insert(QStringLiteral("message"),
+                      QStringLiteral("установленный КриптоПро CSP не предоставляет "
+                                     "функций создания ключей"));
+        return result;
+    }
+
+    const QString providerName = providerNameForType(api, type);
+    if (providerName.isEmpty()) {
+        result.insert(QStringLiteral("message"),
+                      QStringLiteral("не найден провайдер %1").arg(providerAlgorithm(type)));
+        return result;
+    }
+
+    const QString fqcn = QStringLiteral("\\\\.\\%1\\%2").arg(reader, name);
+    const QByteArray fqcnBytes = toCapiText(fqcn);
+    const QByteArray providerBytes = toCapiText(providerName);
+    result.insert(QStringLiteral("container"), fqcn);
+
+    capi::CryptProv provider = 0;
+    if (!api.acquireContext(&provider, fqcnBytes.constData(), providerBytes.constData(),
+                            type, capi::CryptNewKeyset | capi::CryptSilent)) {
+        result.insert(QStringLiteral("message"),
+                      QStringLiteral("не удалось создать контейнер (возможно, имя занято "
+                                     "или устройство недоступно)"));
+        return result;
+    }
+
+    // Контейнер уже существует: любая ошибка ниже требует отката.
+    QString message;
+    bool ok = false;
+    QByteArray pinBytes = toCapiText(pin);
+    if (!pinBytes.isEmpty()) {
+        const capi::Byte *raw = reinterpret_cast<const capi::Byte *>(pinBytes.constData());
+        api.setProvParam(provider, capi::PpSignaturePin, raw, 0);
+        api.setProvParam(provider, capi::PpKeyExchangePin, raw, 0);
+    }
+    capi::CryptKey key = 0;
+    // Без CRYPT_EXPORTABLE: закрытый ключ остаётся неэкспортируемым.
+    if (api.genKey(provider, capi::AtSignature, 0, &key)) {
+        ok = true;
+        if (api.destroyKey)
+            api.destroyKey(key);
+    } else {
+        message = QStringLiteral("контейнер создан, но ключевую пару создать не удалось "
+                                 "(возможно, неверный PIN-код или нет места)");
+    }
+    pinBytes.fill('\0');
+    pin.fill(QLatin1Char('*'));
+    api.releaseContext(provider, 0);
+
+    if (!ok) {
+        const bool rolledBack = rollbackCreatedContainer(api, fqcnBytes, providerBytes, type);
+        result.insert(QStringLiteral("rolledBack"), rolledBack);
+        message += rolledBack
+                ? QStringLiteral("; контейнер удалён, устройство осталось без изменений")
+                : QStringLiteral("; откат не удался — на устройстве остался незавершённый "
+                                 "контейнер %1, удалите его вручную").arg(fqcn);
+        result.insert(QStringLiteral("message"), message);
+        return result;
+    }
+
+    result.insert(QStringLiteral("ok"), true);
+    result.insert(QStringLiteral("message"),
+                  QStringLiteral("Контейнер %1 создан, ключевая пара %2 сгенерирована")
+                  .arg(name, providerAlgorithm(type)));
+    return result;
+}
+
+QVariantMap executeScan()
+{
+    QLibrary library;
+    Api api;
+    QString libraryPath;
+    if (!loadCapi(library, api, libraryPath)) {
+        QVariantMap result;
+        result.insert(QStringLiteral("available"), false);
+        result.insert(QStringLiteral("status"),
+                      QStringLiteral("КриптоПро CSP не установлен "
+                                     "(libcapi20.so не найдена)"));
+        result.insert(QStringLiteral("providers"), QVariantList());
+        result.insert(QStringLiteral("containers"), QVariantList());
+        result.insert(QStringLiteral("certificates"), QVariantList());
+        return result;
+    }
 
     QVariantMap result = scan(api, libraryPath);
     result.insert(QStringLiteral("loadedLibraries"),
@@ -1051,6 +1213,28 @@ CryptoProSession::CryptoProSession(QObject *parent)
             this, &CryptoProSession::helperError);
     connect(&m_helperTimer, &QTimer::timeout,
             this, &CryptoProSession::helperTimedOut);
+
+    // Отдельный процесс записи: он не должен мешать чтению и наоборот.
+    m_createHelper.setProcessChannelMode(QProcess::SeparateChannels);
+    m_createTimer.setSingleShot(true);
+    connect(&m_createHelper, &QProcess::readyReadStandardError, this, [this]() {
+        m_createHelper.readAllStandardError();
+    });
+    connect(&m_createHelper, &QProcess::readyReadStandardOutput, this, [this]() {
+        if (m_createOutput.size() < MaxHelperOutputBytes)
+            m_createOutput.append(m_createHelper.readAllStandardOutput());
+    });
+    connect(&m_createHelper,
+            static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+            this, &CryptoProSession::finishCreate);
+    connect(&m_createHelper, &QProcess::errorOccurred, this, [this]() {
+        if (m_createBusy)
+            failCreate(QStringLiteral("операцию записи не удалось выполнить"));
+    });
+    connect(&m_createTimer, &QTimer::timeout, this, [this]() {
+        if (m_createBusy)
+            failCreate(QStringLiteral("КриптоПро CSP не ответил вовремя"));
+    });
 }
 
 CryptoProSession::~CryptoProSession()
@@ -1060,6 +1244,36 @@ CryptoProSession::~CryptoProSession()
         m_helper.kill();
         m_helper.waitForFinished(1000);
     }
+}
+
+int CryptoProSession::runCreateHelper()
+{
+    // Запрос приходит через stdin: PIN-код не должен попадать в аргументы
+    // процесса, они видны в списке процессов системы.
+    QByteArray input;
+    char buffer[4096];
+    while (input.size() < MaxHelperInputBytes) {
+        const size_t got = std::fread(buffer, 1, sizeof(buffer), stdin);
+        if (got == 0)
+            break;
+        input.append(buffer, static_cast<int>(got));
+    }
+    QJsonParseError parseError;
+    const QJsonDocument document = QJsonDocument::fromJson(input, &parseError);
+    QVariantMap request;
+    if (parseError.error == QJsonParseError::NoError && document.isObject())
+        request = document.toVariant().toMap();
+    input.fill('\0');
+
+    const QVariantMap result = executeCreate(request);
+    const QByteArray payload = QJsonDocument::fromVariant(result)
+            .toJson(QJsonDocument::Compact);
+    if (payload.size() > MaxHelperOutputBytes)
+        return 2;
+    std::fwrite(HelperMarker, 1, sizeof(HelperMarker) - 1, stdout);
+    std::fwrite(payload.constData(), 1, static_cast<size_t>(payload.size()), stdout);
+    std::fputc('\n', stdout);
+    return std::fflush(stdout) == 0 ? 0 : 3;
 }
 
 int CryptoProSession::runScanHelper()
@@ -1072,6 +1286,97 @@ int CryptoProSession::runScanHelper()
     std::fwrite(payload.constData(), 1, static_cast<size_t>(payload.size()), stdout);
     std::fputc('\n', stdout);
     return std::fflush(stdout) == 0 ? 0 : 3;
+}
+
+
+void CryptoProSession::createContainer(const QString &reader, const QString &container,
+                                       int providerType, const QString &pin)
+{
+    if (m_createBusy)
+        return;
+    if (!m_enabled) {
+        failCreate(QStringLiteral("КриптоПро CSP выключен в настройках"));
+        return;
+    }
+
+    m_createBusy = true;
+    m_createOutcome = 0;
+    m_createResult = QStringLiteral("Создание контейнера КриптоПро…");
+    m_createOutput.clear();
+    emit changed();
+
+    QVariantMap request;
+    request.insert(QStringLiteral("reader"), reader);
+    request.insert(QStringLiteral("container"), container);
+    request.insert(QStringLiteral("providerType"), providerType);
+    request.insert(QStringLiteral("pin"), pin);
+    QByteArray payload = QJsonDocument::fromVariant(request).toJson(QJsonDocument::Compact);
+
+    m_createHelper.setProgram(QCoreApplication::applicationFilePath());
+    m_createHelper.setArguments(QStringList(QStringLiteral("--cryptopro-create-helper")));
+    m_createHelper.start(QIODevice::ReadWrite);
+    if (!m_createHelper.waitForStarted(5000)) {
+        payload.fill('\0');
+        failCreate(QStringLiteral("не удалось запустить операцию записи"));
+        return;
+    }
+    // PIN-код уходит через stdin, а не аргументом процесса.
+    m_createHelper.write(payload);
+    m_createHelper.closeWriteChannel();
+    payload.fill('\0');
+    m_createTimer.start(HelperTimeoutMs);
+}
+
+void CryptoProSession::finishCreate(int exitCode, QProcess::ExitStatus exitStatus)
+{
+    m_createTimer.stop();
+    if (!m_createBusy)
+        return;
+    m_createOutput.append(m_createHelper.readAllStandardOutput());
+    if (exitStatus != QProcess::NormalExit || exitCode != 0) {
+        failCreate(QStringLiteral("операция записи завершилась с ошибкой"));
+        return;
+    }
+
+    const QByteArray marker(HelperMarker, sizeof(HelperMarker) - 1);
+    const int markerPosition = m_createOutput.lastIndexOf(marker);
+    if (markerPosition < 0) {
+        failCreate(QStringLiteral("КриптоПро CSP вернул некорректный ответ"));
+        return;
+    }
+    QJsonParseError parseError;
+    const QJsonDocument document = QJsonDocument::fromJson(
+                m_createOutput.mid(markerPosition + marker.size()).trimmed(), &parseError);
+    if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
+        failCreate(QStringLiteral("КриптоПро CSP вернул некорректный ответ"));
+        return;
+    }
+
+    const QVariantMap result = document.toVariant().toMap();
+    const bool ok = result.value(QStringLiteral("ok")).toBool();
+    m_createBusy = false;
+    m_createOutcome = ok ? 1 : -1;
+    m_createResult = result.value(QStringLiteral("message")).toString();
+    m_createOutput.clear();
+    emit changed();
+
+    // Новый контейнер должен появиться в списке объектов.
+    if (ok) {
+        m_syncedOnce = false;
+        refresh();
+    }
+}
+
+void CryptoProSession::failCreate(const QString &message)
+{
+    m_createTimer.stop();
+    if (m_createHelper.state() != QProcess::NotRunning)
+        m_createHelper.kill();
+    m_createOutput.clear();
+    m_createBusy = false;
+    m_createOutcome = -1;
+    m_createResult = message;
+    emit changed();
 }
 
 void CryptoProSession::refresh()

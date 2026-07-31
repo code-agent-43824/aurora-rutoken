@@ -374,6 +374,16 @@ Page {
                     slotId: page.slotId, connection: page.connection, objectsPage: page
                 })
             }
+            // Создание контейнера КриптоПро — только при включённом backend'е и
+            // пока только по USB: по NFC операция требует поднесения (этап 3).
+            MenuItem {
+                visible: page.view === "objects" && appSettings.cryptoProEnabled
+                         && page.connection !== "NFC"
+                text: qsTr("New CryptoPro container")
+                onClicked: pageStack.push(Qt.resolvedUrl("CryptoProContainerPage.qml"), {
+                    readerName: page.slotName, deviceLabel: page.curLabel, objectsPage: page
+                })
+            }
             // --- Вид «Свойства»: администрирование ---
             MenuItem {
                 visible: page.view === "properties"

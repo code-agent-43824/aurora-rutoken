@@ -975,6 +975,10 @@
 <context>
     <name>TokenPage</name>
     <message>
+        <source>New CryptoPro container</source>
+        <translation>Создать контейнер КриптоПро</translation>
+    </message>
+    <message>
         <source>PKCS#11 and CryptoPro CSP</source>
         <translation>PKCS#11 и КриптоПро CSP</translation>
     </message>
@@ -1184,5 +1188,52 @@
     <message><source>Different certificates linked to this container: %1</source><translation>Разных сертификатов, связанных с контейнером: %1</translation></message>
     <message><source>The same DER certificate has conflicting provider or container metadata</source><translation>Один DER-сертификат имеет противоречивые сведения о провайдере или контейнере</translation></message>
     <message><source>This screen does not change certificates or containers</source><translation>Этот экран не изменяет сертификаты и контейнеры</translation></message>
+</context>
+<context>
+    <name>CryptoProContainerPage</name>
+    <message>
+        <source>Algorithm</source>
+        <translation>Алгоритм</translation>
+    </message>
+    <message>
+        <source>Container name</source>
+        <translation>Имя контейнера</translation>
+    </message>
+    <message>
+        <source>Create</source>
+        <translation>Создать</translation>
+    </message>
+    <message>
+        <source>Create container</source>
+        <translation>Создать контейнер</translation>
+    </message>
+    <message>
+        <source>Creating…</source>
+        <translation>Создание…</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2012 (256)</source>
+        <translation>ГОСТ Р 34.10-2012 (256)</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2012 (512)</source>
+        <translation>ГОСТ Р 34.10-2012 (512)</translation>
+    </message>
+    <message>
+        <source>New CryptoPro container</source>
+        <translation>Создать контейнер КриптоПро</translation>
+    </message>
+    <message>
+        <source>Rutoken</source>
+        <translation>Рутокен</translation>
+    </message>
+    <message>
+        <source>The private key is generated inside the device and is not exportable. If the key pair cannot be created, the container is removed automatically.</source>
+        <translation>Закрытый ключ создаётся внутри устройства и не может быть экспортирован. Если ключевую пару создать не удастся, контейнер будет удалён автоматически.</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>PIN-код пользователя</translation>
+    </message>
 </context>
 </TS>

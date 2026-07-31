@@ -20,6 +20,10 @@ class CryptoProSession : public QObject
     // Счётчик завершённых проходов: мастер NFC ждёт именно свой результат, а не
     // первое попавшееся завершение.
     Q_PROPERTY(int scanSerial READ scanSerial NOTIFY changed)
+    // Создание контейнера (v1.3): состояние отдельное от чтения.
+    Q_PROPERTY(bool createBusy READ createBusy NOTIFY changed)
+    Q_PROPERTY(int createOutcome READ createOutcome NOTIFY changed) // 0/1/-1
+    Q_PROPERTY(QString createResult READ createResult NOTIFY changed)
     Q_PROPERTY(QStringList loadedLibraries READ loadedLibraries NOTIFY changed)
     Q_PROPERTY(QVariantList providers READ providers NOTIFY changed)
     Q_PROPERTY(QVariantList containers READ containers NOTIFY changed)
@@ -30,6 +34,8 @@ public:
     ~CryptoProSession() override;
 
     static int runScanHelper();
+    // Режим записи: запрос читается из stdin (PIN-код не идёт в аргументы).
+    static int runCreateHelper();
 
     bool enabled() const { return m_enabled; }
     bool available() const { return m_available; }
@@ -38,6 +44,14 @@ public:
     QString libraryPath() const { return m_libraryPath; }
     QString cspVersion() const { return m_cspVersion; }
     int scanSerial() const { return m_scanSerial; }
+    bool createBusy() const { return m_createBusy; }
+    int createOutcome() const { return m_createOutcome; }
+    QString createResult() const { return m_createResult; }
+
+    // Создаёт контейнер и неэкспортируемую ключевую пару ГОСТ-2012 на выбранном
+    // считывателе. Выполняется в отдельном helper-процессе.
+    Q_INVOKABLE void createContainer(const QString &reader, const QString &container,
+                                     int providerType, const QString &pin);
     QStringList loadedLibraries() const { return m_loadedLibraries; }
     QVariantList providers() const { return m_providers; }
     QVariantList containers() const { return m_containers; }
@@ -58,6 +72,8 @@ private:
     void helperError(QProcess::ProcessError error);
     void helperTimedOut();
     void failRefresh(const QString &message);
+    void finishCreate(int exitCode, QProcess::ExitStatus exitStatus);
+    void failCreate(const QString &message);
 
     QProcess m_helper;
     QTimer m_helperTimer;
@@ -72,6 +88,12 @@ private:
     QStringList m_scannedReaders;
     bool m_syncedOnce = false;
     int m_scanSerial = 0;
+    QProcess m_createHelper;
+    QTimer m_createTimer;
+    QByteArray m_createOutput;
+    bool m_createBusy = false;
+    int m_createOutcome = 0;
+    QString m_createResult;
     QStringList m_loadedLibraries;
     QVariantList m_providers;
     QVariantList m_containers;
