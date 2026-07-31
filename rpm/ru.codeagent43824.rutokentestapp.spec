@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    2
+Release:    3
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,18 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Fri Jul 31 2026 Claude <noreply@anthropic.com> - 1.3.0-3
+- Show one physical key container once. A container created through CryptoPro is
+  also exposed by the provider under its internal PKCS#11 alias (pkcs_key_...),
+  and since the two names differ the existing name-based grouping could not join
+  them, so a freshly created container appeared twice. Containers are now also
+  joined by their exported public key, comparing the key material at the end of
+  the blob so differing headers do not matter; the container with the meaningful
+  name survives the merge and certificates bound to the dropped one are
+  re-pointed at it. Containers whose key cannot be exported are left untouched
+  rather than guessed at. The 1.3.0-2 certificate request was verified with the
+  openssl GOST engine ("Certificate request self-signature verify OK").
+
 * Fri Jul 31 2026 Claude <noreply@anthropic.com> - 1.3.0-2
 - Certificate request (PKCS#10) for a CryptoPro container. The request is encoded
   and signed by the provider itself — CryptExportPublicKeyInfo supplies the

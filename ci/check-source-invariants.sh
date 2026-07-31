@@ -138,6 +138,11 @@ fi
 grep -Fq 'api.signAndEncode(provider, capi::AtSignature, capi::X509AsnEncoding,' "$CRYPTOPRO_SOURCE"
 grep -Fq 'capi::CertRequestToBeSigned' "$CRYPTOPRO_SOURCE"
 grep -Fq 'api.exportPublicKeyInfo(provider, capi::AtSignature,' "$CRYPTOPRO_SOURCE"
+# Один физический ключ не должен показываться двумя контейнерами: собственное
+# имя и внутренний алиас PKCS#11 склеиваются по экспортированному открытому ключу.
+grep -Fq 'QHash<QString, int> containerByKey;' "$CRYPTOPRO_SOURCE"
+grep -Fq 'QStringLiteral("pkcs_key")' "$CRYPTOPRO_SOURCE"
+grep -Fq 'mergedInto.insert(' "$CRYPTOPRO_SOURCE"
 # Ключевая пара создаётся неэкспортируемой (без CRYPT_EXPORTABLE).
 grep -Fq 'api.genKey(provider, capi::AtSignature, 0, &key)' "$CRYPTOPRO_SOURCE"
 if grep -Fq 'CryptExportable' "$CRYPTOPRO_SOURCE"; then

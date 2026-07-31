@@ -18,6 +18,7 @@
 #include <QtCore/QTextCodec>
 #include <QtCore/QVector>
 #include <QtNetwork/QSslCertificate>
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 
@@ -917,6 +918,95 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
             containerRows[containerIndex] = container;
         }
     }
+    // Один физический ключ бывает виден как ДВА контейнера: собственное имя
+    // контейнера КриптоПро и его внутренний алиас PKCS#11 (`pkcs_key_…`).
+    // Группировка по имени (physicalContainerKey) их не ловит — имена разные,
+    // — поэтому сравниваем экспортированный открытый ключ. Сравнение по хвосту
+    // BLOB'а: заголовок и параметры могут отличаться, а само значение ключа —
+    // нет. Выживает контейнер с осмысленным именем, а не служебный алиас.
+    {
+        QHash<QString, int> containerByKey;
+        QHash<QString, QString> mergedInto;
+        QVector<bool> dropped(containerRows.size(), false);
+        const auto fingerprints = [](const QVariantMap &row) {
+            QStringList out;
+            const QStringList blobs = row.value(QStringLiteral("publicKeyBlobs")).toStringList();
+            for (const QString &blob : blobs) {
+                if (blob.size() >= 128)
+                    out.append(blob.right(128).toLower());
+            }
+            return out;
+        };
+        const auto isInternalAlias = [](const QVariantMap &row) {
+            return containerLeaf(row.value(QStringLiteral("name")).toString())
+                    .startsWith(QStringLiteral("pkcs_key"));
+        };
+
+        for (int i = 0; i < containerRows.size(); ++i) {
+            const QVariantMap row = containerRows.at(i).toMap();
+            const QStringList keys = fingerprints(row);
+            if (keys.isEmpty())
+                continue;               // нет доказательства — ничего не склеиваем
+            int survivor = -1;
+            for (const QString &key : keys) {
+                survivor = containerByKey.value(key, -1);
+                if (survivor >= 0)
+                    break;
+            }
+            if (survivor < 0) {
+                for (const QString &key : keys)
+                    containerByKey.insert(key, i);
+                continue;
+            }
+
+            int keep = survivor;
+            int drop = i;
+            if (isInternalAlias(containerRows.at(keep).toMap()) && !isInternalAlias(row))
+                std::swap(keep, drop);
+
+            QVariantMap keepRow = containerRows.at(keep).toMap();
+            const QVariantMap dropRow = containerRows.at(drop).toMap();
+            QStringList algorithms = keepRow.value(QStringLiteral("algorithms")).toStringList();
+            for (const QString &algorithm :
+                 dropRow.value(QStringLiteral("algorithms")).toStringList()) {
+                if (!algorithms.contains(algorithm))
+                    algorithms.append(algorithm);
+            }
+            keepRow.insert(QStringLiteral("algorithms"), algorithms);
+            keepRow.insert(QStringLiteral("algorithm"), algorithms.join(QStringLiteral(" / ")));
+            keepRow.insert(QStringLiteral("certificateCount"),
+                           keepRow.value(QStringLiteral("certificateCount")).toInt()
+                           + dropRow.value(QStringLiteral("certificateCount")).toInt());
+            containerRows[keep] = keepRow;
+            dropped[drop] = true;
+            mergedInto.insert(dropRow.value(QStringLiteral("containerKey")).toString(),
+                              keepRow.value(QStringLiteral("containerKey")).toString());
+            for (const QString &key : fingerprints(keepRow))
+                containerByKey.insert(key, keep);
+            for (const QString &key : fingerprints(dropRow))
+                containerByKey.insert(key, keep);
+        }
+
+        if (!mergedInto.isEmpty()) {
+            // Сертификаты, привязанные к склеенному контейнеру, должны указывать
+            // на выживший, иначе он перестанет считаться представленным.
+            for (int i = 0; i < certificates.size(); ++i) {
+                QVariantMap row = certificates.at(i).toMap();
+                const QString key = row.value(QStringLiteral("containerKey")).toString();
+                if (!mergedInto.contains(key))
+                    continue;
+                row.insert(QStringLiteral("containerKey"), mergedInto.value(key));
+                certificates[i] = row;
+            }
+            QVariantList kept;
+            for (int i = 0; i < containerRows.size(); ++i) {
+                if (!dropped.at(i))
+                    kept.append(containerRows.at(i));
+            }
+            containerRows = kept;
+        }
+    }
+
     for (int i = 0; i < containerRows.size(); ++i) {
         QVariantMap row = containerRows.at(i).toMap();
         row.remove(QStringLiteral("_physicalKey"));
