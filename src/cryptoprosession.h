@@ -91,6 +91,7 @@ private:
     QProcess m_createHelper;
     QTimer m_createTimer;
     QByteArray m_createOutput;
+    QByteArray m_createPayload;
     bool m_createBusy = false;
     int m_createOutcome = 0;
     QString m_createResult;

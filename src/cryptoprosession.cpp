@@ -965,9 +965,10 @@ bool loadCapi(QLibrary &library, Api &api, QString &libraryPath)
         "CertCloseStore"
     };
 
-    QLibrary library;
+    // library и libraryPath — параметры: вызывающий владеет загруженной
+    // библиотекой, иначе она выгрузилась бы вместе с локальным объектом.
     QVector<QFunctionPointer> functions;
-    QString libraryPath;
+    libraryPath.clear();
     for (const QString &candidate : candidates) {
         library.setFileName(candidate);
         if (!library.load())
@@ -1217,6 +1218,13 @@ CryptoProSession::CryptoProSession(QObject *parent)
     // Отдельный процесс записи: он не должен мешать чтению и наоборот.
     m_createHelper.setProcessChannelMode(QProcess::SeparateChannels);
     m_createTimer.setSingleShot(true);
+    connect(&m_createHelper, &QProcess::started, this, [this]() {
+        // PIN-код уходит через stdin, а не аргументом процесса.
+        m_createHelper.write(m_createPayload);
+        m_createHelper.closeWriteChannel();
+        m_createPayload.fill('\0');
+        m_createPayload.clear();
+    });
     connect(&m_createHelper, &QProcess::readyReadStandardError, this, [this]() {
         m_createHelper.readAllStandardError();
     });
@@ -1312,18 +1320,13 @@ void CryptoProSession::createContainer(const QString &reader, const QString &con
     request.insert(QStringLiteral("pin"), pin);
     QByteArray payload = QJsonDocument::fromVariant(request).toJson(QJsonDocument::Compact);
 
+    // Запрос уходит по сигналу started, без блокировки интерфейса ожиданием.
+    m_createPayload = payload;
+    payload.fill('\0');
+
     m_createHelper.setProgram(QCoreApplication::applicationFilePath());
     m_createHelper.setArguments(QStringList(QStringLiteral("--cryptopro-create-helper")));
     m_createHelper.start(QIODevice::ReadWrite);
-    if (!m_createHelper.waitForStarted(5000)) {
-        payload.fill('\0');
-        failCreate(QStringLiteral("не удалось запустить операцию записи"));
-        return;
-    }
-    // PIN-код уходит через stdin, а не аргументом процесса.
-    m_createHelper.write(payload);
-    m_createHelper.closeWriteChannel();
-    payload.fill('\0');
     m_createTimer.start(HelperTimeoutMs);
 }
 
@@ -1370,6 +1373,8 @@ void CryptoProSession::finishCreate(int exitCode, QProcess::ExitStatus exitStatu
 void CryptoProSession::failCreate(const QString &message)
 {
     m_createTimer.stop();
+    m_createPayload.fill('\0');
+    m_createPayload.clear();
     if (m_createHelper.state() != QProcess::NotRunning)
         m_createHelper.kill();
     m_createOutput.clear();

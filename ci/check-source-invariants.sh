@@ -128,7 +128,7 @@ grep -Fq 'CryptoProSession::runCreateHelper()' src/main.cpp
 # PIN-код передаётся ТОЛЬКО через stdin: аргументы процесса видны в системе.
 grep -Fq 'm_createHelper.setArguments(QStringList(QStringLiteral("--cryptopro-create-helper")))' \
     "$CRYPTOPRO_SOURCE"
-grep -Fq 'm_createHelper.write(payload);' "$CRYPTOPRO_SOURCE"
+grep -Fq 'm_createHelper.write(m_createPayload);' "$CRYPTOPRO_SOURCE"
 if grep -Eq 'setArguments\(.*(pin|Pin)' "$CRYPTOPRO_SOURCE"; then
     echo "The PIN must never be passed as a process argument" >&2
     exit 1
