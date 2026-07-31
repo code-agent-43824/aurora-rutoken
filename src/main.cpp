@@ -10,7 +10,7 @@
 
 // Версия приложения (для показа в диагностике). Держать синхронной с
 // rpm/*.spec (Version-Release).
-static const char *const kAppVersion = "1.3.0-1";
+static const char *const kAppVersion = "1.3.0-2";
 
 int main(int argc, char *argv[])
 {
@@ -20,9 +20,9 @@ int main(int argc, char *argv[])
         return CryptoProSession::runScanHelper();
     }
     if (argc == 2
-            && QByteArray(argv[1]) == QByteArrayLiteral("--cryptopro-create-helper")) {
+            && QByteArray(argv[1]) == QByteArrayLiteral("--cryptopro-write-helper")) {
         QCoreApplication helperApplication(argc, argv);
-        return CryptoProSession::runCreateHelper();
+        return CryptoProSession::runWriteHelper();
     }
     if (argc == 2
             && QByteArray(argv[1]) == QByteArrayLiteral("--pkcs11-slot-event-helper")) {

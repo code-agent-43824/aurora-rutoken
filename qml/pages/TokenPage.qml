@@ -137,6 +137,7 @@ Page {
             keyType: container.algorithm ? container.algorithm : "",
             keyClass: qsTr("CryptoPro key container"),
             source: qsTr("CryptoPro CSP"),
+            providerType: container.providerType ? container.providerType : 0,
             cryptoPro: true
         }
     }
@@ -640,6 +641,15 @@ Page {
                                     container: modelData.container ? modelData.container : "",
                                     slotId: page.slotId,
                                     connection: page.connection
+                                })
+                            else if (modelData.kind === "key" && modelData.cryptoPro
+                                     && modelData.idText && modelData.idText.length > 0)
+                                // Контейнер КриптоПро: запрос формирует провайдер.
+                                pageStack.push(Qt.resolvedUrl("CryptoProCsrPage.qml"), {
+                                    container: modelData.idText,
+                                    providerType: modelData.providerType
+                                                  ? modelData.providerType : 80,
+                                    deviceLabel: page.curLabel
                                 })
                             else if (modelData.kind === "key"
                                      && modelData.idHex && modelData.idHex.length > 0)

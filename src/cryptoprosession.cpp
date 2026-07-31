@@ -12,12 +12,14 @@
 #include <QtCore/QJsonParseError>
 #include <QtCore/QLibrary>
 #include <QtCore/QRegularExpression>
+#include <QtCore/QStandardPaths>
 #include <QtCore/QSet>
 #include <QtCore/QStringList>
 #include <QtCore/QTextCodec>
 #include <QtCore/QVector>
 #include <QtNetwork/QSslCertificate>
 #include <cstdio>
+#include <cstring>
 
 namespace {
 
@@ -45,6 +47,9 @@ struct Api
     // Только для helper-режима записи (v1.3).
     capi::CryptGenKeyFn genKey = nullptr;
     capi::CryptSetProvParamFn setProvParam = nullptr;
+    capi::CertStrToNameAFn strToName = nullptr;
+    capi::CryptExportPublicKeyInfoFn exportPublicKeyInfo = nullptr;
+    capi::CryptSignAndEncodeCertificateFn signAndEncode = nullptr;
     capi::CertOpenSystemStoreAFn openSystemStore = nullptr;
     capi::CertEnumCertificatesInStoreFn enumCertificates = nullptr;
     capi::CertGetCertificateContextPropertyFn getCertificateProperty = nullptr;
@@ -1025,6 +1030,12 @@ bool loadCapi(QLibrary &library, Api &api, QString &libraryPath)
                 library.resolve("CryptGenKey"));
     api.setProvParam = reinterpret_cast<capi::CryptSetProvParamFn>(
                 library.resolve("CryptSetProvParam"));
+    api.strToName = reinterpret_cast<capi::CertStrToNameAFn>(
+                library.resolve("CertStrToNameA"));
+    api.exportPublicKeyInfo = reinterpret_cast<capi::CryptExportPublicKeyInfoFn>(
+                library.resolve("CryptExportPublicKeyInfo"));
+    api.signAndEncode = reinterpret_cast<capi::CryptSignAndEncodeCertificateFn>(
+                library.resolve("CryptSignAndEncodeCertificate"));
     return true;
 }
 
@@ -1171,6 +1182,176 @@ QVariantMap executeCreate(const QVariantMap &request)
     return result;
 }
 
+
+// Subject в виде строки X.500 для CertStrToNameA. Значения экранируются, чтобы
+// запятая или кавычка в поле не ломали разбор имени.
+QString buildSubjectString(const QVariantMap &request)
+{
+    static const struct { const char *key; const char *rdn; } fields[] = {
+        { "cn", "CN" }, { "o", "O" }, { "ou", "OU" },
+        { "c", "C" }, { "l", "L" }, { "st", "ST" }, { "email", "E" }
+    };
+    QStringList parts;
+    for (const auto &field : fields) {
+        const QString value = request.value(QLatin1String(field.key)).toString().trimmed();
+        if (value.isEmpty())
+            continue;
+        QString escaped = value;
+        escaped.replace(QLatin1Char('\\'), QStringLiteral("\\\\"));
+        escaped.replace(QLatin1Char('"'), QStringLiteral("\\\""));
+        parts.append(QStringLiteral("%1=\"%2\"").arg(QLatin1String(field.rdn), escaped));
+    }
+    return parts.join(QStringLiteral(", "));
+}
+
+// Формирует и подписывает PKCS#10 средствами самого провайдера: так не нужно
+// разбирать раскладку PUBLICKEYBLOB и угадывать порядок байт подписи ГОСТ.
+QVariantMap executeCertificateRequest(const QVariantMap &request)
+{
+    QVariantMap result;
+    result.insert(QStringLiteral("ok"), false);
+
+    const QString container = request.value(QStringLiteral("container")).toString().trimmed();
+    QString pin = request.value(QStringLiteral("pin")).toString();
+    const QString subject = buildSubjectString(request);
+    if (container.isEmpty() || subject.isEmpty()) {
+        result.insert(QStringLiteral("message"),
+                      QStringLiteral("не указан контейнер или Subject запроса"));
+        return result;
+    }
+
+    QLibrary library;
+    Api api;
+    QString libraryPath;
+    if (!loadCapi(library, api, libraryPath)) {
+        result.insert(QStringLiteral("message"),
+                      QStringLiteral("КриптоПро CSP не установлен "
+                                     "(libcapi20.so не найдена)"));
+        return result;
+    }
+    if (!api.strToName || !api.exportPublicKeyInfo || !api.signAndEncode
+            || !api.setProvParam) {
+        result.insert(QStringLiteral("message"),
+                      QStringLiteral("установленный КриптоПро CSP не предоставляет "
+                                     "функций формирования запроса"));
+        return result;
+    }
+
+    // Тип провайдера берём из уже известного контейнера: он приходит из списка
+    // объектов вместе с путём.
+    const capi::Dword type = static_cast<capi::Dword>(
+                request.value(QStringLiteral("providerType")).toUInt());
+    const QString providerName = providerNameForType(api, isGostProvider(type)
+                                                     ? type : capi::ProvGost2012_256);
+    const QByteArray containerBytes = toCapiText(container);
+    const QByteArray providerBytes = toCapiText(providerName);
+
+    capi::CryptProv provider = 0;
+    if (!api.acquireContext(&provider, containerBytes.constData(),
+                            providerBytes.isEmpty() ? nullptr : providerBytes.constData(),
+                            isGostProvider(type) ? type : capi::ProvGost2012_256,
+                            capi::CryptSilent)) {
+        result.insert(QStringLiteral("message"),
+                      QStringLiteral("не удалось открыть контейнер "
+                                     "(устройство недоступно?)"));
+        return result;
+    }
+
+    QByteArray pinBytes = toCapiText(pin);
+    if (!pinBytes.isEmpty()) {
+        const capi::Byte *raw = reinterpret_cast<const capi::Byte *>(pinBytes.constData());
+        api.setProvParam(provider, capi::PpSignaturePin, raw, 0);
+        api.setProvParam(provider, capi::PpKeyExchangePin, raw, 0);
+    }
+
+    QString message;
+    QByteArray pem;
+    const QByteArray subjectBytes = toCapiText(subject);
+    capi::Dword subjectSize = 0;
+    if (api.strToName(capi::X509AsnEncoding, subjectBytes.constData(),
+                      capi::CertX500NameStr, nullptr, nullptr, &subjectSize, nullptr)
+            && subjectSize > 0 && subjectSize <= MaxCertificateBytes) {
+        QByteArray subjectDer(static_cast<int>(subjectSize), '\0');
+        capi::Dword publicKeySize = 0;
+        if (api.strToName(capi::X509AsnEncoding, subjectBytes.constData(),
+                          capi::CertX500NameStr, nullptr,
+                          reinterpret_cast<capi::Byte *>(subjectDer.data()),
+                          &subjectSize, nullptr)
+                && api.exportPublicKeyInfo(provider, capi::AtSignature,
+                                           capi::X509AsnEncoding, nullptr, &publicKeySize)
+                && publicKeySize > 0 && publicKeySize <= MaxCertificateBytes) {
+            QByteArray publicKeyBuffer(static_cast<int>(publicKeySize), '\0');
+            capi::PublicKeyInfo *publicKey =
+                    reinterpret_cast<capi::PublicKeyInfo *>(publicKeyBuffer.data());
+            if (api.exportPublicKeyInfo(provider, capi::AtSignature,
+                                        capi::X509AsnEncoding, publicKey, &publicKeySize)) {
+                capi::CertRequestInfo info;
+                std::memset(&info, 0, sizeof(info));
+                info.version = 0;
+                info.subject.size = subjectSize;
+                info.subject.data = reinterpret_cast<capi::Byte *>(subjectDer.data());
+                info.subjectPublicKeyInfo = *publicKey;
+
+                capi::AlgorithmIdentifier algorithm;
+                std::memset(&algorithm, 0, sizeof(algorithm));
+                QByteArray oid(type == capi::ProvGost2012_512
+                               ? capi::OidGost2012_512Signature
+                               : capi::OidGost2012_256Signature);
+                algorithm.objectId = oid.data();
+
+                capi::Dword requestSize = 0;
+                if (api.signAndEncode(provider, capi::AtSignature, capi::X509AsnEncoding,
+                                      capi::CertRequestToBeSigned, &info, &algorithm,
+                                      nullptr, nullptr, &requestSize)
+                        && requestSize > 0 && requestSize <= MaxCertificateBytes) {
+                    QByteArray der(static_cast<int>(requestSize), '\0');
+                    if (api.signAndEncode(provider, capi::AtSignature,
+                                          capi::X509AsnEncoding,
+                                          capi::CertRequestToBeSigned, &info, &algorithm,
+                                          nullptr,
+                                          reinterpret_cast<capi::Byte *>(der.data()),
+                                          &requestSize)) {
+                        der.truncate(static_cast<int>(requestSize));
+                        QByteArray wrapped;
+                        const QByteArray base64 = der.toBase64();
+                        for (int i = 0; i < base64.size(); i += 64)
+                            wrapped += base64.mid(i, 64) + '\n';
+                        pem = QByteArrayLiteral("-----BEGIN CERTIFICATE REQUEST-----\n")
+                                + wrapped
+                                + QByteArrayLiteral("-----END CERTIFICATE REQUEST-----\n");
+                    } else {
+                        message = QStringLiteral("не удалось подписать запрос "
+                                                 "(возможно, неверный PIN-код)");
+                    }
+                } else {
+                    message = QStringLiteral("не удалось закодировать запрос");
+                }
+            } else {
+                message = QStringLiteral("не удалось прочитать открытый ключ контейнера");
+            }
+        } else {
+            message = QStringLiteral("не удалось прочитать открытый ключ контейнера");
+        }
+    } else {
+        message = QStringLiteral("не удалось закодировать Subject запроса");
+    }
+
+    pinBytes.fill('\0');
+    pin.fill(QLatin1Char('*'));
+    api.releaseContext(provider, 0);
+
+    if (pem.isEmpty()) {
+        result.insert(QStringLiteral("message"), message.isEmpty()
+                      ? QStringLiteral("не удалось сформировать запрос") : message);
+        return result;
+    }
+    result.insert(QStringLiteral("ok"), true);
+    result.insert(QStringLiteral("pem"), QString::fromLatin1(pem));
+    result.insert(QStringLiteral("message"),
+                  QStringLiteral("Запрос на сертификат сформирован"));
+    return result;
+}
+
 QVariantMap executeScan()
 {
     QLibrary library;
@@ -1254,7 +1435,7 @@ CryptoProSession::~CryptoProSession()
     }
 }
 
-int CryptoProSession::runCreateHelper()
+int CryptoProSession::runWriteHelper()
 {
     // Запрос приходит через stdin: PIN-код не должен попадать в аргументы
     // процесса, они видны в списке процессов системы.
@@ -1273,7 +1454,12 @@ int CryptoProSession::runCreateHelper()
         request = document.toVariant().toMap();
     input.fill('\0');
 
-    const QVariantMap result = executeCreate(request);
+    // Обе операции записи требуют PIN-кода, поэтому живут в одном изолированном
+    // режиме и различаются полем operation.
+    const QString operation = request.value(QStringLiteral("operation")).toString();
+    const QVariantMap result = operation == QStringLiteral("certificateRequest")
+            ? executeCertificateRequest(request)
+            : executeCreate(request);
     const QByteArray payload = QJsonDocument::fromVariant(result)
             .toJson(QJsonDocument::Compact);
     if (payload.size() > MaxHelperOutputBytes)
@@ -1314,6 +1500,7 @@ void CryptoProSession::createContainer(const QString &reader, const QString &con
     emit changed();
 
     QVariantMap request;
+    request.insert(QStringLiteral("operation"), QStringLiteral("createContainer"));
     request.insert(QStringLiteral("reader"), reader);
     request.insert(QStringLiteral("container"), container);
     request.insert(QStringLiteral("providerType"), providerType);
@@ -1325,9 +1512,77 @@ void CryptoProSession::createContainer(const QString &reader, const QString &con
     payload.fill('\0');
 
     m_createHelper.setProgram(QCoreApplication::applicationFilePath());
-    m_createHelper.setArguments(QStringList(QStringLiteral("--cryptopro-create-helper")));
+    m_createHelper.setArguments(QStringList(QStringLiteral("--cryptopro-write-helper")));
     m_createHelper.start(QIODevice::ReadWrite);
     m_createTimer.start(HelperTimeoutMs);
+}
+
+
+void CryptoProSession::createCertificateRequest(const QString &container, int providerType,
+                                                const QString &pin, const QVariantMap &subject)
+{
+    if (m_createBusy)
+        return;
+    if (!m_enabled) {
+        failCreate(QStringLiteral("КриптоПро CSP выключен в настройках"));
+        return;
+    }
+
+    m_createBusy = true;
+    m_createOutcome = 0;
+    m_createResult = QStringLiteral("Формирование запроса на сертификат…");
+    m_lastRequest.clear();
+    m_createOutput.clear();
+    emit changed();
+
+    QVariantMap request = subject;
+    request.insert(QStringLiteral("operation"), QStringLiteral("certificateRequest"));
+    request.insert(QStringLiteral("container"), container);
+    request.insert(QStringLiteral("providerType"), providerType);
+    request.insert(QStringLiteral("pin"), pin);
+    QByteArray payload = QJsonDocument::fromVariant(request).toJson(QJsonDocument::Compact);
+    m_createPayload = payload;
+    payload.fill('\0');
+
+    m_createHelper.setProgram(QCoreApplication::applicationFilePath());
+    m_createHelper.setArguments(QStringList(QStringLiteral("--cryptopro-write-helper")));
+    m_createHelper.start(QIODevice::ReadWrite);
+    m_createTimer.start(HelperTimeoutMs);
+}
+
+bool CryptoProSession::saveRequestToFile(const QString &name)
+{
+    if (m_lastRequest.isEmpty())
+        return false;
+    // Каталог определяем так же, как экспорт сертификата в PKCS#11-пути.
+    QString directory = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    if (directory.isEmpty())
+        directory = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    if (directory.isEmpty())
+        directory = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    QString fileName = name.trimmed();
+    if (fileName.isEmpty())
+        fileName = QStringLiteral("request");
+    if (!fileName.endsWith(QStringLiteral(".csr"), Qt::CaseInsensitive))
+        fileName += QStringLiteral(".csr");
+    // Не перезаписываем чужой файл молча.
+    const QString path = QDir(directory).filePath(fileName);
+    if (QFileInfo::exists(path)) {
+        m_createResult = QStringLiteral("файл %1 уже существует").arg(path);
+        emit changed();
+        return false;
+    }
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        m_createResult = QStringLiteral("не удалось записать %1").arg(path);
+        emit changed();
+        return false;
+    }
+    file.write(m_lastRequest.toLatin1());
+    file.close();
+    m_createResult = QStringLiteral("Запрос сохранён: %1").arg(path);
+    emit changed();
+    return true;
 }
 
 void CryptoProSession::finishCreate(int exitCode, QProcess::ExitStatus exitStatus)
@@ -1360,11 +1615,13 @@ void CryptoProSession::finishCreate(int exitCode, QProcess::ExitStatus exitStatu
     m_createBusy = false;
     m_createOutcome = ok ? 1 : -1;
     m_createResult = result.value(QStringLiteral("message")).toString();
+    m_lastRequest = result.value(QStringLiteral("pem")).toString();
     m_createOutput.clear();
     emit changed();
 
-    // Новый контейнер должен появиться в списке объектов.
-    if (ok) {
+    // Новый контейнер должен появиться в списке объектов. Запрос на сертификат
+    // ничего на устройстве не меняет, поэтому лишний медленный проход не нужен.
+    if (ok && m_lastRequest.isEmpty()) {
         m_syncedOnce = false;
         refresh();
     }

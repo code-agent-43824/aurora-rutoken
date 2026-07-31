@@ -1236,4 +1236,71 @@
         <translation>PIN-код пользователя</translation>
     </message>
 </context>
+<context>
+    <name>CryptoProCsrPage</name>
+    <message>
+        <source>Certificate request</source>
+        <translation>Запрос на сертификат</translation>
+    </message>
+    <message>
+        <source>Common Name (required)</source>
+        <translation>Common Name (обязательно)</translation>
+    </message>
+    <message>
+        <source>Country (2 letters)</source>
+        <translation>Страна (2 буквы)</translation>
+    </message>
+    <message>
+        <source>Create request</source>
+        <translation>Создать запрос</translation>
+    </message>
+    <message>
+        <source>Creating…</source>
+        <translation>Создание…</translation>
+    </message>
+    <message>
+        <source>CryptoPro CSP</source>
+        <translation>КриптоПро CSP</translation>
+    </message>
+    <message>
+        <source>Email</source>
+        <translation>Электронная почта</translation>
+    </message>
+    <message>
+        <source>Locality</source>
+        <translation>Населённый пункт</translation>
+    </message>
+    <message>
+        <source>Organization</source>
+        <translation>Организация</translation>
+    </message>
+    <message>
+        <source>Organizational unit</source>
+        <translation>Подразделение</translation>
+    </message>
+    <message>
+        <source>Pull down to save the request as a .csr file in Downloads.</source>
+        <translation>Потяните шторку вниз, чтобы сохранить запрос файлом .csr в каталог загрузок.</translation>
+    </message>
+    <message>
+        <source>Rutoken</source>
+        <translation>Рутокен</translation>
+    </message>
+    <message>
+        <source>Save request to file</source>
+        <translation>Сохранить запрос в файл</translation>
+    </message>
+    <message>
+        <source>State or region</source>
+        <translation>Регион</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>PIN-код пользователя</translation>
+    </message>
+    <message>
+        <source>container: %1</source>
+        <translation>контейнер: %1</translation>
+    </message>
+</context>
 </TS>

@@ -123,16 +123,21 @@ fi
 
 # --- v1.3: запись через КриптоПро ---
 # Запись живёт в отдельном одноразовом helper-режиме.
-grep -Fq 'QStringLiteral("--cryptopro-create-helper")' "$CRYPTOPRO_SOURCE"
-grep -Fq 'CryptoProSession::runCreateHelper()' src/main.cpp
+grep -Fq 'QStringLiteral("--cryptopro-write-helper")' "$CRYPTOPRO_SOURCE"
+grep -Fq 'CryptoProSession::runWriteHelper()' src/main.cpp
 # PIN-код передаётся ТОЛЬКО через stdin: аргументы процесса видны в системе.
-grep -Fq 'm_createHelper.setArguments(QStringList(QStringLiteral("--cryptopro-create-helper")))' \
+grep -Fq 'm_createHelper.setArguments(QStringList(QStringLiteral("--cryptopro-write-helper")))' \
     "$CRYPTOPRO_SOURCE"
 grep -Fq 'm_createHelper.write(m_createPayload);' "$CRYPTOPRO_SOURCE"
 if grep -Eq 'setArguments\(.*(pin|Pin)' "$CRYPTOPRO_SOURCE"; then
     echo "The PIN must never be passed as a process argument" >&2
     exit 1
 fi
+# PKCS#10 кодирует и подписывает сам провайдер: мы не разбираем PUBLICKEYBLOB и
+# не переставляем байты подписи ГОСТ.
+grep -Fq 'api.signAndEncode(provider, capi::AtSignature, capi::X509AsnEncoding,' "$CRYPTOPRO_SOURCE"
+grep -Fq 'capi::CertRequestToBeSigned' "$CRYPTOPRO_SOURCE"
+grep -Fq 'api.exportPublicKeyInfo(provider, capi::AtSignature,' "$CRYPTOPRO_SOURCE"
 # Ключевая пара создаётся неэкспортируемой (без CRYPT_EXPORTABLE).
 grep -Fq 'api.genKey(provider, capi::AtSignature, 0, &key)' "$CRYPTOPRO_SOURCE"
 if grep -Fq 'CryptExportable' "$CRYPTOPRO_SOURCE"; then

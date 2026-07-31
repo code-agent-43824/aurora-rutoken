@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    1
+Release:    2
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,19 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Fri Jul 31 2026 Claude <noreply@anthropic.com> - 1.3.0-2
+- Certificate request (PKCS#10) for a CryptoPro container. The request is encoded
+  and signed by the provider itself — CryptExportPublicKeyInfo supplies the
+  SubjectPublicKeyInfo, CertStrToNameA encodes the subject and
+  CryptSignAndEncodeCertificate builds and signs the request in one call — so the
+  application never has to parse the GOST PUBLICKEYBLOB layout or guess the
+  signature byte order. Tapping a CryptoPro container opens the subject form
+  (CN required); the resulting PEM is shown and can be saved as a .csr file. Both
+  write operations now share one isolated helper mode, renamed to
+  --cryptopro-write-helper since it no longer only creates, and the PIN still
+  travels through its stdin. A certificate request changes nothing on the device,
+  so it does not trigger the slow CryptoPro rescan.
+
 * Fri Jul 31 2026 Claude <noreply@anthropic.com> - 1.3.0-1
 - Start v1.3: create a CryptoPro key container on a chosen Rutoken over USB and
   generate a non-exportable GOST R 34.10-2012 (256/512) key pair inside it. This

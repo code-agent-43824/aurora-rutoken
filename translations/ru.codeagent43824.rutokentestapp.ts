@@ -1236,4 +1236,71 @@
         <translation>User PIN</translation>
     </message>
 </context>
+<context>
+    <name>CryptoProCsrPage</name>
+    <message>
+        <source>Certificate request</source>
+        <translation>Certificate request</translation>
+    </message>
+    <message>
+        <source>Common Name (required)</source>
+        <translation>Common Name (required)</translation>
+    </message>
+    <message>
+        <source>Country (2 letters)</source>
+        <translation>Country (2 letters)</translation>
+    </message>
+    <message>
+        <source>Create request</source>
+        <translation>Create request</translation>
+    </message>
+    <message>
+        <source>Creating…</source>
+        <translation>Creating…</translation>
+    </message>
+    <message>
+        <source>CryptoPro CSP</source>
+        <translation>CryptoPro CSP</translation>
+    </message>
+    <message>
+        <source>Email</source>
+        <translation>Email</translation>
+    </message>
+    <message>
+        <source>Locality</source>
+        <translation>Locality</translation>
+    </message>
+    <message>
+        <source>Organization</source>
+        <translation>Organization</translation>
+    </message>
+    <message>
+        <source>Organizational unit</source>
+        <translation>Organizational unit</translation>
+    </message>
+    <message>
+        <source>Pull down to save the request as a .csr file in Downloads.</source>
+        <translation>Pull down to save the request as a .csr file in Downloads.</translation>
+    </message>
+    <message>
+        <source>Rutoken</source>
+        <translation>Rutoken</translation>
+    </message>
+    <message>
+        <source>Save request to file</source>
+        <translation>Save request to file</translation>
+    </message>
+    <message>
+        <source>State or region</source>
+        <translation>State or region</translation>
+    </message>
+    <message>
+        <source>User PIN</source>
+        <translation>User PIN</translation>
+    </message>
+    <message>
+        <source>container: %1</source>
+        <translation>container: %1</translation>
+    </message>
+</context>
 </TS>

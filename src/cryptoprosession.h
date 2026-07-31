@@ -24,6 +24,7 @@ class CryptoProSession : public QObject
     Q_PROPERTY(bool createBusy READ createBusy NOTIFY changed)
     Q_PROPERTY(int createOutcome READ createOutcome NOTIFY changed) // 0/1/-1
     Q_PROPERTY(QString createResult READ createResult NOTIFY changed)
+    Q_PROPERTY(QString lastRequest READ lastRequest NOTIFY changed) // PEM PKCS#10
     Q_PROPERTY(QStringList loadedLibraries READ loadedLibraries NOTIFY changed)
     Q_PROPERTY(QVariantList providers READ providers NOTIFY changed)
     Q_PROPERTY(QVariantList containers READ containers NOTIFY changed)
@@ -34,8 +35,9 @@ public:
     ~CryptoProSession() override;
 
     static int runScanHelper();
-    // Режим записи: запрос читается из stdin (PIN-код не идёт в аргументы).
-    static int runCreateHelper();
+    // Режим записи (создание контейнера, запрос на сертификат): запрос читается
+    // из stdin, чтобы PIN-код не попадал в аргументы процесса.
+    static int runWriteHelper();
 
     bool enabled() const { return m_enabled; }
     bool available() const { return m_available; }
@@ -47,11 +49,16 @@ public:
     bool createBusy() const { return m_createBusy; }
     int createOutcome() const { return m_createOutcome; }
     QString createResult() const { return m_createResult; }
+    QString lastRequest() const { return m_lastRequest; }
 
     // Создаёт контейнер и неэкспортируемую ключевую пару ГОСТ-2012 на выбранном
     // считывателе. Выполняется в отдельном helper-процессе.
     Q_INVOKABLE void createContainer(const QString &reader, const QString &container,
                                      int providerType, const QString &pin);
+    // Формирует PKCS#10 для существующего контейнера средствами провайдера.
+    Q_INVOKABLE void createCertificateRequest(const QString &container, int providerType,
+                                              const QString &pin, const QVariantMap &subject);
+    Q_INVOKABLE bool saveRequestToFile(const QString &name);
     QStringList loadedLibraries() const { return m_loadedLibraries; }
     QVariantList providers() const { return m_providers; }
     QVariantList containers() const { return m_containers; }
@@ -95,6 +102,7 @@ private:
     bool m_createBusy = false;
     int m_createOutcome = 0;
     QString m_createResult;
+    QString m_lastRequest;
     QStringList m_loadedLibraries;
     QVariantList m_providers;
     QVariantList m_containers;
