@@ -141,6 +141,10 @@ grep -Fq 'api.exportPublicKeyInfo(provider, capi::AtSignature,' "$CRYPTOPRO_SOUR
 # Один физический ключ не должен показываться двумя контейнерами: собственное
 # имя и внутренний алиас PKCS#11 склеиваются по экспортированному открытому ключу.
 grep -Fq 'QHash<QString, int> containerByKey;' "$CRYPTOPRO_SOURCE"
+# Физический контейнер определяется УНИКАЛЬНЫМ именем, а не отображаемым:
+# внутренний алиас PKCS#11 сливается в контейнер с тем же уникальным именем.
+grep -Fq 'QHash<QString, int> realByUnique;' "$CRYPTOPRO_SOURCE"
+grep -Fq 'const int keep = realByUnique.value(unique, -1);' "$CRYPTOPRO_SOURCE"
 grep -Fq 'QStringLiteral("pkcs_key")' "$CRYPTOPRO_SOURCE"
 grep -Fq 'mergedInto.insert(' "$CRYPTOPRO_SOURCE"
 # Ключевая пара создаётся неэкспортируемой (без CRYPT_EXPORTABLE).

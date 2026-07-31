@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    3
+Release:    4
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,19 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Fri Jul 31 2026 Claude <noreply@anthropic.com> - 1.3.0-4
+- Group CryptoPro containers the way CryptoPro itself defines identity. Per the
+  vendor documentation a physical container is identified by its UNIQUE name
+  (MEDIA\UNIQUE\FOLDER\CRC), while the plain container name need not be unique;
+  the application grouped by the displayed name instead, so one created container
+  kept showing as two rows — its own name and the provider's internal PKCS#11
+  alias. An alias is now merged into the container carrying the same unique name.
+  Two real containers are never merged with each other, so a shared unique name
+  could not hide genuine objects. Reduce device traffic, which matters most over
+  NFC: a container is opened once instead of retried under each of its names, and
+  the public key is exported only when the container did not yield its own
+  certificate, since the key is only needed as evidence of a link.
+
 * Fri Jul 31 2026 Claude <noreply@anthropic.com> - 1.3.0-3
 - Show one physical key container once. A container created through CryptoPro is
   also exposed by the provider under its internal PKCS#11 alias (pkcs_key_...),

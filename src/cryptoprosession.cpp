@@ -481,10 +481,12 @@ ContainerScan readContainerCertificates(const Api &api, const Container &contain
                 }
             }
 
-            // Открытый ключ: публичные данные, по ним контейнер связывается со
-            // своим сертификатом, даже если сам сертификат в контейнере не лежит.
+            // Открытый ключ нужен только как доказательство связи контейнера с
+            // сертификатом, лежащим где-то ещё. Если сертификат уже прочитан из
+            // самого контейнера, доказательство не нужно — экономим обращения к
+            // носителю, которые по NFC особенно дороги.
             capi::Dword blobSize = 0;
-            if (api.exportKey
+            if (out.certificates.isEmpty() && api.exportKey
                     && api.exportKey(key, 0, capi::PublicKeyBlob, 0, nullptr, &blobSize)
                     && blobSize > 0 && blobSize <= MaxCertificateBytes) {
                 QByteArray blob(static_cast<int>(blobSize), '\0');
@@ -499,8 +501,9 @@ ContainerScan readContainerCertificates(const Api &api, const Container &contain
             api.destroyKey(key);
         }
         api.releaseContext(provider, 0);
-        if (!out.isEmpty())
-            break;
+        // Контейнер открылся: повторять открытие под другим его именем незачем.
+        // Каждое открытие — отдельная транзакция с носителем, а по NFC они дороги.
+        break;
     }
     return out;
 }
@@ -928,6 +931,50 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
         QHash<QString, int> containerByKey;
         QHash<QString, QString> mergedInto;
         QVector<bool> dropped(containerRows.size(), false);
+        // Документация КриптоПро: физический контейнер однозначно определяется
+        // УНИКАЛЬНЫМ именем (`MEDIA\UNIQUE\FOLDER\CRC`), а обычное имя уникальным
+        // быть не обязано. Именно поэтому один созданный контейнер виден дважды:
+        // под своим именем и под внутренним алиасом PKCS#11 (`pkcs_key_…`).
+        // Сливаем такой алиас в настоящий контейнер с тем же уникальным именем.
+        // Два «настоящих» контейнера между собой не сливаем никогда: если бы
+        // уникальное имя вдруг оказалось общим для носителя, это скрыло бы
+        // реальные объекты.
+        const auto aliasName = [](const QVariantMap &row) {
+            return containerLeaf(row.value(QStringLiteral("name")).toString())
+                    .startsWith(QStringLiteral("pkcs_key"));
+        };
+        const auto uniqueKey = [](const QVariantMap &row) {
+            return normalizedContainerName(
+                        row.value(QStringLiteral("uniqueName")).toString());
+        };
+
+        QHash<QString, int> realByUnique;
+        for (int i = 0; i < containerRows.size(); ++i) {
+            const QVariantMap row = containerRows.at(i).toMap();
+            const QString unique = uniqueKey(row);
+            if (unique.isEmpty() || aliasName(row))
+                continue;
+            if (!realByUnique.contains(unique))
+                realByUnique.insert(unique, i);
+        }
+        for (int i = 0; i < containerRows.size(); ++i) {
+            const QVariantMap row = containerRows.at(i).toMap();
+            if (!aliasName(row))
+                continue;
+            const QString unique = uniqueKey(row);
+            const int keep = realByUnique.value(unique, -1);
+            if (unique.isEmpty() || keep < 0 || keep == i)
+                continue;
+            QVariantMap keepRow = containerRows.at(keep).toMap();
+            keepRow.insert(QStringLiteral("certificateCount"),
+                           keepRow.value(QStringLiteral("certificateCount")).toInt()
+                           + row.value(QStringLiteral("certificateCount")).toInt());
+            containerRows[keep] = keepRow;
+            dropped[i] = true;
+            mergedInto.insert(row.value(QStringLiteral("containerKey")).toString(),
+                              keepRow.value(QStringLiteral("containerKey")).toString());
+        }
+
         const auto fingerprints = [](const QVariantMap &row) {
             QStringList out;
             const QStringList blobs = row.value(QStringLiteral("publicKeyBlobs")).toStringList();
@@ -944,6 +991,8 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
 
         for (int i = 0; i < containerRows.size(); ++i) {
             const QVariantMap row = containerRows.at(i).toMap();
+            if (dropped.at(i))
+                continue;               // уже слит по уникальному имени
             const QStringList keys = fingerprints(row);
             if (keys.isEmpty())
                 continue;               // нет доказательства — ничего не склеиваем
