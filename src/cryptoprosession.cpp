@@ -6,6 +6,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QFile>
 #include <QtCore/QDir>
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QFileInfo>
 #include <QtCore/QHash>
 #include <QtCore/QJsonDocument>
@@ -173,6 +174,18 @@ bool sameContainerName(const QString &left, const QString &right)
     return a == b || containerLeaf(a) == containerLeaf(b);
 }
 
+// `pkcs_key_…` — это не самостоятельный контейнер КриптоПро, а представление
+// ключевой пары PKCS#11 глазами CSP. Владелец таких объектов — backend PKCS#11,
+// и он их уже показывает, поэтому в списке от КриптоПро им места нет: иначе один
+// физический ключ виден дважды. Отсеиваем до открытия контейнера — открытие по
+// NFC самая дорогая операция прохода.
+bool isProviderKeyAliasContainer(const Container &container)
+{
+    const QString leaf = containerLeaf(container.friendlyName.isEmpty()
+                                       ? container.uniqueName : container.friendlyName);
+    return leaf.startsWith(QStringLiteral("pkcs_key"));
+}
+
 bool isRutokenContainer(const Container &container)
 {
     const QString haystack = (container.uniqueName + QLatin1Char(' ')
@@ -220,7 +233,7 @@ QVector<Container> enumerateContainers(const Api &api, capi::CryptProv provider,
         container.uniqueName = first;
         container.friendlyName = second;
         container.displayName = second.isEmpty() ? first : second;
-        if (isRutokenContainer(container))
+        if (isRutokenContainer(container) && !isProviderKeyAliasContainer(container))
             out.append(container);
         flags &= ~capi::CryptFirst;
     }
@@ -455,8 +468,12 @@ ContainerScan readContainerCertificates(const Api &api, const Container &contain
                                 container.providerType, capi::CryptSilent))
             continue;
 
-        const capi::Dword keySpecs[] = { capi::AtKeyExchange, capi::AtSignature };
+        // Подписной ключ первым: у контейнеров, созданных этим приложением,
+        // сертификат лежит именно на нём, поэтому второй тип обычно не нужен.
+        const capi::Dword keySpecs[] = { capi::AtSignature, capi::AtKeyExchange };
         for (const capi::Dword keySpec : keySpecs) {
+            if (!out.certificates.isEmpty())
+                break;                  // сертификат уже прочитан — хватит
             capi::CryptKey key = 0;
             if (!api.getUserKey(provider, keySpec, &key))
                 continue;
@@ -662,6 +679,10 @@ QVariantMap buildCertificateRow(const QByteArray &der, const QString &provider,
 
 QVariantMap scan(const Api &api, const QString &libraryPath)
 {
+    // Длительность прохода видна в статусе: чтение через CAPI дорогое, и без
+    // числа «быстрее/медленнее» можно оценивать только на глаз.
+    QElapsedTimer elapsed;
+    elapsed.start();
     QVariantMap result;
     QVariantList providerRows;
     QVector<Container> rutokenContainers;
@@ -931,50 +952,6 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
         QHash<QString, int> containerByKey;
         QHash<QString, QString> mergedInto;
         QVector<bool> dropped(containerRows.size(), false);
-        // Документация КриптоПро: физический контейнер однозначно определяется
-        // УНИКАЛЬНЫМ именем (`MEDIA\UNIQUE\FOLDER\CRC`), а обычное имя уникальным
-        // быть не обязано. Именно поэтому один созданный контейнер виден дважды:
-        // под своим именем и под внутренним алиасом PKCS#11 (`pkcs_key_…`).
-        // Сливаем такой алиас в настоящий контейнер с тем же уникальным именем.
-        // Два «настоящих» контейнера между собой не сливаем никогда: если бы
-        // уникальное имя вдруг оказалось общим для носителя, это скрыло бы
-        // реальные объекты.
-        const auto aliasName = [](const QVariantMap &row) {
-            return containerLeaf(row.value(QStringLiteral("name")).toString())
-                    .startsWith(QStringLiteral("pkcs_key"));
-        };
-        const auto uniqueKey = [](const QVariantMap &row) {
-            return normalizedContainerName(
-                        row.value(QStringLiteral("uniqueName")).toString());
-        };
-
-        QHash<QString, int> realByUnique;
-        for (int i = 0; i < containerRows.size(); ++i) {
-            const QVariantMap row = containerRows.at(i).toMap();
-            const QString unique = uniqueKey(row);
-            if (unique.isEmpty() || aliasName(row))
-                continue;
-            if (!realByUnique.contains(unique))
-                realByUnique.insert(unique, i);
-        }
-        for (int i = 0; i < containerRows.size(); ++i) {
-            const QVariantMap row = containerRows.at(i).toMap();
-            if (!aliasName(row))
-                continue;
-            const QString unique = uniqueKey(row);
-            const int keep = realByUnique.value(unique, -1);
-            if (unique.isEmpty() || keep < 0 || keep == i)
-                continue;
-            QVariantMap keepRow = containerRows.at(keep).toMap();
-            keepRow.insert(QStringLiteral("certificateCount"),
-                           keepRow.value(QStringLiteral("certificateCount")).toInt()
-                           + row.value(QStringLiteral("certificateCount")).toInt());
-            containerRows[keep] = keepRow;
-            dropped[i] = true;
-            mergedInto.insert(row.value(QStringLiteral("containerKey")).toString(),
-                              keepRow.value(QStringLiteral("containerKey")).toString());
-        }
-
         const auto fingerprints = [](const QVariantMap &row) {
             QStringList out;
             const QStringList blobs = row.value(QStringLiteral("publicKeyBlobs")).toStringList();
@@ -1078,10 +1055,14 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
     result.insert(QStringLiteral("providers"), providerRows);
     result.insert(QStringLiteral("containers"), containerRows);
     result.insert(QStringLiteral("certificates"), certificates);
+    const qint64 elapsedMs = elapsed.elapsed();
+    result.insert(QStringLiteral("elapsedMs"), elapsedMs);
     result.insert(QStringLiteral("status"), containerRows.isEmpty()
-                  ? QStringLiteral("КриптоПро CSP найден, контейнеры Рутокена не найдены")
-                  : QStringLiteral("Контейнеров Рутокена: %1, сертификатов: %2")
-                    .arg(containerRows.size()).arg(certificates.size()));
+                  ? QStringLiteral("КриптоПро CSP найден, контейнеры Рутокена не найдены "
+                                   "(%1 с)").arg(elapsedMs / 1000.0, 0, 'f', 1)
+                  : QStringLiteral("Контейнеров Рутокена: %1, сертификатов: %2 (%3 с)")
+                    .arg(containerRows.size()).arg(certificates.size())
+                    .arg(elapsedMs / 1000.0, 0, 'f', 1));
     return result;
 }
 
