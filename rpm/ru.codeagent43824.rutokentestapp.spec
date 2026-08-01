@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    5
+Release:    6
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,16 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sat Aug 01 2026 Claude <noreply@anthropic.com> - 1.3.0-6
+- Poll the token for its container list once instead of once per GOST provider.
+  Every GOST provider returns the same list, so the three passes produced three
+  copies of one result that were merged afterwards, by which time the time had
+  already been spent. Enumerating the media is the most expensive step of a scan,
+  and over NFC it dominates the wait, so the scan now uses a single primary
+  provider (GOST R 34.10-2012/256, type 80) and falls back to whichever GOST
+  provider exists if that one is absent. Diagnostics still lists every GOST
+  provider and marks the one that was actually polled. Deliberate trade-off: a
+  container that only opens under a different provider type is not read.
 * Fri Jul 31 2026 Claude <noreply@anthropic.com> - 1.3.0-5
 - Stop listing the provider's view of a PKCS#11 key pair as a CryptoPro
   container. Names such as pkcs_key_02ae are not standalone containers: they are

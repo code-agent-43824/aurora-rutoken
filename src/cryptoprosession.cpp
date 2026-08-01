@@ -69,6 +69,15 @@ struct Container
     QString displayName;
 };
 
+// Провайдер как его вернул CryptEnumProviders: имя и тип. Открывать контекст на
+// этом этапе не нужно — список провайдеров читается из настроек CSP, носитель не
+// участвует.
+struct ProviderRef
+{
+    QString name;
+    capi::Dword type = 0;
+};
+
 QString providerAlgorithm(capi::Dword type)
 {
     switch (type) {
@@ -688,6 +697,9 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
     QVector<Container> rutokenContainers;
     QString cspVersion;
 
+    // Перечисление самих провайдеров носитель не трогает — это чтение реестра
+    // CSP, поэтому в диагностике честно показываем все ГОСТ-провайдеры.
+    QVector<ProviderRef> gostProviders;
     for (capi::Dword index = 0; index < static_cast<capi::Dword>(MaxProviders);
          ++index) {
         capi::Dword type = 0;
@@ -699,14 +711,48 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
         QByteArray name(static_cast<int>(size), '\0');
         if (!api.enumProviders(index, nullptr, 0, &type, name.data(), &size))
             continue;
-        const QString providerName = fromCapiText(name.constData(), name.size());
-        const QByteArray providerBytes = toCapiText(providerName);
+        ProviderRef reference;
+        reference.name = fromCapiText(name.constData(), name.size());
+        reference.type = type;
+        gostProviders.append(reference);
+    }
 
+    // А вот PP_ENUMCONTAINERS — это опрос самого носителя, и он у прохода самый
+    // дорогой. Все ГОСТ-провайдеры видят один и тот же список контейнеров, так
+    // что три опроса подряд дают три копии одного результата: раньше они
+    // склеивались по FQCN-имени уже после того, как время было потрачено.
+    // Носитель опрашивается ОДИН раз — основным провайдером.
+    // Плата за это осознанная: контейнер, который открывается только под другим
+    // типом провайдера (например ГОСТ-2012/512), в список не попадёт. Если так
+    // и окажется, набор провайдеров вынесем в настройки — см. PLAN.md.
+    int primary = -1;
+    for (int i = 0; i < gostProviders.size(); ++i) {
+        if (gostProviders.at(i).type == capi::ProvGost2012_256) {
+            primary = i;
+            break;
+        }
+    }
+    if (primary < 0 && !gostProviders.isEmpty())
+        primary = 0;                // основного нет — берём то, что есть
+
+    for (int i = 0; i < gostProviders.size(); ++i) {
+        const ProviderRef &reference = gostProviders.at(i);
+        QVariantMap providerRow;
+        providerRow.insert(QStringLiteral("name"), reference.name);
+        providerRow.insert(QStringLiteral("type"), reference.type);
+        providerRow.insert(QStringLiteral("algorithm"), providerAlgorithm(reference.type));
+        providerRow.insert(QStringLiteral("primary"), i == primary);
+        providerRow.insert(QStringLiteral("rutokenContainerCount"), 0);
+        providerRows.append(providerRow);
+    }
+
+    if (primary >= 0) {
+        const ProviderRef &reference = gostProviders.at(primary);
+        const QByteArray providerBytes = toCapiText(reference.name);
         capi::CryptProv provider = 0;
-        if (!api.acquireContext(&provider, nullptr, providerBytes.constData(), type,
-                                capi::CryptVerifyContext | capi::CryptSilent))
-            continue;
-        if (cspVersion.isEmpty()) {
+        if (api.acquireContext(&provider, nullptr, providerBytes.constData(),
+                               reference.type,
+                               capi::CryptVerifyContext | capi::CryptSilent)) {
             capi::Dword raw = 0;
             capi::Dword rawSize = static_cast<capi::Dword>(sizeof(raw));
             if (api.getProvParam(provider, capi::PpVersion,
@@ -715,18 +761,15 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
                 cspVersion = QStringLiteral("%1.%2")
                         .arg((raw >> 8) & 0xffU).arg(raw & 0xffU);
             }
-        }
-        const QVector<Container> listed = enumerateContainers(
-                    api, provider, providerName, type);
-        api.releaseContext(provider, 0);
+            rutokenContainers = enumerateContainers(api, provider, reference.name,
+                                                    reference.type);
+            api.releaseContext(provider, 0);
 
-        QVariantMap providerRow;
-        providerRow.insert(QStringLiteral("name"), providerName);
-        providerRow.insert(QStringLiteral("type"), type);
-        providerRow.insert(QStringLiteral("algorithm"), providerAlgorithm(type));
-        providerRow.insert(QStringLiteral("rutokenContainerCount"), listed.size());
-        providerRows.append(providerRow);
-        rutokenContainers += listed;
+            QVariantMap providerRow = providerRows.at(primary).toMap();
+            providerRow.insert(QStringLiteral("rutokenContainerCount"),
+                               rutokenContainers.size());
+            providerRows[primary] = providerRow;
+        }
     }
 
     QVariantList containerRows;
