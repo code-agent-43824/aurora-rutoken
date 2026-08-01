@@ -10,6 +10,7 @@ CRYPTOPRO_SOURCE="src/cryptoprosession.cpp"
 CRYPTOPRO_HEADER="src/cryptopro_capi_minimal.h"
 CRYPTOPRO_PAGE="qml/pages/CryptoProPage.qml"
 CRYPTOPRO_CERT_PAGE="qml/pages/CryptoProCertificatePage.qml"
+CRYPTOPRO_CONTAINER_PAGE="qml/pages/CryptoProContainerPage.qml"
 SETTINGS_PAGE="qml/pages/SettingsPage.qml"
 TOKENS_PAGE="qml/pages/TokensPage.qml"
 NFC_CONNECT_PAGE="qml/pages/NfcConnectPage.qml"
@@ -208,6 +209,26 @@ fi
 # Пока идёт чтение, у счётчика объектов виден индикатор прогресса.
 grep -Fq 'running: page.objectsLoading' "$TOKEN_PAGE"
 grep -Fq 'tokenSession.nfcCryptoProCertificates' "$TOKEN_PAGE"
+# Набор ГОСТ-провайдеров задаётся пользователем и одинаково управляет чтением и
+# созданием: создать контейнер провайдером, которым мы не читаем, нельзя —
+# приложение сделало бы объект, которого само не покажет.
+grep -Fq "QList<int> AppSettings::knownProviderTypes()" "$APP_SETTINGS"
+grep -Fq 'cryptoProSession.setProviderTypes(appSettings.cryptoProProviderTypeList());' src/main.cpp
+grep -Fq 'AppSettings::cryptoProProviderTypesChanged' src/main.cpp
+grep -Fq 'if (!m_providerTypes.contains(providerType))' "$CRYPTOPRO_SOURCE"
+grep -Fq 'allowedProviderTypes.contains(' "$CRYPTOPRO_SOURCE"
+# Пустой набор недопустим: включённый КриптоПро, который ничего не читает, —
+# это не состояние, а ловушка. Последний включённый провайдер не выключается.
+grep -Fq "if (!enabled && m_providerTypes.size() == 1)" "$APP_SETTINGS"
+grep -Fq 'allowedProviderTypes.append(static_cast<int>(capi::ProvGost2012_256));' \
+    "$CRYPTOPRO_SOURCE"
+# Выключенный провайдер остаётся видимым: и в диагностике, и в форме создания.
+grep -Fq 'providerRow.insert(QStringLiteral("enabled"), allowed);' "$CRYPTOPRO_SOURCE"
+grep -Fq "enabled: page.providerEnabled(80)" "$CRYPTOPRO_CONTAINER_PAGE"
+grep -Fq 'opacity: enabled ? 1.0 : 0.4' "$CRYPTOPRO_CONTAINER_PAGE"
+# Предупреждение о цене нескольких провайдеров стоит рядом с самим выбором.
+grep -Fq 'especially over NFC' "$SETTINGS_PAGE"
+
 # Лишних CAPI-проходов быть не должно: решение принимает syncWithTokens.
 grep -Fq 'cryptoProSession.syncWithTokens(tokenWatcher.tokens());' src/main.cpp
 grep -Fq 'if (m_syncedOnce && readers == m_scannedReaders)' "$CRYPTOPRO_SOURCE"

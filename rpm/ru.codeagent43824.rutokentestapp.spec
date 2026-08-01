@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    6
+Release:    7
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,18 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sat Aug 01 2026 Claude <noreply@anthropic.com> - 1.3.0-7
+- Let the user choose which GOST providers CryptoPro works through. Each
+  selected provider is a separate poll of the token, which is the most expensive
+  step of a scan and dominates the wait over NFC, so the choice is a direct
+  speed-versus-completeness trade-off and the settings say so next to it. One
+  provider means one poll; the default is GOST R 34.10-2012/256 alone. The same
+  set governs writing: a container can only be created through a provider the
+  application also reads with, so it can no longer produce an object it cannot
+  show. Providers switched off are still visible - greyed out in the algorithm
+  picker and listed in diagnostics with an enabled flag - rather than hidden.
+  The last enabled provider cannot be switched off, since an empty set would
+  leave CryptoPro on and reading nothing.
 * Sat Aug 01 2026 Claude <noreply@anthropic.com> - 1.3.0-6
 - Poll the token for its container list once instead of once per GOST provider.
   Every GOST provider returns the same list, so the three passes produced three

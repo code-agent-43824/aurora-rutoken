@@ -1,6 +1,7 @@
 #ifndef CRYPTOPROSESSION_H
 #define CRYPTOPROSESSION_H
 
+#include <QtCore/QList>
 #include <QtCore/QObject>
 #include <QtCore/QProcess>
 #include <QtCore/QTimer>
@@ -65,6 +66,9 @@ public:
     QVariantList certificates() const { return m_certificates; }
 
     void setEnabled(bool enabled);
+    // Набор ГОСТ-провайдеров из настроек: ими и только ими выполняется чтение и
+    // разрешается создание контейнеров.
+    void setProviderTypes(const QList<int> &types);
     Q_INVOKABLE void refresh();
     // Решает, нужен ли новый CAPI-проход: он заметно медленнее PKCS#11, а по
     // NFC особенно, поэтому лишних чтений быть не должно.
@@ -93,6 +97,7 @@ private:
     QString m_libraryPath;
     QString m_cspVersion;
     QStringList m_scannedReaders;
+    QList<int> m_providerTypes;
     bool m_syncedOnce = false;
     int m_scanSerial = 0;
     QProcess m_createHelper;

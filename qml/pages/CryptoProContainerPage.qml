@@ -16,13 +16,40 @@ Page {
     property string deviceLabel: ""
     property var objectsPage: null
 
-    property int providerType: 80          // 80 — ГОСТ-2012 256, 81 — ГОСТ-2012 512
+    // 80 — ГОСТ-2012/256, 81 — ГОСТ-2012/512, 75 — ГОСТ-2001. Создавать можно
+    // только теми провайдерами, которыми приложение читает: иначе получился бы
+    // контейнер, которого оно само не покажет. Выключенные в настройках
+    // провайдеры остаются в списке неактивными — видно, что они есть.
+    // Порядок обязан совпадать с порядком пунктов меню: по нему выставляется
+    // currentIndex.
+    readonly property var providerTypes: [80, 81, 75]
+
+    property int providerType: 80
     property bool attempted: false
     property bool returnedToList: false
 
-    function algorithmName() {
-        return page.providerType === 81 ? qsTr("GOST R 34.10-2012 (512)")
-                                        : qsTr("GOST R 34.10-2012 (256)")
+    // Читаем список-свойство, а не Q_INVOKABLE: только у свойства есть сигнал
+    // изменения, по которому QML пересчитает привязку.
+    function providerEnabled(type) {
+        var list = appSettings.cryptoProProviderTypes
+        for (var i = 0; i < list.length; ++i) {
+            if (list[i] === type)
+                return true
+        }
+        return false
+    }
+
+    function indexOfType(type) {
+        var index = page.providerTypes.indexOf(type)
+        return index < 0 ? 0 : index
+    }
+
+    // Ранее выбранный провайдер мог быть выключен в настройках, поэтому форма
+    // открывается на первом разрешённом варианте.
+    Component.onCompleted: {
+        if (!page.providerEnabled(page.providerType))
+            page.providerType = appSettings.firstEnabledProviderType()
+        algorithmBox.currentIndex = page.indexOfType(page.providerType)
     }
 
     function suggestedName() {
@@ -92,14 +119,34 @@ Page {
             }
 
             ComboBox {
+                id: algorithmBox
                 width: parent.width
                 label: qsTr("Algorithm")
-                currentIndex: page.providerType === 81 ? 1 : 0
+                description: qsTr("Providers switched off in the settings are shown but cannot be selected")
+                // Пункты перечислены явно: Silica ComboBox сопоставляет
+                // currentIndex с детьми меню по порядку, и лишний Repeater
+                // среди них сбил бы нумерацию. Выключенный пункт остаётся на
+                // месте и виден, просто приглушён и не нажимается.
                 menu: ContextMenu {
-                    MenuItem { text: qsTr("GOST R 34.10-2012 (256)") }
-                    MenuItem { text: qsTr("GOST R 34.10-2012 (512)") }
+                    MenuItem {
+                        text: qsTr("GOST R 34.10-2012 (256)")
+                        enabled: page.providerEnabled(80)
+                        opacity: enabled ? 1.0 : 0.4
+                        onClicked: page.providerType = 80
+                    }
+                    MenuItem {
+                        text: qsTr("GOST R 34.10-2012 (512)")
+                        enabled: page.providerEnabled(81)
+                        opacity: enabled ? 1.0 : 0.4
+                        onClicked: page.providerType = 81
+                    }
+                    MenuItem {
+                        text: qsTr("GOST R 34.10-2001")
+                        enabled: page.providerEnabled(75)
+                        opacity: enabled ? 1.0 : 0.4
+                        onClicked: page.providerType = 75
+                    }
                 }
-                onCurrentIndexChanged: page.providerType = currentIndex === 1 ? 81 : 80
             }
 
             Label {
@@ -115,6 +162,7 @@ Page {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: cryptoProSession.createBusy ? qsTr("Creating…") : qsTr("Create container")
                 enabled: !cryptoProSession.createBusy
+                         && page.providerEnabled(page.providerType)
                 onClicked: page.start()
             }
 

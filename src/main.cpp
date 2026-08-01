@@ -10,11 +10,14 @@
 
 // Версия приложения (для показа в диагностике). Держать синхронной с
 // rpm/*.spec (Version-Release).
-static const char *const kAppVersion = "1.3.0-6";
+static const char *const kAppVersion = "1.3.0-7";
 
 int main(int argc, char *argv[])
 {
-    if (argc == 2
+    // Второй аргумент режима чтения — набор ГОСТ-провайдеров из настроек
+    // (список номеров через запятую). Секрета в нём нет; PIN-код по-прежнему
+    // передаётся только через stdin режима записи.
+    if ((argc == 2 || argc == 3)
             && QByteArray(argv[1]) == QByteArrayLiteral("--cryptopro-scan-helper")) {
         QCoreApplication helperApplication(argc, argv);
         return CryptoProSession::runScanHelper();
@@ -43,10 +46,15 @@ int main(int argc, char *argv[])
     const auto applyCryptoProSetting = [&]() {
         const bool enabled = appSettings.cryptoProEnabled();
         diagnostics.setCryptoProEnabled(enabled);
+        cryptoProSession.setProviderTypes(appSettings.cryptoProProviderTypeList());
         cryptoProSession.setEnabled(enabled);
         cryptoProSession.syncWithTokens(tokenWatcher.tokens());
     };
     QObject::connect(&appSettings, &AppSettings::cryptoProEnabledChanged,
+                     &cryptoProSession, applyCryptoProSetting);
+    // Смена набора провайдеров меняет и то, что будет прочитано, и то, где
+    // разрешено создавать контейнер, поэтому применяется тем же путём.
+    QObject::connect(&appSettings, &AppSettings::cryptoProProviderTypesChanged,
                      &cryptoProSession, applyCryptoProSetting);
     QObject::connect(&cryptoProSession, &CryptoProSession::changed,
                      &diagnostics, [&]() {

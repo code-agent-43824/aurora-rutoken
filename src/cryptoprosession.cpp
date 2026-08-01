@@ -1,4 +1,5 @@
 #include "cryptoprosession.h"
+#include "appsettings.h"
 #include "cryptopro_capi_minimal.h"
 
 #include <QtCore/QCoreApplication>
@@ -686,7 +687,8 @@ QVariantMap buildCertificateRow(const QByteArray &der, const QString &provider,
     return row;
 }
 
-QVariantMap scan(const Api &api, const QString &libraryPath)
+QVariantMap scan(const Api &api, const QString &libraryPath,
+                 const QList<int> &allowedProviderTypes)
 {
     // Длительность прохода видна в статусе: чтение через CAPI дорогое, и без
     // числа «быстрее/медленнее» можно оценивать только на глаз.
@@ -718,41 +720,40 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
     }
 
     // А вот PP_ENUMCONTAINERS — это опрос самого носителя, и он у прохода самый
-    // дорогой. Все ГОСТ-провайдеры видят один и тот же список контейнеров, так
-    // что три опроса подряд дают три копии одного результата: раньше они
-    // склеивались по FQCN-имени уже после того, как время было потрачено.
-    // Носитель опрашивается ОДИН раз — основным провайдером.
-    // Плата за это осознанная: контейнер, который открывается только под другим
-    // типом провайдера (например ГОСТ-2012/512), в список не попадёт. Если так
-    // и окажется, набор провайдеров вынесем в настройки — см. PLAN.md.
-    int primary = -1;
-    for (int i = 0; i < gostProviders.size(); ++i) {
-        if (gostProviders.at(i).type == capi::ProvGost2012_256) {
-            primary = i;
-            break;
-        }
-    }
-    if (primary < 0 && !gostProviders.isEmpty())
-        primary = 0;                // основного нет — берём то, что есть
-
+    // дорогой; по NFC именно он определяет время ожидания. Все ГОСТ-провайдеры
+    // видят один и тот же список контейнеров, поэтому опрос каждым из них даёт
+    // копии одного результата, которые потом склеиваются по FQCN-имени — время
+    // уже потрачено. Какими провайдерами работать, решает пользователь в
+    // настройках: один провайдер — один опрос носителя и самый быстрый проход,
+    // несколько — полнее, но во столько же раз дольше. Выключенные провайдеры
+    // остаются в списке с признаком `enabled: false`, чтобы в диагностике было
+    // видно, что они есть и почему не опрошены.
     for (int i = 0; i < gostProviders.size(); ++i) {
         const ProviderRef &reference = gostProviders.at(i);
+        const bool allowed = allowedProviderTypes.contains(
+                    static_cast<int>(reference.type));
+
         QVariantMap providerRow;
         providerRow.insert(QStringLiteral("name"), reference.name);
         providerRow.insert(QStringLiteral("type"), reference.type);
         providerRow.insert(QStringLiteral("algorithm"), providerAlgorithm(reference.type));
-        providerRow.insert(QStringLiteral("primary"), i == primary);
+        providerRow.insert(QStringLiteral("enabled"), allowed);
         providerRow.insert(QStringLiteral("rutokenContainerCount"), 0);
-        providerRows.append(providerRow);
-    }
 
-    if (primary >= 0) {
-        const ProviderRef &reference = gostProviders.at(primary);
+        if (!allowed) {
+            providerRows.append(providerRow);
+            continue;
+        }
+
         const QByteArray providerBytes = toCapiText(reference.name);
         capi::CryptProv provider = 0;
-        if (api.acquireContext(&provider, nullptr, providerBytes.constData(),
-                               reference.type,
-                               capi::CryptVerifyContext | capi::CryptSilent)) {
+        if (!api.acquireContext(&provider, nullptr, providerBytes.constData(),
+                                reference.type,
+                                capi::CryptVerifyContext | capi::CryptSilent)) {
+            providerRows.append(providerRow);
+            continue;
+        }
+        if (cspVersion.isEmpty()) {
             capi::Dword raw = 0;
             capi::Dword rawSize = static_cast<capi::Dword>(sizeof(raw));
             if (api.getProvParam(provider, capi::PpVersion,
@@ -761,15 +762,14 @@ QVariantMap scan(const Api &api, const QString &libraryPath)
                 cspVersion = QStringLiteral("%1.%2")
                         .arg((raw >> 8) & 0xffU).arg(raw & 0xffU);
             }
-            rutokenContainers = enumerateContainers(api, provider, reference.name,
-                                                    reference.type);
-            api.releaseContext(provider, 0);
-
-            QVariantMap providerRow = providerRows.at(primary).toMap();
-            providerRow.insert(QStringLiteral("rutokenContainerCount"),
-                               rutokenContainers.size());
-            providerRows[primary] = providerRow;
         }
+        const QVector<Container> listed = enumerateContainers(
+                    api, provider, reference.name, reference.type);
+        api.releaseContext(provider, 0);
+
+        providerRow.insert(QStringLiteral("rutokenContainerCount"), listed.size());
+        providerRows.append(providerRow);
+        rutokenContainers += listed;
     }
 
     QVariantList containerRows;
@@ -1515,7 +1515,7 @@ QVariantMap executeCertificateRequest(const QVariantMap &request)
     return result;
 }
 
-QVariantMap executeScan()
+QVariantMap executeScan(const QList<int> &allowedProviderTypes)
 {
     QLibrary library;
     Api api;
@@ -1532,7 +1532,7 @@ QVariantMap executeScan()
         return result;
     }
 
-    QVariantMap result = scan(api, libraryPath);
+    QVariantMap result = scan(api, libraryPath, allowedProviderTypes);
     result.insert(QStringLiteral("loadedLibraries"),
                   loadedCryptoProLibraries(library.fileName()));
     result.insert(QStringLiteral("available"), true);
@@ -1635,8 +1635,29 @@ int CryptoProSession::runWriteHelper()
 
 int CryptoProSession::runScanHelper()
 {
-    const QByteArray payload = QJsonDocument::fromVariant(executeScan())
-            .toJson(QJsonDocument::Compact);
+    // Набор провайдеров приходит вторым аргументом списком номеров через
+    // запятую. Секрета в нём нет (в отличие от PIN-кода, который допустим
+    // только через stdin), поэтому аргумент — самый простой честный способ.
+    QList<int> allowedProviderTypes;
+    const QStringList arguments = QCoreApplication::arguments();
+    if (arguments.size() > 2) {
+        const QList<int> known = AppSettings::knownProviderTypes();
+        const QStringList items = arguments.at(2).split(QLatin1Char(','),
+                                                        QString::SkipEmptyParts);
+        for (const QString &item : items) {
+            bool ok = false;
+            const int type = item.trimmed().toInt(&ok);
+            if (ok && known.contains(type) && !allowedProviderTypes.contains(type))
+                allowedProviderTypes.append(type);
+        }
+    }
+    // Аргумента нет или он испорчен: работаем основным провайдером, а не всеми
+    // сразу — молча делать самый долгий проход неправильно.
+    if (allowedProviderTypes.isEmpty())
+        allowedProviderTypes.append(static_cast<int>(capi::ProvGost2012_256));
+
+    const QByteArray payload = QJsonDocument::fromVariant(
+                executeScan(allowedProviderTypes)).toJson(QJsonDocument::Compact);
     if (payload.size() > MaxHelperOutputBytes)
         return 2;
     std::fwrite(HelperMarker, 1, sizeof(HelperMarker) - 1, stdout);
@@ -1653,6 +1674,14 @@ void CryptoProSession::createContainer(const QString &reader, const QString &con
         return;
     if (!m_enabled) {
         failCreate(QStringLiteral("КриптоПро CSP выключен в настройках"));
+        return;
+    }
+
+    // Создавать можно только тем провайдером, которым мы читаем: иначе
+    // приложение сделало бы контейнер, которого само не покажет.
+    if (!m_providerTypes.contains(providerType)) {
+        failCreate(QStringLiteral("Провайдер %1 выключен в настройках")
+                   .arg(providerType));
         return;
     }
 
@@ -1818,10 +1847,32 @@ void CryptoProSession::refresh()
     m_refreshPending = false;
     emit changed();
 
+    QStringList types;
+    for (const int type : m_providerTypes)
+        types.append(QString::number(type));
+
+    QStringList arguments;
+    arguments << QStringLiteral("--cryptopro-scan-helper");
+    if (!types.isEmpty())
+        arguments << types.join(QStringLiteral(","));
+
     m_helper.setProgram(QCoreApplication::applicationFilePath());
-    m_helper.setArguments(QStringList(QStringLiteral("--cryptopro-scan-helper")));
+    m_helper.setArguments(arguments);
     m_helper.start(QIODevice::ReadOnly);
     m_helperTimer.start(HelperTimeoutMs);
+}
+
+void CryptoProSession::setProviderTypes(const QList<int> &types)
+{
+    if (m_providerTypes == types)
+        return;
+    m_providerTypes = types;
+    // Результат предыдущего прохода получен другим набором провайдеров и больше
+    // не описывает то, что пользователь просил показывать. Перечитываем, но
+    // только если КриптоПро включён и уже хоть раз читался: иначе решение о
+    // проходе по-прежнему принимает syncWithTokens.
+    if (m_enabled && m_syncedOnce)
+        refresh();
 }
 
 void CryptoProSession::syncWithTokens(const QVariantList &tokens)

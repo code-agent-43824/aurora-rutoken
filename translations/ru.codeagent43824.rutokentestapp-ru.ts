@@ -1145,6 +1145,38 @@
         <source>When disabled, CryptoPro libraries are not loaded</source>
         <translation>Когда настройка выключена, библиотеки КриптоПро не загружаются</translation>
     </message>
+    <message>
+        <source>CryptoPro providers</source>
+        <translation>Провайдеры КриптоПро</translation>
+    </message>
+    <message>
+        <source>Containers are read and created with the selected providers only. Every extra provider is a separate poll of the token, so selecting several of them degrades performance badly — especially over NFC.</source>
+        <translation>Чтение и создание контейнеров идёт только выбранными провайдерами. Каждый лишний провайдер — это отдельный опрос токена, поэтому выбор нескольких сильно ухудшает производительность, особенно по NFC.</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2012 (256)</source>
+        <translation>ГОСТ Р 34.10-2012 (256)</translation>
+    </message>
+    <message>
+        <source>Main provider, type 80</source>
+        <translation>Основной провайдер, тип 80</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2012 (512)</source>
+        <translation>ГОСТ Р 34.10-2012 (512)</translation>
+    </message>
+    <message>
+        <source>Type 81</source>
+        <translation>Тип 81</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2001</source>
+        <translation>ГОСТ Р 34.10-2001</translation>
+    </message>
+    <message>
+        <source>Legacy algorithm, type 75</source>
+        <translation>Устаревший алгоритм, тип 75</translation>
+    </message>
 </context>
 <context>
     <name>CryptoProPage</name>
@@ -1234,6 +1266,14 @@
     <message>
         <source>User PIN</source>
         <translation>PIN-код пользователя</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2001</source>
+        <translation>ГОСТ Р 34.10-2001</translation>
+    </message>
+    <message>
+        <source>Providers switched off in the settings are shown but cannot be selected</source>
+        <translation>Выключенные в настройках провайдеры показаны, но недоступны для выбора</translation>
     </message>
 </context>
 <context>

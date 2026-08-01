@@ -1145,6 +1145,38 @@
         <source>When disabled, CryptoPro libraries are not loaded</source>
         <translation>When disabled, CryptoPro libraries are not loaded</translation>
     </message>
+    <message>
+        <source>CryptoPro providers</source>
+        <translation>CryptoPro providers</translation>
+    </message>
+    <message>
+        <source>Containers are read and created with the selected providers only. Every extra provider is a separate poll of the token, so selecting several of them degrades performance badly — especially over NFC.</source>
+        <translation>Containers are read and created with the selected providers only. Every extra provider is a separate poll of the token, so selecting several of them degrades performance badly — especially over NFC.</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2012 (256)</source>
+        <translation>GOST R 34.10-2012 (256)</translation>
+    </message>
+    <message>
+        <source>Main provider, type 80</source>
+        <translation>Main provider, type 80</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2012 (512)</source>
+        <translation>GOST R 34.10-2012 (512)</translation>
+    </message>
+    <message>
+        <source>Type 81</source>
+        <translation>Type 81</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2001</source>
+        <translation>GOST R 34.10-2001</translation>
+    </message>
+    <message>
+        <source>Legacy algorithm, type 75</source>
+        <translation>Legacy algorithm, type 75</translation>
+    </message>
 </context>
 <context>
     <name>CryptoProPage</name>
@@ -1234,6 +1266,14 @@
     <message>
         <source>User PIN</source>
         <translation>User PIN</translation>
+    </message>
+    <message>
+        <source>GOST R 34.10-2001</source>
+        <translation>GOST R 34.10-2001</translation>
+    </message>
+    <message>
+        <source>Providers switched off in the settings are shown but cannot be selected</source>
+        <translation>Providers switched off in the settings are shown but cannot be selected</translation>
     </message>
 </context>
 <context>
