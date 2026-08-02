@@ -15,6 +15,8 @@ Page {
     property string readerName: ""
     property string deviceLabel: ""
     property var objectsPage: null
+    // "USB" — операция идёт прямо отсюда; "NFC" — через мастер поднесения.
+    property string connection: "USB"
 
     // 80 — ГОСТ-2012/256, 81 — ГОСТ-2012/512, 75 — ГОСТ-2001. Создавать можно
     // только теми провайдерами, которыми приложение читает: иначе получился бы
@@ -27,6 +29,9 @@ Page {
     property int providerType: 80
     property bool attempted: false
     property bool returnedToList: false
+    // NFC: мастер завершился успехом — возвращаемся к списку, когда форма снова
+    // станет активной (пока мастер сверху, pageStack трогать нельзя).
+    property bool pendingReturn: false
 
     // Читаем список-свойство, а не Q_INVOKABLE: только у свойства есть сигнал
     // изменения, по которому QML пересчитает привязку.
@@ -72,6 +77,18 @@ Page {
         var name = nameField.text.trim()
         if (name.length === 0)
             name = page.suggestedName()
+        if (page.connection === "NFC") {
+            // По NFC — через мастер (взять устройство → PIN → поднести →
+            // создание). PIN-код спрашивает мастер, поэтому здесь его не просим.
+            var wiz = pageStack.push(Qt.resolvedUrl("NfcConnectPage.qml"), {
+                operation: "cpcontainer",
+                cpReaderName: page.readerName,
+                cpContainerName: name,
+                cpProviderType: page.providerType
+            })
+            wiz.finishedOk.connect(function() { page.pendingReturn = true })
+            return
+        }
         var pad = pageStack.push(Qt.resolvedUrl("PinPadPage.qml"), {
             heading: qsTr("User PIN"),
             subtitle: page.deviceLabel.length > 0 ? page.deviceLabel : qsTr("Rutoken"),
@@ -92,6 +109,12 @@ Page {
             if (!cryptoProSession.createBusy && cryptoProSession.createOutcome === 1)
                 page.goToList()
         }
+    }
+
+    // NFC: мастер закрыли после успеха → форма снова активна → к списку.
+    onStatusChanged: {
+        if (status === PageStatus.Active && page.pendingReturn)
+            page.goToList()
     }
 
     SilicaFlickable {

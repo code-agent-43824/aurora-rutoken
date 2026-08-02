@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    7
+Release:    8
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,18 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sat Aug 01 2026 Claude <noreply@anthropic.com> - 1.3.0-8
+- Create a CryptoPro container and build a PKCS#10 request over NFC, each in a
+  single hold, through the same wizard that already carries the PKCS#11 writes.
+  Both operations run on the CryptoPro provider rather than PKCS#11, so the
+  wizard now takes its progress, result and retry state from whichever backend
+  actually ran the operation instead of always from the PKCS#11 session, whose
+  stale outcome would otherwise end the step early. The two share one PC/SC
+  channel, so a write waits for any scan in flight and retries when the channel
+  frees rather than stalling until the device is presented again. After a
+  container is created the containers are re-read while the device is still
+  held, so the new object is visible without a second hold; a failed creation
+  changed nothing and skips the re-read.
 * Sat Aug 01 2026 Claude <noreply@anthropic.com> - 1.3.0-7
 - Let the user choose which GOST providers CryptoPro works through. Each
   selected provider is a separate poll of the token, which is the most expensive

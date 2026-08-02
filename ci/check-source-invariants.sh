@@ -11,6 +11,7 @@ CRYPTOPRO_HEADER="src/cryptopro_capi_minimal.h"
 CRYPTOPRO_PAGE="qml/pages/CryptoProPage.qml"
 CRYPTOPRO_CERT_PAGE="qml/pages/CryptoProCertificatePage.qml"
 CRYPTOPRO_CONTAINER_PAGE="qml/pages/CryptoProContainerPage.qml"
+CRYPTOPRO_CSR_PAGE="qml/pages/CryptoProCsrPage.qml"
 SETTINGS_PAGE="qml/pages/SettingsPage.qml"
 TOKENS_PAGE="qml/pages/TokensPage.qml"
 NFC_CONNECT_PAGE="qml/pages/NfcConnectPage.qml"
@@ -190,7 +191,12 @@ grep -Fq 'capi::PpVersion' "$CRYPTOPRO_SOURCE"
 grep -Fq 'diagnostics.setCryptoProVersion(cryptoProSession.cspVersion());' src/main.cpp
 # КриптоПро на NFC: чтение идёт в том же поднесении, результат — снимком.
 grep -Fq 'tokenSession.setNfcCryptoPro(cryptoProSession.certificates,' "$NFC_CONNECT_PAGE"
-grep -Fq 'page.operation === "connect" && appSettings.cryptoProEnabled' "$NFC_CONNECT_PAGE"
+# Проход CAPI запускается только при включённом backend'е и только там, где он
+# нужен: подключение и УСПЕШНОЕ создание контейнера. Неудачная запись ничего не
+# изменила — перечитывать носитель незачем, по NFC это лишние секунды.
+grep -Fq 'if (!appSettings.cryptoProEnabled)' "$NFC_CONNECT_PAGE"
+grep -Fq 'return page.operation === "connect"' "$NFC_CONNECT_PAGE"
+grep -Fq '&& cryptoProSession.createOutcome === 1)' "$NFC_CONNECT_PAGE"
 # NFC-считыватель называется ifd-nfcd-handler, поэтому без признака NFC фильтр
 # отбрасывал бы все контейнеры поднесённого устройства.
 grep -Fq 'haystack.contains(QStringLiteral("nfc"))' "$CRYPTOPRO_SOURCE"
@@ -228,6 +234,22 @@ grep -Fq "enabled: page.providerEnabled(80)" "$CRYPTOPRO_CONTAINER_PAGE"
 grep -Fq 'opacity: enabled ? 1.0 : 0.4' "$CRYPTOPRO_CONTAINER_PAGE"
 # Предупреждение о цене нескольких провайдеров стоит рядом с самим выбором.
 grep -Fq 'especially over NFC' "$SETTINGS_PAGE"
+
+# --- v1.3, этап 3: запись через КриптоПро по NFC ---
+# Обе операции идут через тот же мастер поднесения, что и запись PKCS#11.
+grep -Fq 'page.operation === "cpcontainer" || page.operation === "cpcsr"' "$NFC_CONNECT_PAGE"
+grep -Fq 'operation: "cpcontainer"' "$CRYPTOPRO_CONTAINER_PAGE"
+grep -Fq 'operation: "cpcsr"' "$CRYPTOPRO_CSR_PAGE"
+# Канал PC/SC один: пока по нему идёт чужой проход, запись не начинается.
+grep -Fq 'cryptoProSession.busy || cryptoProSession.createBusy' "$NFC_CONNECT_PAGE"
+# Состояние операции КриптоПро не берётся у PKCS#11: у него свой busy/outcome,
+# а прошлый outcome tokenSession завершил бы шаг досрочно.
+grep -Fq 'if (page.isCryptoProWrite())' "$NFC_CONNECT_PAGE"
+grep -Fq 'text: page.opResult()' "$NFC_CONNECT_PAGE"
+if grep -Fq 'text: tokenSession.result' "$NFC_CONNECT_PAGE"; then
+    echo "The NFC result must follow the backend that ran the operation" >&2
+    exit 1
+fi
 
 # Лишних CAPI-проходов быть не должно: решение принимает syncWithTokens.
 grep -Fq 'cryptoProSession.syncWithTokens(tokenWatcher.tokens());' src/main.cpp

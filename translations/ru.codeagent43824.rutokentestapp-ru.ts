@@ -503,6 +503,14 @@
         <source>Try again</source>
         <translation>Ещё раз</translation>
     </message>
+    <message>
+        <source>New CryptoPro container over NFC</source>
+        <translation>Новый контейнер КриптоПро по NFC</translation>
+    </message>
+    <message>
+        <source>CryptoPro certificate request over NFC</source>
+        <translation>Запрос на сертификат КриптоПро по NFC</translation>
+    </message>
 </context>
 <context>
     <name>TokenLabelPage</name>

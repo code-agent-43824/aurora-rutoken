@@ -7,7 +7,9 @@ import Sailfish.Silica 1.0
 //   шаг 3 — поднести токен к задней крышке (иллюстрация + прогресс), при
 //           появлении NFC-слота выполняется операция;
 //   шаг 4 — убрать токен, результат.
-// operation: "connect" (вход + чтение), "generate", "import", "csr", "cms".
+// operation: "connect" (вход + чтение), "generate", "import", "csr", "cms",
+// "cpcontainer" (создание контейнера КриптоПро), "cpcsr" (запрос PKCS#10
+// средствами КриптоПро).
 // PIN по NFC НЕ
 // запоминается. После connect токен «логически подключается» (снимок объектов
 // сохраняется в TokenSession) — к нему можно вернуться без повторного поднесения.
@@ -33,20 +35,30 @@ Page {
     property bool cmsDetached: true
     property string cmsOutputDir: ""
     property string cmsOutputName: ""
+    // Для operation="cpcontainer": считыватель, имя нового контейнера и тип
+    // провайдера. Считыватель КриптоПро называется так же, как слот PKCS#11
+    // (`ifd-nfcd-handler 00 00`), поэтому имя берётся у того же устройства.
+    property string cpReaderName: ""
+    property string cpContainerName: ""
+    property int cpProviderType: 80
+    // Для operation="cpcsr": полное имя существующего контейнера и поля Subject.
+    property string cpContainer: ""
+    property var cpSubject: null
 
     property int step: 1
     property string pin: ""
     property bool noPin: false      // подключение без входа (только публичные сертификаты)
     property bool started: false
-    // Чтение КриптоПро запускается один раз за поднесение и только на
-    // подключении: операции записи CAPI-проход не требуют, а он медленный.
+    // Чтение КриптоПро запускается один раз за поднесение: на подключении —
+    // чтобы увидеть контейнеры, после создания контейнера — чтобы новый объект
+    // был виден без второго поднесения. Остальным операциям проход не нужен.
     property bool cryptoProStarted: false
     // Счётчик проходов на момент запуска: ждём именно свой результат, а не
     // первое попавшееся завершение чужого прохода.
     property int cryptoProSerial: -1
-    // Чтение PKCS#11 в этом поднесении завершено — только после этого канал
-    // свободен для CAPI.
-    property bool pkcs11Done: false
+    // Собственная операция этого поднесения завершена — только после этого
+    // канал PC/SC свободен для дополнительного прохода CAPI.
+    property bool channelFree: false
     property var lastToken: null
 
     // Успешное завершение записи по NFC (генерация/импорт). Форма-инициатор
@@ -62,7 +74,32 @@ Page {
             return qsTr("Certificate request over NFC")
         if (page.operation === "cms")
             return qsTr("Sign a file over NFC")
+        if (page.operation === "cpcontainer")
+            return qsTr("New CryptoPro container over NFC")
+        if (page.operation === "cpcsr")
+            return qsTr("CryptoPro certificate request over NFC")
         return qsTr("Connect over NFC")
+    }
+
+    // Операции, которые выполняет КриптоПро, а не PKCS#11: у них другой источник
+    // состояния и результата, а канал PC/SC — тот же самый.
+    function isCryptoProWrite() {
+        return page.operation === "cpcontainer" || page.operation === "cpcsr"
+    }
+
+    function opBusy() {
+        return page.isCryptoProWrite() ? cryptoProSession.createBusy
+                                       : tokenSession.busy
+    }
+
+    function opOutcome() {
+        return page.isCryptoProWrite() ? cryptoProSession.createOutcome
+                                       : tokenSession.outcome
+    }
+
+    function opResult() {
+        return page.isCryptoProWrite() ? cryptoProSession.createResult
+                                       : tokenSession.result
     }
 
     function findNfcToken() {
@@ -77,12 +114,26 @@ Page {
     function tryRun() {
         if (page.step !== 3 || page.started || tokenSession.busy)
             return
+        // Запись через КриптоПро идёт по тому же каналу PC/SC, что и PKCS#11:
+        // пока по нему работает чужой проход, начинать нельзя — по NFC второй
+        // одновременный доступ просто получит отказ.
+        if (page.isCryptoProWrite()
+                && (cryptoProSession.busy || cryptoProSession.createBusy))
+            return
         var tok = page.findNfcToken()
         if (!tok)
             return
         page.started = true
         page.lastToken = tok
-        if (page.operation === "generate")
+        if (page.operation === "cpcontainer")
+            cryptoProSession.createContainer(
+                        page.cpReaderName.length > 0 ? page.cpReaderName : tok.slotName,
+                        page.cpContainerName, page.cpProviderType, page.pin)
+        else if (page.operation === "cpcsr")
+            cryptoProSession.createCertificateRequest(page.cpContainer,
+                                                      page.cpProviderType,
+                                                      page.pin, page.cpSubject)
+        else if (page.operation === "generate")
             tokenSession.generateKeyPair(tok.slotId, page.pin, page.algorithm, page.label)
         else if (page.operation === "import")
             tokenSession.importCertificate(tok.slotId, page.pin, page.filePath, page.label)
@@ -115,17 +166,23 @@ Page {
         })
     }
 
-    // Дочитывать контейнеры КриптоПро имеет смысл только при подключении
-    // (чтение объектов) и только если backend включён в настройках.
+    // Проход CAPI в этом же поднесении нужен в двух случаях: при подключении —
+    // чтобы увидеть контейнеры, и после успешного создания контейнера — чтобы
+    // новый объект был виден без второго поднесения. Неудачное создание ничего
+    // не изменило, перечитывать нечего.
     function needsCryptoPro() {
-        return page.operation === "connect" && appSettings.cryptoProEnabled
+        if (!appSettings.cryptoProEnabled)
+            return false
+        return page.operation === "connect"
+                || (page.operation === "cpcontainer"
+                    && cryptoProSession.createOutcome === 1)
     }
 
     // Запускает чтение КриптоПро, когда это уместно и безопасно. Возвращает
     // true, если шаг «уберите устройство» ждёт КриптоПро (уже запущено или
     // ожидает освобождения канала).
     function maybeStartCryptoPro() {
-        if (!page.needsCryptoPro() || !page.pkcs11Done)
+        if (!page.needsCryptoPro() || !page.channelFree)
             return false
         if (page.cryptoProStarted)
             return true
@@ -146,7 +203,7 @@ Page {
         page.started = false
         page.cryptoProStarted = false
         page.cryptoProSerial = -1
-        page.pkcs11Done = false
+        page.channelFree = false
         page.step = 3
         tokenWatcher.refresh()
         page.tryRun()
@@ -195,20 +252,49 @@ Page {
     Connections {
         target: tokenSession
         onChanged: {
-            if (page.step !== 3 || !page.started || tokenSession.busy
+            if (page.step !== 3)
+                return
+            // Операции КриптоПро идут мимо PKCS#11: их состояние здесь не
+            // отражается, а старый outcome от прошлой операции завершил бы шаг.
+            // Важно здесь лишь одно: канал освободился, запись можно начинать.
+            if (page.isCryptoProWrite()) {
+                if (!page.started)
+                    page.tryRun()
+                return
+            }
+            if (!page.started || tokenSession.busy
                     || (tokenSession.outcome === 0 && !page.noPin))
                 return
-            page.pkcs11Done = true
+            page.channelFree = true
             if (page.maybeStartCryptoPro())
                 return
             page.step = 4
         }
     }
-    // Чтение КриптоПро в том же поднесении завершилось — сохраняем снимок.
+    // Завершение операции КриптоПро: сначала собственная запись этого поднесения,
+    // затем — необязательный проход чтения, снимок которого сохраняем.
     Connections {
         target: cryptoProSession
         onChanged: {
-            if (page.step !== 3 || !page.started || cryptoProSession.busy)
+            if (page.step !== 3)
+                return
+            if (!page.started) {
+                // Устройство уже поднесено, но канал был занят чужим проходом.
+                // Он закончился — пробуем снова, иначе ждать было бы нечего.
+                page.tryRun()
+                return
+            }
+            if (page.isCryptoProWrite() && !page.channelFree) {
+                if (cryptoProSession.createBusy
+                        || cryptoProSession.createOutcome === 0)
+                    return
+                page.channelFree = true
+                if (page.maybeStartCryptoPro())
+                    return
+                page.step = 4
+                return
+            }
+            if (cryptoProSession.busy)
                 return
             if (!page.cryptoProStarted) {
                 page.maybeStartCryptoPro()   // канал освободился — теперь можно
@@ -328,15 +414,15 @@ Page {
                     wrapMode: Text.Wrap
                     horizontalAlignment: Text.AlignHCenter
                     textFormat: Text.PlainText
-                    text: tokenSession.result
-                    color: tokenSession.outcome === 1 ? "#4caf50" : "#f44336"
+                    text: page.opResult()
+                    color: page.opOutcome() === 1 ? "#4caf50" : "#f44336"
                     font.pixelSize: Theme.fontSizeMedium
                 }
                 // Повтор при неудаче (например, токен убрали слишком рано) —
                 // без повторного ввода PIN-кода/данных.
                 Button {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    visible: !tokenSession.busy && tokenSession.outcome === -1
+                    visible: !page.opBusy() && page.opOutcome() === -1
                     text: qsTr("Try again")
                     onClicked: page.retryNfc()
                 }
@@ -369,9 +455,17 @@ Page {
                                 flags: (t && t.flags) ? t.flags : "",
                                 slotName: (t && t.slotName) ? t.slotName : ""
                             })
-                        } else if (page.operation === "csr" || page.operation === "cms") {
+                        } else if (page.operation === "csr" || page.operation === "cms"
+                                   || page.operation === "cpcsr") {
                             // CSR/CMS не меняют объекты токена: возврат к форме,
                             // которая покажет сформированный запрос или путь подписи.
+                            pageStack.pop()
+                        } else if (page.operation === "cpcontainer") {
+                            // Снимок КриптоПро обновлён в этом же поднесении,
+                            // поэтому форма может сразу вернуться к списку
+                            // объектов — новый контейнер там уже виден.
+                            if (cryptoProSession.createOutcome === 1)
+                                page.finishedOk()
                             pageStack.pop()
                         } else {
                             if (tokenSession.outcome === 1) {

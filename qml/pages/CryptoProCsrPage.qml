@@ -12,6 +12,8 @@ Page {
     property string container: ""        // полный путь контейнера (FQCN)
     property int providerType: 80
     property string deviceLabel: ""
+    // "USB" — операция идёт прямо отсюда; "NFC" — через мастер поднесения.
+    property string connection: "USB"
 
     property bool attempted: false
 
@@ -30,6 +32,19 @@ Page {
             l: lField.text.trim(),
             st: stField.text.trim(),
             email: emailField.text.trim()
+        }
+        if (page.connection === "NFC") {
+            // По NFC — через мастер (взять устройство → PIN → поднести →
+            // формирование запроса). Готовый PEM появится на этой же форме:
+            // запрос хранится в сессии, а объекты устройства он не меняет.
+            page.attempted = true
+            pageStack.push(Qt.resolvedUrl("NfcConnectPage.qml"), {
+                operation: "cpcsr",
+                cpContainer: page.container,
+                cpProviderType: page.providerType,
+                cpSubject: subject
+            })
+            return
         }
         var pad = pageStack.push(Qt.resolvedUrl("PinPadPage.qml"), {
             heading: qsTr("User PIN"),
