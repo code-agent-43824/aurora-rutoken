@@ -129,13 +129,20 @@ Page {
         // заголовке. Заголовок контейнера без сертификата — родовое название.
         var path = container.name ? container.name
                                   : (container.uniqueName ? container.uniqueName : "")
+        // Уникальное имя показываем отдельной частью, когда оно отличается от
+        // отображаемого: режим носителя закодирован именно в нём, и без него две
+        // записи об одном устройстве выглядят одинаково.
+        var unique = container.uniqueName ? container.uniqueName : ""
         return {
             kind: "key",
             idHex: "",
             idText: path,
+            uniqueText: unique === path ? "" : unique,
             label: qsTr("Key container"),
             keyType: container.algorithm ? container.algorithm : "",
-            keyClass: qsTr("CryptoPro key container"),
+            keyClass: container.mediaMode && container.mediaMode.length > 0
+                      ? qsTr("CryptoPro key container, %1").arg(container.mediaMode)
+                      : qsTr("CryptoPro key container"),
             source: qsTr("CryptoPro CSP"),
             providerType: container.providerType ? container.providerType : 0,
             cryptoPro: true
@@ -746,6 +753,8 @@ Page {
                                     var parts = []
                                     if (modelData.kind === "key") {
                                         parts.push(qsTr("ID: %1").arg(modelData.idText && modelData.idText.length > 0 ? modelData.idText : "—"))
+                                        if (modelData.uniqueText && modelData.uniqueText.length > 0)
+                                            parts.push(qsTr("medium: %1").arg(modelData.uniqueText))
                                         if (modelData.keyType && modelData.keyType.length > 0)
                                             parts.push(modelData.keyType)
                                         if (modelData.keyClass && modelData.keyClass.length > 0)

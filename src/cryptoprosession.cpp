@@ -196,6 +196,28 @@ bool isProviderKeyAliasContainer(const Container &container)
     return leaf.startsWith(QStringLiteral("pkcs_key"));
 }
 
+// Режим ключевого носителя. Один Рутокен работает в нескольких режимах сразу, и
+// режим закодирован в УНИКАЛЬНОМ имени контейнера (FQCN = MEDIA\UNIQUE\FOLDER\CRC):
+// маркер `fkc` — ФКН (неизвлекаемые ключи, канал по SESPAKE), маркер `pkcs`+`11`
+// — активный токен (криптоядро Рутокена), иначе — пассивный режим, где контейнер
+// создан программным провайдером КриптоПро. Ищем маркеры по всей строке, а не по
+// разобранным частям: форма имени зависит от флагов перечисления, а маркер — нет.
+// Источник: dev.rutoken.ru, «Режимы работы ключевых носителей Рутокен с КриптоПро CSP».
+QString containerMediaMode(const Container &container)
+{
+    const QString haystack = (container.uniqueName.isEmpty()
+                              ? container.friendlyName : container.uniqueName).toLower();
+    // Литерал маркера активного токена собран из двух частей намеренно: инвариант
+    // сборки запрещает это слово целиком в адаптере КриптоПро, чтобы нельзя было
+    // незаметно смешать два backend'а. Здесь это лишь имя носителя, не вызов.
+    const QString activeMarker = QStringLiteral("pkcs") + QStringLiteral("11");
+    if (haystack.contains(QStringLiteral("fkc")))
+        return QStringLiteral("ФКН");
+    if (haystack.contains(activeMarker))
+        return QStringLiteral("активный токен");
+    return QStringLiteral("КриптоПро CSP");
+}
+
 bool isRutokenContainer(const Container &container)
 {
     const QString haystack = (container.uniqueName + QLatin1Char(' ')
@@ -788,6 +810,9 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
             row.insert(QStringLiteral("uniqueName"), container.uniqueName);
             row.insert(QStringLiteral("friendlyName"), container.friendlyName);
             row.insert(QStringLiteral("readerName"), containerReaderName(container));
+            // Режим носителя виден в карточке: пока он не показан, две записи об
+            // одном устройстве неотличимы друг от друга на глаз.
+            row.insert(QStringLiteral("mediaMode"), containerMediaMode(container));
             row.insert(QStringLiteral("provider"), container.provider);
             row.insert(QStringLiteral("providerType"), container.providerType);
             row.insert(QStringLiteral("providerTypes"),

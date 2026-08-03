@@ -235,6 +235,12 @@ grep -Fq 'opacity: enabled ? 1.0 : 0.4' "$CRYPTOPRO_CONTAINER_PAGE"
 # Предупреждение о цене нескольких провайдеров стоит рядом с самим выбором.
 grep -Fq 'especially over NFC' "$SETTINGS_PAGE"
 
+# Режим носителя (ФКН / активный токен / CSP) закодирован в уникальном имени и
+# показывается в карточке: без него две записи об одном устройстве неотличимы.
+grep -Fq 'QString containerMediaMode(const Container &container)' "$CRYPTOPRO_SOURCE"
+grep -Fq 'row.insert(QStringLiteral("mediaMode"), containerMediaMode(container));' "$CRYPTOPRO_SOURCE"
+grep -Fq 'qsTr("medium: %1").arg(modelData.uniqueText)' "$TOKEN_PAGE"
+
 # --- v1.3, этап 3: запись через КриптоПро по NFC ---
 # Обе операции идут через тот же мастер поднесения, что и запись PKCS#11.
 grep -Fq 'page.operation === "cpcontainer" || page.operation === "cpcsr"' "$NFC_CONNECT_PAGE"

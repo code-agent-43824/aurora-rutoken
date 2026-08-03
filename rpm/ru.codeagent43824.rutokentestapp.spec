@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    8
+Release:    9
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,14 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sun Aug 02 2026 Claude <noreply@anthropic.com> - 1.3.0-9
+- Show which key medium a CryptoPro container lives on. A single Rutoken works
+  in several modes at once - the passive CryptoPro CSP container, the active
+  token backed by the device's own crypto core, and FKN - and the mode is
+  encoded in the container's unique name. Until now the card showed neither the
+  mode nor the unique name, so two entries for one device looked identical and
+  there was no way to tell a genuine duplicate from two different media. The
+  card now carries both.
 * Sat Aug 01 2026 Claude <noreply@anthropic.com> - 1.3.0-8
 - Create a CryptoPro container and build a PKCS#10 request over NFC, each in a
   single hold, through the same wizard that already carries the PKCS#11 writes.
