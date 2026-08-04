@@ -9,6 +9,7 @@
 - [PLAN.md](PLAN.md) — план работ, текущее состояние, открытые вопросы
 - [docs/JOURNAL.md](docs/JOURNAL.md) — журнал: что сделано, почему, какими коммитами
 - [docs/RESEARCH.md](docs/RESEARCH.md) — исследование: экосистема Авроры (примеры на Мос.Хабе), как Рутокен работает на Авроре, выбор фреймворка
+- [docs/OBJECT_MODEL.md](docs/OBJECT_MODEL.md) — как приложение различает и склеивает объекты PKCS#11 и КриптоПро CSP: алгоритм, известные отказы и история его изменений
 - [docs/RELEASE_NOTES_v1.0.md](docs/RELEASE_NOTES_v1.0.md) — состав первого стабильного выпуска и порядок установки
 - [docs/RELEASE_NOTES_v1.1.md](docs/RELEASE_NOTES_v1.1.md) — стабильная CMS-подпись файлов через Рутокен
 - [docs/RELEASE_NOTES_v1.2.md](docs/RELEASE_NOTES_v1.2.md) — стабильный read-only просмотр через внешний КриптоПро CSP
