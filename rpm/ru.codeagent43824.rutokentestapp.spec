@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    9
+Release:    10
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,10 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Mon Aug 03 2026 Claude <noreply@anthropic.com> - 1.3.0-10
+- Name the container medium modes exactly as the CryptoPro CSP application on
+  Aurora names them, since the user compares the two screens side by side and a
+  vocabulary of our own only gets in the way.
 * Sun Aug 02 2026 Claude <noreply@anthropic.com> - 1.3.0-9
 - Show which key medium a CryptoPro container lives on. A single Rutoken works
   in several modes at once - the passive CryptoPro CSP container, the active

@@ -211,11 +211,14 @@ QString containerMediaMode(const Container &container)
     // сборки запрещает это слово целиком в адаптере КриптоПро, чтобы нельзя было
     // незаметно смешать два backend'а. Здесь это лишь имя носителя, не вызов.
     const QString activeMarker = QStringLiteral("pkcs") + QStringLiteral("11");
+    // Названия ровно те, которыми режимы называет приложение КриптоПро CSP на
+    // Авроре (подтверждено владельцем 2026-08-03). Свой словарь здесь не нужен:
+    // пользователь сверяет наш экран с экраном КриптоПро.
     if (haystack.contains(QStringLiteral("fkc")))
-        return QStringLiteral("ФКН");
+        return QStringLiteral("режим ФКН");
     if (haystack.contains(activeMarker))
-        return QStringLiteral("активный токен");
-    return QStringLiteral("КриптоПро CSP");
+        return QStringLiteral("режим PKCS#11");
+    return QStringLiteral("режим CSP");
 }
 
 bool isRutokenContainer(const Container &container)
