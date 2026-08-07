@@ -221,6 +221,40 @@ QString containerMediaMode(const Container &container)
     return QStringLiteral("режим CSP");
 }
 
+// Кандидат `CKA_ID` ключевой пары PKCS#11, которой принадлежит этот контейнер,
+// в нижнем регистре hex. Выводится ИЗ ИМЕНИ, без открытия контейнера и без
+// обращения к носителю. Оба направления сняты на устройстве 2026-08-04:
+//
+//   * пара уже была в PKCS#11 — CSP дал контейнеру имя `ID_<hex>`, где `<hex>`
+//     это строчный hex сырых байтов `CKA_ID`;
+//   * контейнер создал сам CSP — имя выбрал он, а `CKA_ID` записал как
+//     ASCII(имя) + завершающий нулевой байт.
+//
+// Завершающие нули отбрасывает сторона сравнения. Подробности и листинги —
+// docs/OBJECT_MODEL.md и docs/RESEARCH.md.
+QString containerKeyIdHex(const Container &container)
+{
+    const QString leaf = containerLeaf(container.friendlyName.isEmpty()
+                                       ? container.uniqueName : container.friendlyName);
+    if (leaf.isEmpty())
+        return QString();
+
+    static const QString idPrefix = QStringLiteral("ID_");
+    if (leaf.startsWith(idPrefix, Qt::CaseInsensitive)) {
+        const QString rest = leaf.mid(idPrefix.size()).toLower();
+        bool hex = !rest.isEmpty() && (rest.size() % 2) == 0;
+        for (int i = 0; hex && i < rest.size(); ++i) {
+            const QChar c = rest.at(i);
+            hex = (c >= QLatin1Char('0') && c <= QLatin1Char('9'))
+                    || (c >= QLatin1Char('a') && c <= QLatin1Char('f'));
+        }
+        if (hex)
+            return rest;
+        // Имя лишь похоже на `ID_…`, но не hex — считаем его обычным именем.
+    }
+    return QString::fromLatin1(leaf.toLatin1().toHex());
+}
+
 bool isRutokenContainer(const Container &container)
 {
     const QString haystack = (container.uniqueName + QLatin1Char(' ')
@@ -816,6 +850,13 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
             // Режим носителя виден в карточке: пока он не показан, две записи об
             // одном устройстве неотличимы друг от друга на глаз.
             row.insert(QStringLiteral("mediaMode"), containerMediaMode(container));
+            // Ключ сопоставления с ключевой парой PKCS#11 — только для носителя
+            // режима PKCS#11: у контейнеров режимов CSP и ФКН пары PKCS#11
+            // может не быть вовсе, и правило имени к ним не проверено.
+            row.insert(QStringLiteral("keyIdHex"),
+                       containerMediaMode(container)
+                       == QStringLiteral("режим PKCS#11")
+                       ? containerKeyIdHex(container) : QString());
             row.insert(QStringLiteral("provider"), container.provider);
             row.insert(QStringLiteral("providerType"), container.providerType);
             row.insert(QStringLiteral("providerTypes"),

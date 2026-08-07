@@ -240,6 +240,17 @@ grep -Fq 'especially over NFC' "$SETTINGS_PAGE"
 grep -Fq 'QString containerMediaMode(const Container &container)' "$CRYPTOPRO_SOURCE"
 grep -Fq 'row.insert(QStringLiteral("mediaMode"), containerMediaMode(container));' "$CRYPTOPRO_SOURCE"
 grep -Fq 'qsTr("medium: %1").arg(modelData.uniqueText)' "$TOKEN_PAGE"
+# Контейнер режима PKCS#11 — это та же ключевая пара: сопоставление идёт по
+# CKA_ID, выведенному ИЗ ИМЕНИ контейнера, без открытия контейнера и без PIN.
+# Алгоритм и замеры, на которых он стоит, — docs/OBJECT_MODEL.md.
+grep -Fq 'QString containerKeyIdHex(const Container &container)' "$CRYPTOPRO_SOURCE"
+grep -Fq 'row.insert(QStringLiteral("keyIdHex"),' "$CRYPTOPRO_SOURCE"
+grep -Fq 'function normalizedKeyId(hex)' "$TOKEN_PAGE"
+grep -Fq 'keys[bound[b]] = page.keyWithContainer(keys[bound[b]], container)' "$TOKEN_PAGE"
+if [ ! -f docs/OBJECT_MODEL.md ]; then
+    echo "The object matching algorithm must stay documented in docs/OBJECT_MODEL.md" >&2
+    exit 1
+fi
 
 # --- v1.3, этап 3: запись через КриптоПро по NFC ---
 # Обе операции идут через тот же мастер поднесения, что и запись PKCS#11.

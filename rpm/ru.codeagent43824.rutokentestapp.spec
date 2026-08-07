@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    10
+Release:    11
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,19 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Tue Aug 04 2026 Claude <noreply@anthropic.com> - 1.3.0-11
+- Show a key pair that is also a CryptoPro container as one object instead of
+  three. Until now a container was only ever matched against certificates, never
+  against a key pair, so with no certificate on the pair there was nothing to
+  match and the same key appeared as a private key, a public key and a container.
+  Four measurements on the device established that the container's leaf name is
+  always derived from the key pair's CKA_ID - either ID_<hex> of the raw bytes,
+  or the container name that CryptoPro also wrote into CKA_ID with a trailing NUL
+  - so the two can be matched by comparing strings already read during
+  enumeration, with no container open, no PIN and no extra traffic to the token.
+  The container's path and medium mode move onto the key card rather than being
+  lost. The rule applies only to media in PKCS#11 mode; CSP and FKN containers
+  are untouched, since nothing has been measured about them.
 * Mon Aug 03 2026 Claude <noreply@anthropic.com> - 1.3.0-10
 - Name the container medium modes exactly as the CryptoPro CSP application on
   Aurora names them, since the user compares the two screens side by side and a

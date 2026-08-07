@@ -201,6 +201,29 @@ Page {
         return out
     }
 
+    // Завершающие нулевые байты не значимы: КриптоПро пишет `CKA_ID` как
+    // ASCII(имя контейнера) + 0x00, а имя контейнера этого нуля не содержит.
+    function normalizedKeyId(hex) {
+        var value = hex ? hex.toString().toLowerCase() : ""
+        while (value.length >= 2 && value.substr(value.length - 2, 2) === "00")
+            value = value.substr(0, value.length - 2)
+        return value
+    }
+
+    // Ключевая пара PKCS#11, которая одновременно является контейнером
+    // КриптоПро: отдельной строки контейнер не даёт, но его путь и режим
+    // носителя переезжают на карточку ключа, а источник становится двойным.
+    function keyWithContainer(keyObject, container) {
+        var copy = {}
+        for (var key in keyObject)
+            copy[key] = keyObject[key]
+        copy.source = qsTr("PKCS#11 and CryptoPro CSP")
+        copy.container = container.name ? container.name
+                                        : (container.uniqueName ? container.uniqueName : "")
+        copy.containerMode = container.mediaMode ? container.mediaMode : ""
+        return copy
+    }
+
     function mergeObjects(pkcs11Objects, cryptoProCertificates,
                           cryptoProContainers, enabled, readerName) {
         var active = []
@@ -260,6 +283,20 @@ Page {
                 else
                     active.push(mapped)
             }
+            // Ключевые пары PKCS#11 по нормализованному CKA_ID: контейнер
+            // режима PKCS#11 — это та же самая пара, и его имя выводится из её
+            // CKA_ID (см. docs/OBJECT_MODEL.md). Сравнение строк, носитель при
+            // этом не опрашивается.
+            var keysById = {}
+            for (i = 0; i < keys.length; ++i) {
+                var keyId = page.normalizedKeyId(keys[i].idHex)
+                if (keyId.length === 0)
+                    continue
+                if (!keysById[keyId])
+                    keysById[keyId] = []
+                keysById[keyId].push(i)
+            }
+
             for (i = 0; i < cryptoProContainers.length; ++i) {
                 var container = cryptoProContainers[i]
                 if (wantedReader.length === 0
@@ -267,6 +304,13 @@ Page {
                         || (container.containerKey
                             && representedContainers[container.containerKey]))
                     continue
+                var boundId = page.normalizedKeyId(container.keyIdHex)
+                if (boundId.length > 0 && keysById[boundId]) {
+                    var bound = keysById[boundId]
+                    for (var b = 0; b < bound.length; ++b)
+                        keys[bound[b]] = page.keyWithContainer(keys[bound[b]], container)
+                    continue
+                }
                 var ownerKey = page.containerBelongsToCertificate(container, shownPublicKeys)
                 if (ownerKey.length > 0) {
                     bothKey[ownerKey] = true
@@ -755,6 +799,13 @@ Page {
                                         parts.push(qsTr("ID: %1").arg(modelData.idText && modelData.idText.length > 0 ? modelData.idText : "—"))
                                         if (modelData.uniqueText && modelData.uniqueText.length > 0)
                                             parts.push(qsTr("medium: %1").arg(modelData.uniqueText))
+                                        // Ключ, который виден и как контейнер
+                                        // КриптоПро: путь и режим носителя не
+                                        // теряются при склейке.
+                                        if (modelData.container && modelData.container.length > 0)
+                                            parts.push(qsTr("container: %1").arg(modelData.container))
+                                        if (modelData.containerMode && modelData.containerMode.length > 0)
+                                            parts.push(modelData.containerMode)
                                         if (modelData.keyType && modelData.keyType.length > 0)
                                             parts.push(modelData.keyType)
                                         if (modelData.keyClass && modelData.keyClass.length > 0)
