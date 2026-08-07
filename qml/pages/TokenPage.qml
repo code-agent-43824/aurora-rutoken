@@ -316,6 +316,13 @@ Page {
                     bothKey[ownerKey] = true
                     continue
                 }
+                // Контейнер режима PKCS#11 — это ключевая пара PKCS#11, и её
+                // владелец — backend PKCS#11. Своей строки он не получает
+                // никогда: если пара ещё не видна (не введён PIN-код), объект
+                // просто не показывается — ровно как при выключенном КриптоПро.
+                // Иначе список зависел бы от того, включён ли провайдер.
+                if (boundId.length > 0)
+                    continue
                 keys.push(page.cryptoProContainerObject(container))
             }
         }

@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    11
+Release:    12
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,14 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Fri Aug 07 2026 Claude <noreply@anthropic.com> - 1.3.0-12
+- Never give a container in PKCS#11 mode a row of its own. Private keys are only
+  visible after a PIN login, so before logging in there was nothing to match the
+  container against and it appeared on its own - which made the object list
+  depend on whether the CryptoPro provider was enabled: one object with it on,
+  none with it off. Such a container is a PKCS#11 key pair and PKCS#11 owns it,
+  so when the pair is not visible the object is simply not shown, exactly as it
+  would be with the provider switched off.
 * Tue Aug 04 2026 Claude <noreply@anthropic.com> - 1.3.0-11
 - Show a key pair that is also a CryptoPro container as one object instead of
   three. Until now a container was only ever matched against certificates, never
