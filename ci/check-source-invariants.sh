@@ -252,6 +252,19 @@ if [ ! -f docs/OBJECT_MODEL.md ]; then
     exit 1
 fi
 
+# Режим контейнера задаётся ВЫБОРОМ СЧИТЫВАТЕЛЯ, поэтому список считывателей
+# читается с устройства через PP_ENUMREADERS, а не зашивается в код: выдуманное
+# имя создало бы контейнер не там, где ожидает пользователь.
+grep -Fq 'QVariantList enumerateReaders(const Api &api, capi::CryptProv provider)' "$CRYPTOPRO_SOURCE"
+grep -Fq 'capi::PpEnumReaders' "$CRYPTOPRO_SOURCE"
+grep -Fq 'static const Dword PpEnumReaders = 114;' "$CRYPTOPRO_HEADER"
+grep -Fq 'model: page.mediaOptions()' "$CRYPTOPRO_CONTAINER_PAGE"
+grep -Fq 'cryptoProSession.createContainer(page.mediaNick,' "$CRYPTOPRO_CONTAINER_PAGE"
+if grep -Eq 'QStringLiteral\("Rutoken FKC"\)|QStringLiteral\("HDIMAGE"\)' "$CRYPTOPRO_SOURCE"; then
+    echo "Reader names must be read from the device, never hardcoded" >&2
+    exit 1
+fi
+
 # --- v1.3, этап 3: запись через КриптоПро по NFC ---
 # Обе операции идут через тот же мастер поднесения, что и запись PKCS#11.
 grep -Fq 'page.operation === "cpcontainer" || page.operation === "cpcsr"' "$NFC_CONNECT_PAGE"

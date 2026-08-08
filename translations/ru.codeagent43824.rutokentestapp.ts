@@ -1287,6 +1287,14 @@
         <source>Providers switched off in the settings are shown but cannot be selected</source>
         <translation>Providers switched off in the settings are shown but cannot be selected</translation>
     </message>
+    <message>
+        <source>Medium (container mode)</source>
+        <translation>Medium (container mode)</translation>
+    </message>
+    <message>
+        <source>The mode — CSP, PKCS#11 or FKN — is chosen by the medium, not by a separate setting. Only media the provider reports on this device are listed.</source>
+        <translation>The mode — CSP, PKCS#11 or FKN — is chosen by the medium, not by a separate setting. Only media the provider reports on this device are listed.</translation>
+    </message>
 </context>
 <context>
     <name>CryptoProCsrPage</name>

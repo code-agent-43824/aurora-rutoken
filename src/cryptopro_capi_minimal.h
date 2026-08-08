@@ -125,6 +125,11 @@ static const Dword CryptFirst = 0x00000001U;
 static const Dword CryptUnique = 0x00000008U;
 static const Dword CryptFqcn = 0x00000010U;
 static const Dword PpEnumContainers = 2;
+// Перечисление считывателей: режим контейнера задаётся выбором считывателя, а не
+// параметром, поэтому список нужен, чтобы предлагать реально существующие, а не
+// выдуманные имена. Значение из официального WinCryptEx.h КриптоПро (сверено по
+// двум копиям заголовка); см. docs/RESEARCH.md.
+static const Dword PpEnumReaders = 114;
 
 // Спецификации ключа контейнера и параметр чтения привязанного сертификата.
 static const Dword AtKeyExchange = 1;

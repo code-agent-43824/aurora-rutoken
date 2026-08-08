@@ -49,12 +49,43 @@ Page {
         return index < 0 ? 0 : index
     }
 
+    // Носитель, на котором создаём контейнер. Режим (CSP / PKCS#11 / ФКН)
+    // задаётся именно выбором считывателя, а не отдельным параметром, поэтому
+    // список берётся с устройства (`cryptoProSession.readers`), а не выдумывается.
+    property string mediaNick: page.readerName
+
+    function mediaOptions() {
+        var out = []
+        var list = cryptoProSession.readers ? cryptoProSession.readers : []
+        for (var i = 0; i < list.length; ++i) {
+            var nick = list[i].nick ? list[i].nick : ""
+            if (nick.length === 0)
+                continue
+            var title = list[i].mode && list[i].mode.length > 0
+                    ? nick + " — " + list[i].mode
+                    : nick
+            out.push({ nick: nick, title: title })
+        }
+        // Считыватель текущего устройства обязан быть в списке даже если
+        // перечисление ничего не вернуло: иначе создавать будет негде.
+        var known = false
+        for (var j = 0; j < out.length; ++j)
+            known = known || out[j].nick === page.readerName
+        if (!known && page.readerName.length > 0)
+            out.unshift({ nick: page.readerName, title: page.readerName })
+        return out
+    }
+
     // Ранее выбранный провайдер мог быть выключен в настройках, поэтому форма
     // открывается на первом разрешённом варианте.
     Component.onCompleted: {
         if (!page.providerEnabled(page.providerType))
             page.providerType = appSettings.firstEnabledProviderType()
         algorithmBox.currentIndex = page.indexOfType(page.providerType)
+        if (page.mediaNick.length === 0) {
+            var options = page.mediaOptions()
+            page.mediaNick = options.length > 0 ? options[0].nick : ""
+        }
     }
 
     function suggestedName() {
@@ -82,7 +113,7 @@ Page {
             // создание). PIN-код спрашивает мастер, поэтому здесь его не просим.
             var wiz = pageStack.push(Qt.resolvedUrl("NfcConnectPage.qml"), {
                 operation: "cpcontainer",
-                cpReaderName: page.readerName,
+                cpReaderName: page.mediaNick,
                 cpContainerName: name,
                 cpProviderType: page.providerType
             })
@@ -96,7 +127,7 @@ Page {
         })
         pad.entered.connect(function(pin) {
             page.attempted = true
-            cryptoProSession.createContainer(page.readerName, name, page.providerType, pin)
+            cryptoProSession.createContainer(page.mediaNick, name, page.providerType, pin)
         })
     }
 
@@ -146,6 +177,45 @@ Page {
                 inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
                 EnterKey.iconSource: "image://theme/icon-m-enter-close"
                 EnterKey.onClicked: focus = false
+            }
+
+            // Выбор носителя = выбор режима контейнера. Пункты — то, что
+            // провайдер перечислил на этом устройстве; выдуманных имён здесь
+            // быть не должно, иначе контейнер создастся не там. Список, а не
+            // выпадающее меню: число носителей заранее неизвестно, а Silica
+            // ComboBox сопоставляет выбранный пункт с детьми меню по порядку.
+            SectionHeader { text: qsTr("Medium (container mode)") }
+
+            Label {
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                wrapMode: Text.Wrap
+                text: qsTr("The mode — CSP, PKCS#11 or FKN — is chosen by the medium, not by a separate setting. Only media the provider reports on this device are listed.")
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+            }
+
+            Repeater {
+                model: page.mediaOptions()
+
+                BackgroundItem {
+                    width: parent.width
+                    height: mediaLabel.height + 2 * Theme.paddingMedium
+                    onClicked: page.mediaNick = modelData.nick
+
+                    Label {
+                        id: mediaLabel
+                        x: Theme.horizontalPageMargin
+                        width: parent.width - 2 * Theme.horizontalPageMargin
+                        anchors.verticalCenter: parent.verticalCenter
+                        wrapMode: Text.Wrap
+                        textFormat: Text.PlainText
+                        text: (page.mediaNick === modelData.nick ? "● " : "○ ") + modelData.title
+                        color: page.mediaNick === modelData.nick
+                               ? Theme.highlightColor : Theme.primaryColor
+                        font.pixelSize: Theme.fontSizeSmall
+                    }
+                }
             }
 
             ComboBox {

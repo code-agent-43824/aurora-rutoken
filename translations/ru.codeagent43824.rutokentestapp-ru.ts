@@ -1287,6 +1287,14 @@
         <source>Providers switched off in the settings are shown but cannot be selected</source>
         <translation>Выключенные в настройках провайдеры показаны, но недоступны для выбора</translation>
     </message>
+    <message>
+        <source>Medium (container mode)</source>
+        <translation>Носитель (режим контейнера)</translation>
+    </message>
+    <message>
+        <source>The mode — CSP, PKCS#11 or FKN — is chosen by the medium, not by a separate setting. Only media the provider reports on this device are listed.</source>
+        <translation>Режим — CSP, PKCS#11 или ФКН — задаётся носителем, а не отдельной настройкой. В списке только те носители, о которых сообщил провайдер на этом устройстве.</translation>
+    </message>
 </context>
 <context>
     <name>CryptoProCsrPage</name>

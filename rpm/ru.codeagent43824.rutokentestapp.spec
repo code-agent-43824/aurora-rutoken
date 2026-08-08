@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    14
+Release:    15
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,14 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sat Aug 08 2026 Claude <noreply@anthropic.com> - 1.3.0-15
+- Let the user pick the medium when creating a container, which is how the mode -
+  CSP, PKCS#11 or FKN - is actually chosen: the mode follows the reader named in
+  the container path, not a separate setting. The list is read from the device
+  through PP_ENUMREADERS rather than hardcoded, so the form offers what really
+  exists there and cannot create a container somewhere the user did not intend.
+  A medium whose name carries a mode marker is labelled with it; one that does
+  not is left unlabelled rather than guessed.
 * Sat Aug 08 2026 Claude <noreply@anthropic.com> - 1.3.0-14
 - Say on the card what was actually found on the device: a key pair, or only the
   private key, or only the public one when the other half and any linked

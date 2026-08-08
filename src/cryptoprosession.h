@@ -28,6 +28,9 @@ class CryptoProSession : public QObject
     Q_PROPERTY(QString lastRequest READ lastRequest NOTIFY changed) // PEM PKCS#10
     Q_PROPERTY(QStringList loadedLibraries READ loadedLibraries NOTIFY changed)
     Q_PROPERTY(QVariantList providers READ providers NOTIFY changed)
+    // Считыватели КриптоПро: режим контейнера задаётся выбором считывателя,
+    // поэтому форма создания предлагает то, что есть на устройстве.
+    Q_PROPERTY(QVariantList readers READ readers NOTIFY changed)
     Q_PROPERTY(QVariantList containers READ containers NOTIFY changed)
     Q_PROPERTY(QVariantList certificates READ certificates NOTIFY changed)
 
@@ -62,6 +65,7 @@ public:
     Q_INVOKABLE bool saveRequestToFile(const QString &name);
     QStringList loadedLibraries() const { return m_loadedLibraries; }
     QVariantList providers() const { return m_providers; }
+    QVariantList readers() const { return m_readers; }
     QVariantList containers() const { return m_containers; }
     QVariantList certificates() const { return m_certificates; }
 
@@ -110,6 +114,7 @@ private:
     QString m_lastRequest;
     QStringList m_loadedLibraries;
     QVariantList m_providers;
+    QVariantList m_readers;
     QVariantList m_containers;
     QVariantList m_certificates;
 };

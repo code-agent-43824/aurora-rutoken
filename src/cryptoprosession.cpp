@@ -746,6 +746,57 @@ QVariantMap buildCertificateRow(const QByteArray &der, const QString &provider,
     return row;
 }
 
+// Считыватели, известные провайдеру. Режим контейнера (CSP / PKCS#11 / ФКН)
+// задаётся ВЫБОРОМ СЧИТЫВАТЕЛЯ в имени `\\.\<считыватель>\<контейнер>`, а не
+// отдельным параметром, поэтому форма создания обязана предлагать то, что на
+// устройстве действительно есть. Элемент перечисления — две NUL-строки подряд
+// (NickName, имя) и поле флагов; флаги нам не нужны, поэтому читаем только
+// строки и не полагаемся на выравнивание структуры.
+QVariantList enumerateReaders(const Api &api, capi::CryptProv provider)
+{
+    QVariantList out;
+    capi::Dword flags = capi::CryptFirst;
+    QByteArray buffer(static_cast<int>(MaxCapiTextBytes), '\0');
+    for (int item = 0; item < MaxContainersPerProvider; ++item) {
+        buffer.fill('\0');
+        capi::Dword actual = static_cast<capi::Dword>(buffer.size());
+        if (!api.getProvParam(provider, capi::PpEnumReaders,
+                              reinterpret_cast<capi::Byte *>(buffer.data()), &actual, flags))
+            break;
+        if (actual == 0 || actual > static_cast<capi::Dword>(buffer.size()))
+            break;
+        flags &= ~capi::CryptFirst;
+
+        const int validBytes = static_cast<int>(actual);
+        const QString nick = fromCapiText(buffer.constData(), validBytes);
+        int terminator = buffer.indexOf('\0', 0);
+        if (terminator < 0 || terminator >= validBytes)
+            terminator = validBytes;
+        const int nameOffset = terminator + 1;
+        const QString name = nameOffset < validBytes
+                ? fromCapiText(buffer.constData() + nameOffset, validBytes - nameOffset)
+                : QString();
+        if (nick.trimmed().isEmpty())
+            continue;
+
+        Container probe;
+        probe.uniqueName = nick + QLatin1Char(' ') + name;
+        QVariantMap row;
+        row.insert(QStringLiteral("nick"), nick);
+        row.insert(QStringLiteral("name"), name);
+        // Режим определяется тем же маркером имени, что и при чтении. Если
+        // маркера нет — режим станет известен только по созданному контейнеру,
+        // и придумывать его здесь нельзя.
+        row.insert(QStringLiteral("mode"),
+                   probe.uniqueName.toLower().contains(QStringLiteral("fkc"))
+                   || probe.uniqueName.toLower().contains(
+                       QStringLiteral("pkcs") + QStringLiteral("11"))
+                   ? containerMediaMode(probe) : QString());
+        out.append(row);
+    }
+    return out;
+}
+
 QVariantMap scan(const Api &api, const QString &libraryPath,
                  const QList<int> &allowedProviderTypes)
 {
@@ -755,6 +806,7 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
     elapsed.start();
     QVariantMap result;
     QVariantList providerRows;
+    QVariantList readerRows;
     QVector<Container> rutokenContainers;
     QString cspVersion;
 
@@ -822,6 +874,10 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
                         .arg((raw >> 8) & 0xffU).arg(raw & 0xffU);
             }
         }
+        // Считыватели читаются один раз, у первого же открытого провайдера:
+        // список общий для всех, а лишний вызов по NFC стоит времени.
+        if (readerRows.isEmpty())
+            readerRows = enumerateReaders(api, provider);
         const QVector<Container> listed = enumerateContainers(
                     api, provider, reference.name, reference.type);
         api.releaseContext(provider, 0);
@@ -1165,6 +1221,7 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
     result.insert(QStringLiteral("cspVersion"), versionText);
     result.insert(QStringLiteral("libraryPath"), libraryPath);
     result.insert(QStringLiteral("providers"), providerRows);
+    result.insert(QStringLiteral("readers"), readerRows);
     result.insert(QStringLiteral("containers"), containerRows);
     result.insert(QStringLiteral("certificates"), certificates);
     const qint64 elapsedMs = elapsed.elapsed();
@@ -1596,6 +1653,7 @@ QVariantMap executeScan(const QList<int> &allowedProviderTypes)
                       QStringLiteral("КриптоПро CSP не установлен "
                                      "(libcapi20.so не найдена)"));
         result.insert(QStringLiteral("providers"), QVariantList());
+        result.insert(QStringLiteral("readers"), QVariantList());
         result.insert(QStringLiteral("containers"), QVariantList());
         result.insert(QStringLiteral("certificates"), QVariantList());
         return result;
@@ -2062,6 +2120,7 @@ void CryptoProSession::finishHelper(int exitCode, QProcess::ExitStatus exitStatu
             m_loadedLibraries.append(path);
     }
     m_providers = result.value(QStringLiteral("providers")).toList();
+    m_readers = result.value(QStringLiteral("readers")).toList();
     m_containers = result.value(QStringLiteral("containers")).toList();
     m_certificates = result.value(QStringLiteral("certificates")).toList();
     m_status = result.value(QStringLiteral("status")).toString();
