@@ -298,41 +298,54 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
     out.append(activeCertificates);
 
     // Ключи без сертификата — на верхний уровень (только когда вошли), но
-    // ключевая ПАРА показывается одной карточкой с дочерними ключами, как это
-    // давно делают сертификаты: закрытый и открытый ключ одной пары — это один
-    // физический объект, а не два. Пара узнаётся по общему CKA_ID; ключи без
-    // CKA_ID сгруппировать не с чем, поэтому каждый идёт своей карточкой.
-    QHash<QString, int> groupByIdHex;
-    QVector<QVariantList> groupChildren;
-    QVector<int> groupTitleKey;
+    // ключевая ПАРА показывается ОДНОЙ карточкой: закрытый и открытый ключ одной
+    // пары — это один физический объект, а не два. Принадлежность одной паре
+    // устанавливается дёшево, по совпадению CKA_ID: атрибут уже получен при
+    // перечислении, носитель для этого не опрашивается. Ключи без CKA_ID
+    // сгруппировать не с чем, каждый идёт своей карточкой.
+    //
+    // Карточка называет, что именно нашли: «ключевая пара», либо «только
+    // закрытый ключ» / «только открытый ключ», если второй половины нет. Ключи,
+    // у которых есть сертификат, сюда не попадают вовсе — они уже показаны его
+    // дочерними объектами. Правило целиком — docs/OBJECT_MODEL.md, раздел 2.
+    struct Pair { int titleKey; bool hasPrivate; bool hasPublic; };
+    QHash<QString, int> pairByIdHex;
+    QVector<Pair> pairs;
     for (int j = 0; j < keys.size(); ++j) {
         if (keys[j].consumed)
             continue;
         const QString idHex = keys[j].idHex;
-        int group = idHex.isEmpty() ? -1 : groupByIdHex.value(idHex, -1);
-        if (group < 0) {
-            group = groupChildren.size();
-            groupChildren.append(QVariantList());
-            groupTitleKey.append(j);
+        int index = idHex.isEmpty() ? -1 : pairByIdHex.value(idHex, -1);
+        if (index < 0) {
+            index = pairs.size();
+            Pair created = { j, false, false };
+            pairs.append(created);
             if (!idHex.isEmpty())
-                groupByIdHex.insert(idHex, group);
+                pairByIdHex.insert(idHex, index);
         }
-        groupChildren[group].append(keys[j].map);
+        const QString keyClass = keys[j].map.value(QStringLiteral("keyClass")).toString();
+        if (keyClass == QStringLiteral("закрытый ключ"))
+            pairs[index].hasPrivate = true;
+        else
+            pairs[index].hasPublic = true;
         // Метка есть только у закрытого ключа: у открытого CKA_LABEL пуст.
         // Заголовок карточки берём у того ключа, у которого метка есть.
         const QString label = keys[j].map.value(QStringLiteral("label")).toString();
-        const QString titleLabel = keys[groupTitleKey.at(group)].map
+        const QString titleLabel = keys[pairs.at(index).titleKey].map
                 .value(QStringLiteral("label")).toString();
         if (!label.isEmpty() && titleLabel.isEmpty())
-            groupTitleKey[group] = j;
+            pairs[index].titleKey = j;
     }
-    for (int group = 0; group < groupChildren.size(); ++group) {
-        QVariantMap pair = keys[groupTitleKey.at(group)].map;
-        pair.insert(QStringLiteral("kind"), QStringLiteral("key"));
-        // Класс ключа — свойство дочернего объекта, а не пары.
-        pair.remove(QStringLiteral("keyClass"));
-        pair.insert(QStringLiteral("keys"), groupChildren.at(group));
-        out.append(pair);
+    for (int index = 0; index < pairs.size(); ++index) {
+        const Pair &pair = pairs.at(index);
+        QVariantMap row = keys[pair.titleKey].map;
+        row.insert(QStringLiteral("kind"), QStringLiteral("key"));
+        row.insert(QStringLiteral("keyClass"),
+                   pair.hasPrivate && pair.hasPublic
+                   ? QStringLiteral("ключевая пара")
+                   : (pair.hasPrivate ? QStringLiteral("только закрытый ключ")
+                                      : QStringLiteral("только открытый ключ")));
+        out.append(row);
     }
 
     out.append(expiredCertificates);

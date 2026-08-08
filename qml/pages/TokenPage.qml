@@ -140,9 +140,10 @@ Page {
             uniqueText: unique === path ? "" : unique,
             label: qsTr("Key container"),
             keyType: container.algorithm ? container.algorithm : "",
-            keyClass: container.mediaMode && container.mediaMode.length > 0
-                      ? qsTr("CryptoPro key container, %1").arg(container.mediaMode)
-                      : qsTr("CryptoPro key container"),
+            // Контейнер режимов CSP и ФКН показывается своей карточкой: оба
+            // ключа лежат в самом контейнере, искать пару не требуется.
+            keyClass: qsTr("key pair"),
+            containerMode: container.mediaMode ? container.mediaMode : "",
             source: qsTr("CryptoPro CSP"),
             providerType: container.providerType ? container.providerType : 0,
             cryptoPro: true

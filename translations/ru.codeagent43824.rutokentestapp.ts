@@ -1135,16 +1135,12 @@
         <translation>private key</translation>
     </message>
     <message>
-        <source>CryptoPro key container</source>
-        <translation>CryptoPro key container</translation>
-    </message>
-    <message>
-        <source>CryptoPro key container, %1</source>
-        <translation>CryptoPro key container, %1</translation>
-    </message>
-    <message>
         <source>medium: %1</source>
         <translation>medium: %1</translation>
+    </message>
+    <message>
+        <source>key pair</source>
+        <translation>key pair</translation>
     </message>
 </context>
 <context>

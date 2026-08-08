@@ -1135,16 +1135,12 @@
         <translation>закрытый ключ</translation>
     </message>
     <message>
-        <source>CryptoPro key container</source>
-        <translation>ключевой контейнер КриптоПро</translation>
-    </message>
-    <message>
-        <source>CryptoPro key container, %1</source>
-        <translation>Ключевой контейнер КриптоПро, %1</translation>
-    </message>
-    <message>
         <source>medium: %1</source>
         <translation>носитель: %1</translation>
+    </message>
+    <message>
+        <source>key pair</source>
+        <translation>ключевая пара</translation>
     </message>
 </context>
 <context>

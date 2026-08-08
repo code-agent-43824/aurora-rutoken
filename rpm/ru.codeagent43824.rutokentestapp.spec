@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    13
+Release:    14
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,13 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sat Aug 08 2026 Claude <noreply@anthropic.com> - 1.3.0-14
+- Say on the card what was actually found on the device: a key pair, or only the
+  private key, or only the public one when the other half and any linked
+  certificate are absent. Membership of one pair is settled cheaply, by matching
+  CKA_ID, and the wording is the same whether the pair came from PKCS#11 or from
+  CryptoPro. A CryptoPro container in CSP or FKN mode is described the same way,
+  since both keys always live inside it and nothing needs matching.
 * Sat Aug 08 2026 Claude <noreply@anthropic.com> - 1.3.0-13
 - Show a key pair with no certificate as one card with the private and public key
   as its children, the way a certificate already shows its keys. The two were
