@@ -845,7 +845,9 @@ Page {
                             }
 
                             Repeater {
-                                model: modelData.kind === "certificate" ? modelData.keys : []
+                                // Дочерние ключи есть и у сертификата, и у
+                                // ключевой пары без сертификата.
+                                model: modelData.keys ? modelData.keys : []
                                 delegate: Row {
                                     x: 2 * Theme.horizontalPageMargin
                                     width: objectsCol.width - 3 * Theme.horizontalPageMargin

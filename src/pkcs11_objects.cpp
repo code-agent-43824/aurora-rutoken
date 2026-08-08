@@ -4,6 +4,7 @@
 
 #include <QtCore/QByteArray>
 #include <QtCore/QDateTime>
+#include <QtCore/QHash>
 #include <QtCore/QVariantMap>
 #include <QtCore/QVector>
 #include <QtNetwork/QSslCertificate>
@@ -296,13 +297,42 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
     // группами, поэтому все просроченные сертификаты оказываются внизу.
     out.append(activeCertificates);
 
-    // Ключи без сертификата — на верхний уровень (только когда вошли).
+    // Ключи без сертификата — на верхний уровень (только когда вошли), но
+    // ключевая ПАРА показывается одной карточкой с дочерними ключами, как это
+    // давно делают сертификаты: закрытый и открытый ключ одной пары — это один
+    // физический объект, а не два. Пара узнаётся по общему CKA_ID; ключи без
+    // CKA_ID сгруппировать не с чем, поэтому каждый идёт своей карточкой.
+    QHash<QString, int> groupByIdHex;
+    QVector<QVariantList> groupChildren;
+    QVector<int> groupTitleKey;
     for (int j = 0; j < keys.size(); ++j) {
         if (keys[j].consumed)
             continue;
-        QVariantMap orphan = keys[j].map;
-        orphan.insert(QStringLiteral("kind"), QStringLiteral("key"));
-        out.append(orphan);
+        const QString idHex = keys[j].idHex;
+        int group = idHex.isEmpty() ? -1 : groupByIdHex.value(idHex, -1);
+        if (group < 0) {
+            group = groupChildren.size();
+            groupChildren.append(QVariantList());
+            groupTitleKey.append(j);
+            if (!idHex.isEmpty())
+                groupByIdHex.insert(idHex, group);
+        }
+        groupChildren[group].append(keys[j].map);
+        // Метка есть только у закрытого ключа: у открытого CKA_LABEL пуст.
+        // Заголовок карточки берём у того ключа, у которого метка есть.
+        const QString label = keys[j].map.value(QStringLiteral("label")).toString();
+        const QString titleLabel = keys[groupTitleKey.at(group)].map
+                .value(QStringLiteral("label")).toString();
+        if (!label.isEmpty() && titleLabel.isEmpty())
+            groupTitleKey[group] = j;
+    }
+    for (int group = 0; group < groupChildren.size(); ++group) {
+        QVariantMap pair = keys[groupTitleKey.at(group)].map;
+        pair.insert(QStringLiteral("kind"), QStringLiteral("key"));
+        // Класс ключа — свойство дочернего объекта, а не пары.
+        pair.remove(QStringLiteral("keyClass"));
+        pair.insert(QStringLiteral("keys"), groupChildren.at(group));
+        out.append(pair);
     }
 
     out.append(expiredCertificates);

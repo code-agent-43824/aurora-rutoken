@@ -106,8 +106,15 @@ Page {
         onChanged: {
             if (page.status !== PageStatus.Active || !page.attempted)
                 return
-            if (!cryptoProSession.createBusy && cryptoProSession.createOutcome === 1)
+            if (!cryptoProSession.createBusy && cryptoProSession.createOutcome === 1) {
+                // Набор контейнеров на носителе изменился, а список объектов
+                // берёт их из результата прошлого прохода — без перечитывания
+                // новый контейнер появился бы только после переподключения
+                // устройства. По NFC перечитывание делает мастер, в том же
+                // поднесении; сюда попадает только путь USB.
+                cryptoProSession.refresh()
                 page.goToList()
+            }
         }
     }
 

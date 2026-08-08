@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    12
+Release:    13
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,13 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sat Aug 08 2026 Claude <noreply@anthropic.com> - 1.3.0-13
+- Show a key pair with no certificate as one card with the private and public key
+  as its children, the way a certificate already shows its keys. The two were
+  listed side by side at the top level, which read as two objects for what is one.
+- Re-read the containers after creating one over USB. The object list takes them
+  from the previous scan, so a newly created container only appeared after
+  re-plugging the device; over NFC the hold wizard already re-read them.
 * Fri Aug 07 2026 Claude <noreply@anthropic.com> - 1.3.0-12
 - Never give a container in PKCS#11 mode a row of its own. Private keys are only
   visible after a PIN login, so before logging in there was nothing to match the
