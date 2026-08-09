@@ -32,6 +32,11 @@ class CryptoProSession : public QObject
     // перечисления носителей и считывателей КриптоПро. Больше форме создания
     // ничего не нужно: контейнер создаётся только на подключённом токене.
     Q_PROPERTY(QVariantList mediaModes READ mediaModes NOTIFY changed)
+    // Сырой вывод перечисления считывателей и носителей, как его вернул
+    // провайдер, включая отброшенные формой строки: правило адресации ещё не
+    // подтверждено на устройстве, и обе строки каждого элемента должны быть
+    // видны, а не выведены по догадке.
+    Q_PROPERTY(QVariantList enumeration READ enumeration NOTIFY changed)
     Q_PROPERTY(QVariantList containers READ containers NOTIFY changed)
     Q_PROPERTY(QVariantList certificates READ certificates NOTIFY changed)
 
@@ -67,6 +72,7 @@ public:
     QStringList loadedLibraries() const { return m_loadedLibraries; }
     QVariantList providers() const { return m_providers; }
     QVariantList mediaModes() const { return m_mediaModes; }
+    QVariantList enumeration() const { return m_enumeration; }
     QVariantList containers() const { return m_containers; }
     QVariantList certificates() const { return m_certificates; }
 
@@ -116,6 +122,7 @@ private:
     QStringList m_loadedLibraries;
     QVariantList m_providers;
     QVariantList m_mediaModes;
+    QVariantList m_enumeration;
     QVariantList m_containers;
     QVariantList m_certificates;
 };

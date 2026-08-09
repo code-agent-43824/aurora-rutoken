@@ -269,6 +269,18 @@ grep -Fq 'cryptoProSession.createContainer(page.targetNick(),' "$CRYPTOPRO_CONTA
 grep -Fq 'QStringLiteral("csp"), QStringLiteral("active"), QStringLiteral("fkc")' "$CRYPTOPRO_SOURCE"
 # Недоступный режим остаётся видимым и приглушённым — как выключенный провайдер.
 grep -Fq 'enabled: page.modeAvailable(modelData)' "$CRYPTOPRO_CONTAINER_PAGE"
+# Причина неудачи берётся у провайдера, а не выдумывается: код последней ошибки
+# показывается всегда, известные значения дополняются словами.
+grep -Fq 'QString capiErrorSuffix(const Api &api)' "$CRYPTOPRO_SOURCE"
+grep -Fq 'api.getLastError = reinterpret_cast<capi::GetLastErrorFn>(' "$CRYPTOPRO_SOURCE"
+grep -Fq 'typedef Dword (*GetLastErrorFn)();' "$CRYPTOPRO_HEADER"
+if grep -Fq 'возможно, имя занято' "$CRYPTOPRO_SOURCE"; then
+    echo "The failure reason must come from the provider, not from a guess" >&2
+    exit 1
+fi
+# Сырой вывод перечисления виден на устройстве целиком, включая отброшенное.
+grep -Fq 'result.insert(QStringLiteral("enumeration"), enumRows);' "$CRYPTOPRO_SOURCE"
+grep -Fq 'model: cryptoProSession.enumeration' "$CRYPTOPRO_CONTAINER_PAGE"
 # Выбора носителя на экране быть не должно: он только сбивал с толку.
 if grep -Fq 'page.readerOptions()' "$CRYPTOPRO_CONTAINER_PAGE"; then
     echo "The creation form must offer the three modes only, not a list of carriers" >&2

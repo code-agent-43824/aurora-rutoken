@@ -59,6 +59,10 @@ typedef Bool (*CryptDestroyKeyFn)(CryptKey);
 typedef Bool (*CryptExportKeyFn)(CryptKey, CryptKey, Dword, Dword, Byte *, Dword *);
 // Запись (v1.3): создание контейнера и генерация ключевой пары внутри него.
 // Используются ТОЛЬКО в отдельном helper-режиме записи.
+// CapiLite повторяет и системную часть Win32: код последней ошибки провайдера
+// доступен через GetLastError. Без него любое сообщение о неудаче — догадка,
+// поэтому символ резолвится как необязательный и код показывается как есть.
+typedef Dword (*GetLastErrorFn)();
 typedef Bool (*CryptGenKeyFn)(CryptProv, Dword, Dword, CryptKey *);
 typedef Bool (*CryptSetProvParamFn)(CryptProv, Dword, const Byte *, Dword);
 

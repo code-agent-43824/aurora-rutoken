@@ -51,6 +51,8 @@ struct Api
     // Только для helper-режима записи (v1.3).
     capi::CryptGenKeyFn genKey = nullptr;
     capi::CryptSetProvParamFn setProvParam = nullptr;
+    // Код последней ошибки провайдера: без него сообщения о неудаче — догадки.
+    capi::GetLastErrorFn getLastError = nullptr;
     capi::CertStrToNameAFn strToName = nullptr;
     capi::CryptExportPublicKeyInfoFn exportPublicKeyInfo = nullptr;
     capi::CryptSignAndEncodeCertificateFn signAndEncode = nullptr;
@@ -1316,6 +1318,21 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
     result.insert(QStringLiteral("libraryPath"), libraryPath);
     result.insert(QStringLiteral("providers"), providerRows);
     result.insert(QStringLiteral("mediaModes"), resolveMediaModes(mediaRows, readerRows));
+    // Сырой вывод перечисления, включая строки, которые форма отбрасывает.
+    // Дважды подряд правило адресации оказалось догадкой; чтобы третий раз не
+    // гадать, обе строки каждого элемента должны быть видны на устройстве.
+    QVariantList enumRows;
+    for (const QVariant &item : readerRows) {
+        QVariantMap row = item.toMap();
+        row.insert(QStringLiteral("kind"), QStringLiteral("считыватель"));
+        enumRows.append(row);
+    }
+    for (const QVariant &item : mediaRows) {
+        QVariantMap row = item.toMap();
+        row.insert(QStringLiteral("kind"), QStringLiteral("носитель"));
+        enumRows.append(row);
+    }
+    result.insert(QStringLiteral("enumeration"), enumRows);
     result.insert(QStringLiteral("containers"), containerRows);
     result.insert(QStringLiteral("certificates"), certificates);
     const qint64 elapsedMs = elapsed.elapsed();
@@ -1419,6 +1436,8 @@ bool loadCapi(QLibrary &library, Api &api, QString &libraryPath)
                 library.resolve("CryptExportPublicKeyInfo"));
     api.signAndEncode = reinterpret_cast<capi::CryptSignAndEncodeCertificateFn>(
                 library.resolve("CryptSignAndEncodeCertificate"));
+    api.getLastError = reinterpret_cast<capi::GetLastErrorFn>(
+                library.resolve("GetLastError"));
     return true;
 }
 
@@ -1428,6 +1447,45 @@ bool loadCapi(QLibrary &library, Api &api, QString &libraryPath)
 // провайдера не должно ронять интерфейс, а PIN-код не должен попадать в
 // аргументы командной строки — он приходит helper'у через stdin.
 // ---------------------------------------------------------------------------
+
+// Расшифровка кода последней ошибки провайдера. Показывается ВСЕГДА в сыром
+// виде (0x…), а известные значения дополняются словами: гадать о причине по
+// факту неудачи нельзя, а провайдер её называет сам. Значения стандартные
+// (NTE_*/SCARD_*) и совпадают в Win32 и CapiLite; неизвестный код остаётся
+// просто числом, придумывать ему смысл нельзя.
+QString capiErrorSuffix(const Api &api)
+{
+    if (!api.getLastError)
+        return QString();
+    const capi::Dword code = api.getLastError();
+    if (code == 0)
+        return QString();
+    QString meaning;
+    switch (code) {
+    case 0x8009000FU: meaning = QStringLiteral("NTE_EXISTS — контейнер с таким именем уже есть"); break;
+    case 0x80090009U: meaning = QStringLiteral("NTE_BAD_FLAGS — провайдер не принял флаги"); break;
+    case 0x8009000AU: meaning = QStringLiteral("NTE_BAD_TYPE — неверный тип"); break;
+    case 0x80090014U: meaning = QStringLiteral("NTE_BAD_PROV_TYPE — неверный тип провайдера"); break;
+    case 0x80090016U: meaning = QStringLiteral("NTE_BAD_KEYSET — носитель не принял этот контейнер"); break;
+    case 0x80090017U: meaning = QStringLiteral("NTE_PROV_TYPE_NOT_DEF — тип провайдера не определён"); break;
+    case 0x80090019U: meaning = QStringLiteral("NTE_KEYSET_NOT_DEF — набор ключей не определён"); break;
+    case 0x8009001FU: meaning = QStringLiteral("NTE_BAD_KEYSET_PARAM — неверный параметр набора ключей"); break;
+    case 0x80090020U: meaning = QStringLiteral("NTE_FAIL — внутренняя ошибка провайдера"); break;
+    case 0x80090022U: meaning = QStringLiteral("NTE_SILENT_CONTEXT — режим требует диалога провайдера"); break;
+    case 0x8010000AU: meaning = QStringLiteral("SCARD_E_TIMEOUT — носитель не ответил вовремя"); break;
+    case 0x8010000BU: meaning = QStringLiteral("SCARD_E_SHARING_VIOLATION — носитель занят другим приложением"); break;
+    case 0x8010000CU: meaning = QStringLiteral("SCARD_E_NO_SMARTCARD — носителя нет в считывателе"); break;
+    case 0x8010000DU: meaning = QStringLiteral("SCARD_E_UNKNOWN_CARD — носитель не распознан"); break;
+    case 0x80100017U: meaning = QStringLiteral("SCARD_E_READER_UNAVAILABLE — считыватель недоступен"); break;
+    case 0x8010002EU: meaning = QStringLiteral("SCARD_E_NO_READERS_AVAILABLE — считывателей нет"); break;
+    case 0x80100069U: meaning = QStringLiteral("SCARD_W_REMOVED_CARD — носитель извлечён"); break;
+    case 0x8010006BU: meaning = QStringLiteral("SCARD_W_WRONG_CHV — неверный PIN-код"); break;
+    default: break;
+    }
+    const QString hex = QStringLiteral("0x%1").arg(code, 8, 16, QLatin1Char('0'));
+    return meaning.isEmpty() ? QStringLiteral(", код %1").arg(hex)
+                             : QStringLiteral(", код %1 (%2)").arg(hex, meaning);
+}
 
 QString providerNameForType(const Api &api, capi::Dword type)
 {
@@ -1518,9 +1576,11 @@ QVariantMap executeCreate(const QVariantMap &request)
     capi::CryptProv provider = 0;
     if (!api.acquireContext(&provider, fqcnBytes.constData(), providerBytes.constData(),
                             type, capi::CryptNewKeyset | capi::CryptSilent)) {
+        // Показываем И строку, которой адресовались, И код провайдера: без них
+        // причина неудачи остаётся догадкой, а гадать здесь уже дорого.
         result.insert(QStringLiteral("message"),
-                      QStringLiteral("не удалось создать контейнер (возможно, имя занято "
-                                     "или устройство недоступно)"));
+                      QStringLiteral("не удалось создать контейнер на «%1»%2")
+                      .arg(reader, capiErrorSuffix(api)));
         return result;
     }
 
@@ -1540,8 +1600,8 @@ QVariantMap executeCreate(const QVariantMap &request)
         if (api.destroyKey)
             api.destroyKey(key);
     } else {
-        message = QStringLiteral("контейнер создан, но ключевую пару создать не удалось "
-                                 "(возможно, неверный PIN-код или нет места)");
+        message = QStringLiteral("контейнер создан, но ключевую пару создать не удалось%1")
+                .arg(capiErrorSuffix(api));
     }
     pinBytes.fill('\0');
     pin.fill(QLatin1Char('*'));
@@ -1635,8 +1695,8 @@ QVariantMap executeCertificateRequest(const QVariantMap &request)
                             isGostProvider(type) ? type : capi::ProvGost2012_256,
                             capi::CryptSilent)) {
         result.insert(QStringLiteral("message"),
-                      QStringLiteral("не удалось открыть контейнер "
-                                     "(устройство недоступно?)"));
+                      QStringLiteral("не удалось открыть контейнер%1")
+                      .arg(capiErrorSuffix(api)));
         return result;
     }
 
@@ -1748,6 +1808,7 @@ QVariantMap executeScan(const QList<int> &allowedProviderTypes)
                                      "(libcapi20.so не найдена)"));
         result.insert(QStringLiteral("providers"), QVariantList());
         result.insert(QStringLiteral("mediaModes"), QVariantList());
+        result.insert(QStringLiteral("enumeration"), QVariantList());
         result.insert(QStringLiteral("containers"), QVariantList());
         result.insert(QStringLiteral("certificates"), QVariantList());
         return result;
@@ -2215,6 +2276,7 @@ void CryptoProSession::finishHelper(int exitCode, QProcess::ExitStatus exitStatu
     }
     m_providers = result.value(QStringLiteral("providers")).toList();
     m_mediaModes = result.value(QStringLiteral("mediaModes")).toList();
+    m_enumeration = result.value(QStringLiteral("enumeration")).toList();
     m_containers = result.value(QStringLiteral("containers")).toList();
     m_certificates = result.value(QStringLiteral("certificates")).toList();
     m_status = result.value(QStringLiteral("status")).toString();

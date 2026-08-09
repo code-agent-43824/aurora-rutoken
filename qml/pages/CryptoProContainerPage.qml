@@ -276,7 +276,46 @@ Page {
                             color: Theme.secondaryColor
                             font.pixelSize: Theme.fontSizeExtraSmall
                         }
+
+                        // Вторая строка элемента перечисления показывается
+                        // отдельно, когда отличается: именно она должна нести
+                        // уникальное имя носителя (`rutoken_fkc_…`), а есть ли
+                        // оно на устройстве — пока не проверено.
+                        Label {
+                            width: parent.width
+                            wrapMode: Text.Wrap
+                            textFormat: Text.PlainText
+                            visible: page.modeAvailable(modelData)
+                                     && modelData.name.length > 0
+                                     && modelData.name !== modelData.target
+                            text: "      " + modelData.name
+                            color: Theme.secondaryColor
+                            font.pixelSize: Theme.fontSizeExtraSmall
+                        }
                     }
+                }
+            }
+
+            // Сырой вывод перечисления. Правило адресации дважды оказалось
+            // догадкой, поэтому то, что вернуло устройство, должно быть видно
+            // целиком — включая строки, которые форма отбрасывает.
+            SectionHeader {
+                text: qsTr("What the device returned")
+                visible: cryptoProSession.enumeration.length > 0
+            }
+
+            Repeater {
+                model: cryptoProSession.enumeration
+
+                Label {
+                    x: Theme.horizontalPageMargin
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+                    wrapMode: Text.Wrap
+                    textFormat: Text.PlainText
+                    text: modelData.kind + ": " + modelData.nick
+                          + (modelData.name.length > 0 ? "  |  " + modelData.name : "")
+                    color: Theme.secondaryColor
+                    font.pixelSize: Theme.fontSizeExtraSmall
                 }
             }
 

@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    17
+Release:    18
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,16 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sun Aug 09 2026 Claude <noreply@anthropic.com> - 1.3.0-18
+- Report the reason a write failed instead of guessing at it. The provider knows
+  the code and CapiLite exposes GetLastError, so every failure now carries the
+  raw code and, for the standard NTE_/SCARD_ values, what it means. The previous
+  message named two causes it had no evidence for.
+- Show what the reader and medium enumeration actually returned, both strings of
+  every element, including the rows the form filters out. Twice in a row the rule
+  for addressing a mode turned out to be a guess; this makes the next attempt a
+  measurement rather than a third one.
+
 * Sun Aug 09 2026 Claude <noreply@anthropic.com> - 1.3.0-17
 - Offer exactly three operating modes when creating a container - CSP, PKCS#11
   and FKN - and nothing else. The carrier list is gone: software key stores and
