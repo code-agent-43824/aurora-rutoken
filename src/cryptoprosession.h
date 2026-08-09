@@ -65,8 +65,11 @@ public:
     // считывателе. `medium` — уникальное имя носителя выбранного режима; оно и
     // только оно отличает режимы друг от друга, считыватель у них общий. Пусто
     // — режим выберет провайдер. Выполняется в отдельном helper-процессе.
+    // `provider` — имя провайдера КриптоПро: у него КЛАСС НОСИТЕЛЯ задаётся
+    // выбором провайдера (для ФКН вендор определяет отдельное имя `…FKC CSP`).
+    // Пусто — берётся первый провайдер нужного типа.
     Q_INVOKABLE void createContainer(const QString &reader, const QString &medium,
-                                     const QString &container,
+                                     const QString &provider, const QString &container,
                                      int providerType, const QString &pin);
     // Формирует PKCS#10 для существующего контейнера средствами провайдера.
     Q_INVOKABLE void createCertificateRequest(const QString &container, int providerType,

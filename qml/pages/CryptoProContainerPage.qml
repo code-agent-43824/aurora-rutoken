@@ -111,6 +111,22 @@ Page {
         return row ? row.unique : ""
     }
 
+    // Провайдер под выбранный режим. У КриптоПро КЛАСС НОСИТЕЛЯ задаётся именно
+    // выбором провайдера: в заголовке вендора для ФКН определено отдельное имя
+    // («…FKC CSP»), поэтому режим ФКН ищет провайдер с маркером FKC своего типа.
+    // Не нашли — пусто, и backend возьмёт первый провайдер нужного типа.
+    function targetProvider() {
+        if (page.modeKey !== "fkc")
+            return ""
+        var list = cryptoProSession.providers
+        for (var i = 0; list && i < list.length; ++i) {
+            if (list[i].type === page.providerType
+                    && list[i].name.toLowerCase().indexOf("fkc") >= 0)
+                return list[i].name
+        }
+        return ""
+    }
+
     // Открываемся на активном токене: именно этот режим документация Рутокена
     // предписывает выбирать при генерации ключей (dev.rutoken.ru, «Неизвлекаемые
     // ключи на Рутокенах в КриптоПро CSP 5.0 R2»). Нет его — первый доступный.
@@ -164,6 +180,7 @@ Page {
                 operation: "cpcontainer",
                 cpReaderName: page.targetNick(),
                 cpMediumName: page.targetMedium(),
+                cpProviderName: page.targetProvider(),
                 cpContainerName: name,
                 cpProviderType: page.providerType
             })
@@ -178,7 +195,8 @@ Page {
         pad.entered.connect(function(pin) {
             page.attempted = true
             cryptoProSession.createContainer(page.targetNick(), page.targetMedium(),
-                                             name, page.providerType, pin)
+                                             page.targetProvider(), name,
+                                             page.providerType, pin)
         })
     }
 
@@ -328,6 +346,24 @@ Page {
                     textFormat: Text.PlainText
                     text: modelData.kind + ": " + modelData.nick
                           + (modelData.name.length > 0 ? "  |  " + modelData.name : "")
+                          + (modelData.carrierFlags ? "  |  " + modelData.carrierFlags : "")
+                    color: Theme.secondaryColor
+                    font.pixelSize: Theme.fontSizeExtraSmall
+                }
+            }
+
+            // Провайдеры, найденные на устройстве. У КриптоПро класс носителя
+            // задаётся выбором провайдера, поэтому их список — часть того же
+            // вопроса, что и режим, и должен быть виден рядом.
+            Repeater {
+                model: cryptoProSession.providers
+
+                Label {
+                    x: Theme.horizontalPageMargin
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+                    wrapMode: Text.Wrap
+                    textFormat: Text.PlainText
+                    text: qsTr("provider") + " " + modelData.type + ": " + modelData.name
                     color: Theme.secondaryColor
                     font.pixelSize: Theme.fontSizeExtraSmall
                 }

@@ -42,6 +42,8 @@ Page {
     // Уникальное имя носителя выбранного режима: считыватель у всех режимов
     // общий, различает их только оно. Пусто — режим выберет провайдер.
     property string cpMediumName: ""
+    // Имя провайдера под выбранный режим; пусто — первый провайдер нужного типа.
+    property string cpProviderName: ""
     property string cpContainerName: ""
     property int cpProviderType: 80
     // Для operation="cpcsr": полное имя существующего контейнера и поля Subject.
@@ -131,7 +133,7 @@ Page {
         if (page.operation === "cpcontainer")
             cryptoProSession.createContainer(
                         page.cpReaderName.length > 0 ? page.cpReaderName : tok.slotName,
-                        page.cpMediumName,
+                        page.cpMediumName, page.cpProviderName,
                         page.cpContainerName, page.cpProviderType, page.pin)
         else if (page.operation === "cpcsr")
             cryptoProSession.createCertificateRequest(page.cpContainer,

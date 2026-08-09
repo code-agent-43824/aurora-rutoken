@@ -272,6 +272,13 @@ grep -Fq 'QVariantList resolveMediaModes(const QVariantList &uniqueRows, const Q
 grep -Fq 'resolveMediaModes(uniqueRows, mediaRows, readerRows));' "$CRYPTOPRO_SOURCE"
 grep -Fq 'model: page.modeOptions()' "$CRYPTOPRO_CONTAINER_PAGE"
 grep -Fq 'cryptoProSession.createContainer(page.targetNick(), page.targetMedium(),' "$CRYPTOPRO_CONTAINER_PAGE"
+# Класс носителя у КриптоПро задаётся ВЫБОРОМ ПРОВАЙДЕРА (для ФКН вендор
+# определяет отдельное имя `…FKC CSP`), поэтому имя провайдера доходит до записи.
+grep -Fq 'function targetProvider()' "$CRYPTOPRO_CONTAINER_PAGE"
+grep -Fq 'request.insert(QStringLiteral("provider"), provider);' "$CRYPTOPRO_SOURCE"
+# Флаги носителя (CARRIER_FLAG_*) читаются, а не игнорируются: только они
+# отличают функциональный носитель от обычного.
+grep -Fq 'row.insert(QStringLiteral("carrierFlags"),' "$CRYPTOPRO_SOURCE"
 # Ровно три пункта и постоянный порядок задаёт backend, а не экран.
 grep -Fq 'QStringLiteral("csp"), QStringLiteral("active"), QStringLiteral("fkc")' "$CRYPTOPRO_SOURCE"
 # Недоступный режим остаётся видимым и приглушённым — как выключенный провайдер.

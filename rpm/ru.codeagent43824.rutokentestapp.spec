@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    20
+Release:    21
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,20 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sun Aug 09 2026 Claude <noreply@anthropic.com> - 1.3.0-21
+- Select the carrier class through the provider, which is where CryptoPro
+  actually places it: the vendor header defines a separate provider name for FKN
+  ("... FKC CSP") alongside the base, KC1 and KC2 providers of the same type. The
+  provider name now travels with the write request, and the FKN mode looks for a
+  provider of the chosen type whose name carries the FKC marker.
+- Read the carrier flags returned by the medium enumeration instead of discarding
+  them. The vendor documents CARRIER_FLAG_FUNCTIONAL_CARRIER and
+  CARRIER_FLAG_SECURE_MESSAGING as coming from this very call, so they, not name
+  guessing, are what separates a functional carrier from an ordinary one. The
+  field is read from the tail of the element, so no struct alignment is assumed.
+- Show the providers found on the device next to the modes, since the carrier
+  class is a property of the provider and the two questions are one.
+
 * Sun Aug 09 2026 Claude <noreply@anthropic.com> - 1.3.0-20
 - Name the mode a container actually landed in, read back from the container
   itself through PP_UNIQUE_CONTAINER on the handle that just created it, and say

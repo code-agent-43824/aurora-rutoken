@@ -1292,6 +1292,10 @@
         <translation>the device does not distinguish this mode</translation>
     </message>
     <message>
+        <source>provider</source>
+        <translation>provider</translation>
+    </message>
+    <message>
         <source>What the device returned</source>
         <translation>What the device returned</translation>
     </message>

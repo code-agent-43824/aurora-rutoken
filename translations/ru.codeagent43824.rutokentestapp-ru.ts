@@ -1292,6 +1292,10 @@
         <translation>устройство не различает этот режим</translation>
     </message>
     <message>
+        <source>provider</source>
+        <translation>провайдер</translation>
+    </message>
+    <message>
         <source>What the device returned</source>
         <translation>Что вернуло устройство</translation>
     </message>

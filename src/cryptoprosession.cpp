@@ -824,9 +824,22 @@ QVariantList enumerateReaders(const Api &api, capi::CryptProv provider, capi::Dw
         if (nick.trimmed().isEmpty() || placeholders.contains(nick.trimmed()))
             continue;
 
+        // Флаги носителя (`CARRIER_FLAG_*`): по документации КриптоПро они
+        // возвращаются именно этим вызовом — `CryptGetProvParam(PP_ENUMREADERS,
+        // CRYPT_MEDIA)`. Поле идёт в элементе ПОСЛЕДНИМ, поэтому читаем хвост
+        // буфера, а не считаем смещение: так не нужно угадывать выравнивание
+        // структуры из чужого заголовка. Именно эти флаги отличают функциональный
+        // носитель (ФКН) от обычного, а защиту канала — от её отсутствия.
+        capi::Dword carrierFlags = 0;
+        if (validBytes >= nameOffset + static_cast<int>(sizeof(carrierFlags)))
+            memcpy(&carrierFlags, buffer.constData() + validBytes - sizeof(carrierFlags),
+                   sizeof(carrierFlags));
+
         QVariantMap row;
         row.insert(QStringLiteral("nick"), nick);
         row.insert(QStringLiteral("name"), name);
+        row.insert(QStringLiteral("carrierFlags"),
+                   QStringLiteral("0x%1").arg(carrierFlags, 8, 16, QLatin1Char('0')));
         // Режим определяется тем же маркером имени, что и при чтении. Пусто —
         // это не носитель Рутокена (программное хранилище или чужой
         // считыватель), и в форму создания такой пункт не попадёт.
@@ -1601,7 +1614,13 @@ QVariantMap executeCreate(const QVariantMap &request)
         return result;
     }
 
-    const QString providerName = providerNameForType(api, type);
+    // Имя провайдера может прийти в запросе: у КриптоПро КЛАСС НОСИТЕЛЯ задаётся
+    // выбором провайдера, а не именем контейнера (в заголовке вендора для ФКН
+    // определено отдельное имя — `…FKC CSP`). Пусто — берём первый провайдер
+    // нужного типа, как раньше.
+    const QString requestedProvider = request.value(QStringLiteral("provider")).toString().trimmed();
+    const QString providerName = requestedProvider.isEmpty()
+            ? providerNameForType(api, type) : requestedProvider;
     if (providerName.isEmpty()) {
         result.insert(QStringLiteral("message"),
                       QStringLiteral("не найден провайдер %1").arg(providerAlgorithm(type)));
@@ -1713,8 +1732,9 @@ QVariantMap executeCreate(const QVariantMap &request)
     // Режим называется по фактическому имени контейнера, а не по выбранному
     // пункту формы. Разошлись — говорим об этом прямо: молчаливая подмена и
     // была исходной жалобой.
-    QString outcome = QStringLiteral("Контейнер %1 создан, ключевая пара %2 сгенерирована")
-            .arg(name, providerAlgorithm(type));
+    QString outcome = QStringLiteral("Контейнер %1 создан, ключевая пара %2 сгенерирована "
+                                     "провайдером «%3»")
+            .arg(name, providerAlgorithm(type), providerName);
     const QString createdMode = mediaModeKey(createdUnique);
     const QString wantedMode = mediaModeKey(medium);
     if (!createdUnique.isEmpty())
@@ -2053,7 +2073,7 @@ int CryptoProSession::runScanHelper()
 
 
 void CryptoProSession::createContainer(const QString &reader, const QString &medium,
-                                       const QString &container,
+                                       const QString &provider, const QString &container,
                                        int providerType, const QString &pin)
 {
     if (m_createBusy)
@@ -2081,6 +2101,7 @@ void CryptoProSession::createContainer(const QString &reader, const QString &med
     request.insert(QStringLiteral("operation"), QStringLiteral("createContainer"));
     request.insert(QStringLiteral("reader"), reader);
     request.insert(QStringLiteral("medium"), medium);
+    request.insert(QStringLiteral("provider"), provider);
     request.insert(QStringLiteral("container"), container);
     request.insert(QStringLiteral("providerType"), providerType);
     request.insert(QStringLiteral("pin"), pin);
