@@ -1659,6 +1659,22 @@ QVariantMap executeCreate(const QVariantMap &request)
     // Сработавшая форма — сам по себе результат замера, и она должна быть видна.
     result.insert(QStringLiteral("addressing"), fqcn);
 
+    // Куда контейнер лёг НА САМОМ ДЕЛЕ. Читается с уже открытого дескриптора,
+    // поэтому лишних обращений к носителю нет. Без этой проверки приложение
+    // выдавало бы выбранный режим за полученный — ровно то, на что владелец
+    // пожаловался: выбран CSP, создан PKCS#11, а сообщение говорило «создан».
+    QString createdUnique;
+    {
+        QByteArray uniqueBuffer(static_cast<int>(MaxCapiTextBytes), '\0');
+        capi::Dword uniqueSize = static_cast<capi::Dword>(uniqueBuffer.size());
+        if (api.getProvParam(provider, capi::PpUniqueContainer,
+                             reinterpret_cast<capi::Byte *>(uniqueBuffer.data()),
+                             &uniqueSize, 0)
+                && uniqueSize > 0 && uniqueSize <= static_cast<capi::Dword>(uniqueBuffer.size()))
+            createdUnique = fromCapiText(uniqueBuffer.constData(), static_cast<int>(uniqueSize));
+    }
+    result.insert(QStringLiteral("uniqueName"), createdUnique);
+
     // Контейнер уже существует: любая ошибка ниже требует отката.
     QString message;
     bool ok = false;
@@ -1694,9 +1710,21 @@ QVariantMap executeCreate(const QVariantMap &request)
     }
 
     result.insert(QStringLiteral("ok"), true);
-    result.insert(QStringLiteral("message"),
-                  QStringLiteral("Контейнер %1 создан, ключевая пара %2 сгенерирована")
-                  .arg(name, providerAlgorithm(type)));
+    // Режим называется по фактическому имени контейнера, а не по выбранному
+    // пункту формы. Разошлись — говорим об этом прямо: молчаливая подмена и
+    // была исходной жалобой.
+    QString outcome = QStringLiteral("Контейнер %1 создан, ключевая пара %2 сгенерирована")
+            .arg(name, providerAlgorithm(type));
+    const QString createdMode = mediaModeKey(createdUnique);
+    const QString wantedMode = mediaModeKey(medium);
+    if (!createdUnique.isEmpty())
+        outcome += QStringLiteral(", %1").arg(mediaModeTitle(createdMode));
+    if (!wantedMode.isEmpty() && !createdMode.isEmpty() && createdMode != wantedMode) {
+        outcome += QStringLiteral(". Провайдер выбрал режим сам: запрошен был %1, "
+                                  "а контейнер получился «%2»")
+                .arg(mediaModeTitle(wantedMode), createdUnique);
+    }
+    result.insert(QStringLiteral("message"), outcome);
     return result;
 }
 

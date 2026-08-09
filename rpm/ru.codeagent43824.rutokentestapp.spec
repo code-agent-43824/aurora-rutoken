@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    19
+Release:    20
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,18 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sun Aug 09 2026 Claude <noreply@anthropic.com> - 1.3.0-20
+- Name the mode a container actually landed in, read back from the container
+  itself through PP_UNIQUE_CONTAINER on the handle that just created it, and say
+  plainly when the provider picked a different one than was asked for. Reporting
+  the chosen menu entry as the result was the original complaint.
+- Offer a mode as selectable only when the device gives it a distinguishing name
+  of its own. All modes of one token share a reader, so without such a name the
+  choice changes nothing and the provider decides regardless; presenting it as a
+  choice promised something that does not exist. Modes that cannot be told apart
+  stay visible and greyed with the reason, and the form says outright that the
+  provider will pick.
+
 * Sun Aug 09 2026 Claude <noreply@anthropic.com> - 1.3.0-19
 - Address a mode by the only thing that distinguishes it. On the device all
   three modes of one token report the same reader, so neither the reader list

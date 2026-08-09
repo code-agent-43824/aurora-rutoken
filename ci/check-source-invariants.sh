@@ -276,6 +276,14 @@ grep -Fq 'cryptoProSession.createContainer(page.targetNick(), page.targetMedium(
 grep -Fq 'QStringLiteral("csp"), QStringLiteral("active"), QStringLiteral("fkc")' "$CRYPTOPRO_SOURCE"
 # Недоступный режим остаётся видимым и приглушённым — как выключенный провайдер.
 grep -Fq 'enabled: page.modeAvailable(modelData)' "$CRYPTOPRO_CONTAINER_PAGE"
+# Выбрать можно только режим, которому устройство дало СОБСТВЕННОЕ уникальное
+# имя: считыватель у режимов общий, и без такого имени выбор ничего не меняет.
+grep -Fq 'if (!row.unique || row.unique.length === 0)' "$CRYPTOPRO_CONTAINER_PAGE"
+# Полученный режим читается с созданного контейнера и называется по факту, а не
+# по выбранному пункту формы: молчаливая подмена была исходной жалобой.
+grep -Fq 'capi::PpUniqueContainer' "$CRYPTOPRO_SOURCE"
+grep -Fq 'static const Dword PpUniqueContainer = 36;' "$CRYPTOPRO_HEADER"
+grep -Fq 'const QString createdMode = mediaModeKey(createdUnique);' "$CRYPTOPRO_SOURCE"
 # Причина неудачи берётся у провайдера, а не выдумывается: код последней ошибки
 # показывается всегда, известные значения дополняются словами.
 grep -Fq 'QString capiErrorSuffix(const Api &api)' "$CRYPTOPRO_SOURCE"

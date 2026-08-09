@@ -60,11 +60,14 @@ Page {
         return list ? list : []
     }
 
-    // Режим доступен, если провайдер назвал для него носитель или считыватель.
+    // Режим можно ВЫБРАТЬ только если устройство дало ему собственное уникальное
+    // имя: считыватель у всех режимов один и тот же, и без такого имени выбор
+    // ни на что не влияет — провайдер всё равно решит сам. Показывать такой
+    // пункт нажимаемым значило бы обещать несуществующий выбор.
     // Отдельно закрыт CSP по NFC: пассивные контейнеры по этому интерфейсу не
     // видны — так устроен сам носитель, это не выбор приложения.
     function modeAvailable(row) {
-        if (!row.target || row.target.length === 0)
+        if (!row.unique || row.unique.length === 0)
             return false
         return !(page.connection === "NFC" && row.mode === "csp")
     }
@@ -72,6 +75,8 @@ Page {
     function modeUnavailableHint(row) {
         if (page.connection === "NFC" && row.mode === "csp")
             return qsTr("not available over NFC")
+        if (!row.unique || row.unique.length === 0)
+            return qsTr("the device does not distinguish this mode")
         return qsTr("not offered by the device")
     }
 
@@ -290,9 +295,7 @@ Page {
                         }
 
                         // Считыватель показывается отдельно: он у всех режимов
-                        // один и тот же, а режим задаёт уникальное имя выше.
-                        // Если уникального имени нет, режим выберет провайдер —
-                        // об этом сказано прямо, а не умолчанием.
+                        // один и тот же, режим задаёт уникальное имя выше.
                         Label {
                             width: parent.width
                             wrapMode: Text.Wrap
@@ -300,8 +303,6 @@ Page {
                             visible: page.modeAvailable(modelData)
                                      && modelData.reader !== modelData.target
                             text: "      " + modelData.reader
-                                  + (modelData.unique.length > 0
-                                     ? "" : qsTr(" — mode chosen by the provider"))
                             color: Theme.secondaryColor
                             font.pixelSize: Theme.fontSizeExtraSmall
                         }
@@ -332,15 +333,15 @@ Page {
                 }
             }
 
-            // Устройство не назвало ни одного режима: создавать всё равно есть
-            // где — на подключённом токене, — но режим выберет провайдер, и
-            // обещать конкретный здесь нельзя.
+            // Устройство не различает режимы: создавать всё равно есть где — на
+            // подключённом токене, — но режим выберет провайдер, и обещать
+            // конкретный здесь нельзя.
             Label {
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
                 visible: !page.anyModeAvailable()
-                text: qsTr("The device did not report any mode. The container will be created on the connected token and the provider picks the mode — it is then shown on the object card.")
+                text: qsTr("This device does not distinguish the modes: it reports the same medium for all of them. The container will be created on the connected token and the provider picks the mode — the mode it picked is shown on the object card and in the result.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }

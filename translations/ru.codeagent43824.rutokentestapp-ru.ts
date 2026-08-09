@@ -1288,8 +1288,8 @@
         <translation>Выключенные в настройках провайдеры показаны, но недоступны для выбора</translation>
     </message>
     <message>
-        <source> — mode chosen by the provider</source>
-        <translation> — режим выберет провайдер</translation>
+        <source>the device does not distinguish this mode</source>
+        <translation>устройство не различает этот режим</translation>
     </message>
     <message>
         <source>What the device returned</source>
@@ -1304,8 +1304,8 @@
         <translation>Контейнер создаётся на подключённом токене. Режимы, которых устройство не предложило, показаны, но недоступны для выбора.</translation>
     </message>
     <message>
-        <source>The device did not report any mode. The container will be created on the connected token and the provider picks the mode — it is then shown on the object card.</source>
-        <translation>Устройство не сообщило ни одного режима. Контейнер будет создан на подключённом токене, а режим выберет провайдер — он будет виден в карточке объекта.</translation>
+        <source>This device does not distinguish the modes: it reports the same medium for all of them. The container will be created on the connected token and the provider picks the mode — the mode it picked is shown on the object card and in the result.</source>
+        <translation>Это устройство не различает режимы: для всех оно сообщает один и тот же носитель. Контейнер будет создан на подключённом токене, а режим выберет провайдер — выбранный им режим виден в карточке объекта и в результате.</translation>
     </message>
     <message>
         <source>not available over NFC</source>
