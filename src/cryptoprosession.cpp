@@ -1633,6 +1633,9 @@ QVariantMap executeCreate(const QVariantMap &request)
     const QByteArray providerBytes = toCapiText(providerName);
     capi::CryptProv provider = 0;
     QString fqcn;
+    // Байты именно той формы, которая сработала: откат обязан удалять контейнер
+    // тем же именем, каким он создан, иначе удаление промахнётся.
+    QByteArray fqcnBytes;
     QStringList attempts;
     for (const QString &candidate : candidates) {
         const QByteArray candidateBytes = toCapiText(candidate);
@@ -1640,6 +1643,7 @@ QVariantMap executeCreate(const QVariantMap &request)
                                providerBytes.constData(), type,
                                capi::CryptNewKeyset | capi::CryptSilent)) {
             fqcn = candidate;
+            fqcnBytes = candidateBytes;
             break;
         }
         attempts.append(QStringLiteral("«%1»%2").arg(candidate, capiErrorSuffix(api)));
