@@ -252,16 +252,28 @@ if [ ! -f docs/OBJECT_MODEL.md ]; then
     exit 1
 fi
 
-# Режим контейнера задаётся ВЫБОРОМ СЧИТЫВАТЕЛЯ, поэтому список считывателей
-# читается с устройства через PP_ENUMREADERS, а не зашивается в код: выдуманное
-# имя создало бы контейнер не там, где ожидает пользователь.
+# Форма создания предлагает РОВНО ТРИ режима носителя — CSP, PKCS#11, ФКН — и
+# ничего кроме них: программные хранилища и посторонние считыватели пользователю
+# не нужны, контейнер создаётся только на подключённом токене. Имена, которыми
+# режимы адресуются, читаются с устройства через PP_ENUMREADERS, а не зашиваются
+# в код: выдуманное имя создало бы контейнер не там, где ожидает пользователь.
 grep -Fq 'QVariantList enumerateReaders(const Api &api, capi::CryptProv provider, bool media)' "$CRYPTOPRO_SOURCE"
 grep -Fq 'capi::PpEnumReaders' "$CRYPTOPRO_SOURCE"
 grep -Fq 'static const Dword PpEnumReaders = 114;' "$CRYPTOPRO_HEADER"
 grep -Fq 'capi::CryptMedia' "$CRYPTOPRO_SOURCE"
-grep -Fq 'model: page.readerOptions()' "$CRYPTOPRO_CONTAINER_PAGE"
+grep -Fq 'QVariantList resolveMediaModes(const QVariantList &mediaRows, const QVariantList &readerRows)' "$CRYPTOPRO_SOURCE"
+grep -Fq 'result.insert(QStringLiteral("mediaModes"), resolveMediaModes(mediaRows, readerRows));' "$CRYPTOPRO_SOURCE"
 grep -Fq 'model: page.modeOptions()' "$CRYPTOPRO_CONTAINER_PAGE"
 grep -Fq 'cryptoProSession.createContainer(page.targetNick(),' "$CRYPTOPRO_CONTAINER_PAGE"
+# Ровно три пункта и постоянный порядок задаёт backend, а не экран.
+grep -Fq 'QStringLiteral("csp"), QStringLiteral("active"), QStringLiteral("fkc")' "$CRYPTOPRO_SOURCE"
+# Недоступный режим остаётся видимым и приглушённым — как выключенный провайдер.
+grep -Fq 'enabled: page.modeAvailable(modelData)' "$CRYPTOPRO_CONTAINER_PAGE"
+# Выбора носителя на экране быть не должно: он только сбивал с толку.
+if grep -Fq 'page.readerOptions()' "$CRYPTOPRO_CONTAINER_PAGE"; then
+    echo "The creation form must offer the three modes only, not a list of carriers" >&2
+    exit 1
+fi
 if grep -Eq 'QStringLiteral\("Rutoken FKC"\)|QStringLiteral\("HDIMAGE"\)' "$CRYPTOPRO_SOURCE"; then
     echo "Reader names must be read from the device, never hardcoded" >&2
     exit 1

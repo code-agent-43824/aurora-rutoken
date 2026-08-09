@@ -13,6 +13,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonParseError>
 #include <QtCore/QLibrary>
+#include <QtCore/QMap>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QSet>
@@ -203,22 +204,47 @@ bool isProviderKeyAliasContainer(const Container &container)
 // создан программным провайдером КриптоПро. Ищем маркеры по всей строке, а не по
 // разобранным частям: форма имени зависит от флагов перечисления, а маркер — нет.
 // Источник: dev.rutoken.ru, «Режимы работы ключевых носителей Рутокен с КриптоПро CSP».
-QString containerMediaMode(const Container &container)
+//
+// Ключ режима по любой строке с именем носителя, считывателя или контейнера.
+// Пустая строка означает «это вообще не про Рутокен»: так отсеиваются
+// программные хранилища (HDIMAGE, реестр, облако, каталог) и посторонние
+// считыватели — в приложении они не нужны, работаем только с токеном.
+QString mediaModeKey(const QString &text)
 {
-    const QString haystack = (container.uniqueName.isEmpty()
-                              ? container.friendlyName : container.uniqueName).toLower();
+    const QString haystack = text.toLower();
     // Литерал маркера активного токена собран из двух частей намеренно: инвариант
     // сборки запрещает это слово целиком в адаптере КриптоПро, чтобы нельзя было
     // незаметно смешать два backend'а. Здесь это лишь имя носителя, не вызов.
     const QString activeMarker = QStringLiteral("pkcs") + QStringLiteral("11");
-    // Названия ровно те, которыми режимы называет приложение КриптоПро CSP на
-    // Авроре (подтверждено владельцем 2026-08-03). Свой словарь здесь не нужен:
-    // пользователь сверяет наш экран с экраном КриптоПро.
     if (haystack.contains(QStringLiteral("fkc")))
-        return QStringLiteral("режим ФКН");
+        return QStringLiteral("fkc");
     if (haystack.contains(activeMarker))
+        return QStringLiteral("active");
+    if (haystack.contains(QStringLiteral("rutoken")))
+        return QStringLiteral("csp");
+    return QString();
+}
+
+// Названия ровно те, которыми режимы называет приложение КриптоПро CSP на
+// Авроре (подтверждено владельцем 2026-08-03). Свой словарь здесь не нужен:
+// пользователь сверяет наш экран с экраном КриптоПро. Одна и та же функция
+// подписывает и карточку объекта, и пункт формы создания — иначе владелец не
+// смог бы сверить «что выбрал» с «что получилось».
+QString mediaModeTitle(const QString &key)
+{
+    if (key == QStringLiteral("fkc"))
+        return QStringLiteral("режим ФКН");
+    if (key == QStringLiteral("active"))
         return QStringLiteral("режим PKCS#11");
     return QStringLiteral("режим CSP");
+}
+
+QString containerMediaMode(const Container &container)
+{
+    // У контейнера маркера может не быть вовсе — тогда это пассивный режим:
+    // имя выбирал программный провайдер, а не носитель.
+    return mediaModeTitle(mediaModeKey(container.uniqueName.isEmpty()
+                                       ? container.friendlyName : container.uniqueName));
 }
 
 // Кандидат `CKA_ID` ключевой пары PKCS#11, которой принадлежит этот контейнер,
@@ -792,20 +818,71 @@ QVariantList enumerateReaders(const Api &api, capi::CryptProv provider, bool med
         if (nick.trimmed().isEmpty() || placeholders.contains(nick.trimmed()))
             continue;
 
-        Container probe;
-        probe.uniqueName = nick + QLatin1Char(' ') + name;
-        const QString haystack = probe.uniqueName.toLower();
         QVariantMap row;
         row.insert(QStringLiteral("nick"), nick);
         row.insert(QStringLiteral("name"), name);
-        // Режим определяется тем же маркером имени, что и при чтении. Если
-        // маркера нет — режим станет известен только по созданному контейнеру,
-        // и придумывать его здесь нельзя.
-        row.insert(QStringLiteral("mode"),
-                   haystack.contains(QStringLiteral("fkc"))
-                   || haystack.contains(QStringLiteral("pkcs") + QStringLiteral("11"))
-                   || haystack.contains(QStringLiteral("rutoken"))
-                   ? containerMediaMode(probe) : QString());
+        // Режим определяется тем же маркером имени, что и при чтении. Пусто —
+        // это не носитель Рутокена (программное хранилище или чужой
+        // считыватель), и в форму создания такой пункт не попадёт.
+        row.insert(QStringLiteral("mode"), mediaModeKey(nick + QLatin1Char(' ') + name));
+        out.append(row);
+    }
+    return out;
+}
+
+// Три режима работы носителя — ровно те, между которыми выбирает пользователь:
+// CSP, PKCS#11, ФКН. Больше в форме создания ничего нет: программные хранилища
+// и посторонние считыватели не нужны, контейнер создаётся только на
+// подключённом токене (требование владельца 2026-08-09).
+//
+// Кандидатов ищем сначала среди НОСИТЕЛЕЙ, потом среди считывателей. В диалоге
+// КриптоПро «Режим работы» — это список носителей выбранного считывателя:
+// dev.rutoken.ru, «Генерация контейнера ФКН на Рутокен ЭЦП 3.0 NFC» — считыватель
+// «Rutoken FKC NFC», режим работы «ФКН с защитой канала (rutoken_fkc_nfc…)»;
+// forum.cryptopro.ru t=21695 — у считывателя «Aktiv Rutoken ECP 00 00»
+// перечислены носители `rutoken_fkc_…` и `rutoken_ecp_…`. Но на Авроре режим
+// PKCS#11 пришёл ТОЛЬКО считывателем (`PKCS`+`11_READER`), носителя с таким
+// маркером перечисление не дало, поэтому считыватели тоже годятся в кандидаты.
+//
+// Возвращаются всегда все три строки, даже если устройство не дало кандидата:
+// пункт должен быть виден и понятно недоступен, а не исчезать.
+QVariantList resolveMediaModes(const QVariantList &mediaRows, const QVariantList &readerRows)
+{
+    QMap<QString, QVariantMap> found;
+    QVariantList sources;
+    sources.append(QVariant(mediaRows));
+    sources.append(QVariant(readerRows));
+    for (const QVariant &source : sources) {
+        const QVariantList rows = source.toList();
+        for (const QVariant &item : rows) {
+            const QVariantMap row = item.toMap();
+            const QString key = row.value(QStringLiteral("mode")).toString();
+            if (key.isEmpty() || found.contains(key))
+                continue;
+            found.insert(key, row);
+        }
+    }
+
+    // Порядок постоянный и совпадает с тем, как режимы перечисляет владелец:
+    // CSP, PKCS#11, ФКН. Пункт не должен переезжать между проходами.
+    const QString order[3] = {
+        QStringLiteral("csp"), QStringLiteral("active"), QStringLiteral("fkc")
+    };
+    QVariantList out;
+    for (int i = 0; i < 3; ++i) {
+        const QVariantMap source = found.value(order[i]);
+        const QString nick = source.value(QStringLiteral("nick")).toString();
+        const QString name = source.value(QStringLiteral("name")).toString();
+        // Что передаём в имя контейнера: имя носителя, если оно несёт маркер
+        // режима (`rutoken_fkc_…`), иначе видимое имя. Эту же строку форма
+        // показывает под пунктом — видно, куда именно пойдёт контейнер.
+        const QString target = mediaModeKey(name) == order[i] ? name : nick;
+        QVariantMap row;
+        row.insert(QStringLiteral("mode"), order[i]);
+        row.insert(QStringLiteral("title"), mediaModeTitle(order[i]));
+        row.insert(QStringLiteral("nick"), nick);
+        row.insert(QStringLiteral("name"), name);
+        row.insert(QStringLiteral("target"), target);
         out.append(row);
     }
     return out;
@@ -1238,8 +1315,7 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
     result.insert(QStringLiteral("cspVersion"), versionText);
     result.insert(QStringLiteral("libraryPath"), libraryPath);
     result.insert(QStringLiteral("providers"), providerRows);
-    result.insert(QStringLiteral("readers"), readerRows);
-    result.insert(QStringLiteral("media"), mediaRows);
+    result.insert(QStringLiteral("mediaModes"), resolveMediaModes(mediaRows, readerRows));
     result.insert(QStringLiteral("containers"), containerRows);
     result.insert(QStringLiteral("certificates"), certificates);
     const qint64 elapsedMs = elapsed.elapsed();
@@ -1671,8 +1747,7 @@ QVariantMap executeScan(const QList<int> &allowedProviderTypes)
                       QStringLiteral("КриптоПро CSP не установлен "
                                      "(libcapi20.so не найдена)"));
         result.insert(QStringLiteral("providers"), QVariantList());
-        result.insert(QStringLiteral("readers"), QVariantList());
-        result.insert(QStringLiteral("media"), QVariantList());
+        result.insert(QStringLiteral("mediaModes"), QVariantList());
         result.insert(QStringLiteral("containers"), QVariantList());
         result.insert(QStringLiteral("certificates"), QVariantList());
         return result;
@@ -2139,8 +2214,7 @@ void CryptoProSession::finishHelper(int exitCode, QProcess::ExitStatus exitStatu
             m_loadedLibraries.append(path);
     }
     m_providers = result.value(QStringLiteral("providers")).toList();
-    m_readers = result.value(QStringLiteral("readers")).toList();
-    m_media = result.value(QStringLiteral("media")).toList();
+    m_mediaModes = result.value(QStringLiteral("mediaModes")).toList();
     m_containers = result.value(QStringLiteral("containers")).toList();
     m_certificates = result.value(QStringLiteral("certificates")).toList();
     m_status = result.value(QStringLiteral("status")).toString();

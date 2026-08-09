@@ -1288,20 +1288,24 @@
         <translation>Выключенные в настройках провайдеры показаны, но недоступны для выбора</translation>
     </message>
     <message>
-        <source>Reader</source>
-        <translation>Считыватель</translation>
-    </message>
-    <message>
         <source>Operating mode</source>
         <translation>Режим работы</translation>
     </message>
     <message>
-        <source>The mode is the medium: CSP, PKCS#11 or FKN. Leave it unset to let the provider choose — the mode it picked is then shown on the object card.</source>
-        <translation>Режим — это носитель: CSP, PKCS#11 или ФКН. Оставьте невыбранным, чтобы провайдер выбрал сам — выбранный им режим будет виден в карточке объекта.</translation>
+        <source>The container is created on the connected token. Modes the device did not offer are shown but cannot be selected.</source>
+        <translation>Контейнер создаётся на подключённом токене. Режимы, которых устройство не предложило, показаны, но недоступны для выбора.</translation>
     </message>
     <message>
-        <source>chosen by the provider</source>
-        <translation>выберет провайдер</translation>
+        <source>The device did not report any mode. The container will be created on the connected token and the provider picks the mode — it is then shown on the object card.</source>
+        <translation>Устройство не сообщило ни одного режима. Контейнер будет создан на подключённом токене, а режим выберет провайдер — он будет виден в карточке объекта.</translation>
+    </message>
+    <message>
+        <source>not available over NFC</source>
+        <translation>по NFC недоступен</translation>
+    </message>
+    <message>
+        <source>not offered by the device</source>
+        <translation>устройство не предложило</translation>
     </message>
 </context>
 <context>

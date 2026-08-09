@@ -28,12 +28,10 @@ class CryptoProSession : public QObject
     Q_PROPERTY(QString lastRequest READ lastRequest NOTIFY changed) // PEM PKCS#10
     Q_PROPERTY(QStringList loadedLibraries READ loadedLibraries NOTIFY changed)
     Q_PROPERTY(QVariantList providers READ providers NOTIFY changed)
-    // Считыватели КриптоПро: режим контейнера задаётся выбором считывателя,
-    // поэтому форма создания предлагает то, что есть на устройстве.
-    Q_PROPERTY(QVariantList readers READ readers NOTIFY changed)
-    // Носители того же провайдера: в интерфейсе КриптоПро это отдельный
-    // список «Режим работы» — CSP, активный токен, ФКН.
-    Q_PROPERTY(QVariantList media READ media NOTIFY changed)
+    // Ровно три режима работы носителя — CSP, PKCS#11, ФКН, — сведённые из
+    // перечисления носителей и считывателей КриптоПро. Больше форме создания
+    // ничего не нужно: контейнер создаётся только на подключённом токене.
+    Q_PROPERTY(QVariantList mediaModes READ mediaModes NOTIFY changed)
     Q_PROPERTY(QVariantList containers READ containers NOTIFY changed)
     Q_PROPERTY(QVariantList certificates READ certificates NOTIFY changed)
 
@@ -68,8 +66,7 @@ public:
     Q_INVOKABLE bool saveRequestToFile(const QString &name);
     QStringList loadedLibraries() const { return m_loadedLibraries; }
     QVariantList providers() const { return m_providers; }
-    QVariantList readers() const { return m_readers; }
-    QVariantList media() const { return m_media; }
+    QVariantList mediaModes() const { return m_mediaModes; }
     QVariantList containers() const { return m_containers; }
     QVariantList certificates() const { return m_certificates; }
 
@@ -118,8 +115,7 @@ private:
     QString m_lastRequest;
     QStringList m_loadedLibraries;
     QVariantList m_providers;
-    QVariantList m_readers;
-    QVariantList m_media;
+    QVariantList m_mediaModes;
     QVariantList m_containers;
     QVariantList m_certificates;
 };

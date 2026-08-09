@@ -49,53 +49,68 @@ Page {
         return index < 0 ? 0 : index
     }
 
-    // Два уровня, как в диалоге выбора ключевого носителя КриптоПро: сначала
-    // СЧИТЫВАТЕЛЬ, затем РЕЖИМ РАБОТЫ — и режим это имя носителя
-    // (`rutoken_ecp_…` — CSP, `pkcs11_rutoken_ecp_…` — активный токен,
-    // `rutoken_fkc_…` — ФКН). Оба списка приходят с устройства, ничего не
-    // выдумывается: неверное имя создало бы контейнер не там.
-    property string readerNick: page.readerName
-    property string mediaNick: ""
-
-    function optionsFrom(list, fallback) {
-        var out = []
-        var source = list ? list : []
-        for (var i = 0; i < source.length; ++i) {
-            var nick = source[i].nick ? source[i].nick : ""
-            if (nick.length === 0)
-                continue
-            out.push({
-                nick: nick,
-                title: source[i].mode && source[i].mode.length > 0
-                       ? source[i].mode + " (" + nick + ")" : nick
-            })
-        }
-        // Считыватель текущего устройства обязан быть в списке даже если
-        // перечисление ничего не вернуло: иначе создавать будет негде.
-        var known = false
-        for (var j = 0; j < out.length; ++j)
-            known = known || out[j].nick === fallback
-        if (!known && fallback.length > 0)
-            out.unshift({ nick: fallback, title: fallback })
-        return out
-    }
-
-    function readerOptions() {
-        return page.optionsFrom(cryptoProSession.readers, page.readerName)
-    }
+    // Выбирается ОДИН из трёх режимов работы носителя — CSP, PKCS#11, ФКН.
+    // Другого носителя выбрать нельзя: контейнер создаётся только на
+    // подключённом сейчас токене. Списка считывателей на экране нет намеренно —
+    // программные хранилища (реестр, каталог, облако) приложению не нужны.
+    property string modeKey: ""
 
     function modeOptions() {
-        var out = [{ nick: "", title: qsTr("chosen by the provider") }]
-        var media = page.optionsFrom(cryptoProSession.media, "")
-        for (var i = 0; i < media.length; ++i)
-            out.push(media[i])
-        return out
+        var list = cryptoProSession.mediaModes
+        return list ? list : []
     }
 
-    // Куда именно создавать: если режим выбран — на его носителе, иначе на
-    // считывателе. Провайдер выберет режим сам, и он будет виден в карточке.
+    // Режим доступен, если провайдер назвал для него носитель или считыватель.
+    // Отдельно закрыт CSP по NFC: пассивные контейнеры по этому интерфейсу не
+    // видны — так устроен сам носитель, это не выбор приложения.
+    function modeAvailable(row) {
+        if (!row.target || row.target.length === 0)
+            return false
+        return !(page.connection === "NFC" && row.mode === "csp")
+    }
+
+    function modeUnavailableHint(row) {
+        if (page.connection === "NFC" && row.mode === "csp")
+            return qsTr("not available over NFC")
+        return qsTr("not offered by the device")
+    }
+
+    function anyModeAvailable() {
+        var rows = page.modeOptions()
+        for (var i = 0; i < rows.length; ++i) {
+            if (page.modeAvailable(rows[i]))
+                return true
+        }
+        return false
+    }
+
+    // Куда именно создавать. Выбран режим — на его носителе; устройство не
+    // назвало ни одного режима — на подключённом токене, и тогда режим выберет
+    // провайдер (он будет виден в карточке созданного объекта).
     function targetNick() {
-        return page.mediaNick.length > 0 ? page.mediaNick : page.readerNick
+        var rows = page.modeOptions()
+        for (var i = 0; i < rows.length; ++i) {
+            if (rows[i].mode === page.modeKey && page.modeAvailable(rows[i]))
+                return rows[i].target
+        }
+        return page.readerName
+    }
+
+    // Открываемся на активном токене: именно этот режим документация Рутокена
+    // предписывает выбирать при генерации ключей (dev.rutoken.ru, «Неизвлекаемые
+    // ключи на Рутокенах в КриптоПро CSP 5.0 R2»). Нет его — первый доступный.
+    function defaultModeKey() {
+        var rows = page.modeOptions()
+        var first = ""
+        for (var i = 0; i < rows.length; ++i) {
+            if (!page.modeAvailable(rows[i]))
+                continue
+            if (rows[i].mode === "active")
+                return "active"
+            if (first.length === 0)
+                first = rows[i].mode
+        }
+        return first
     }
 
     // Ранее выбранный провайдер мог быть выключен в настройках, поэтому форма
@@ -104,10 +119,7 @@ Page {
         if (!page.providerEnabled(page.providerType))
             page.providerType = appSettings.firstEnabledProviderType()
         algorithmBox.currentIndex = page.indexOfType(page.providerType)
-        if (page.readerNick.length === 0) {
-            var readers = page.readerOptions()
-            page.readerNick = readers.length > 0 ? readers[0].nick : ""
-        }
+        page.modeKey = page.defaultModeKey()
     }
 
     function suggestedName() {
@@ -157,6 +169,17 @@ Page {
     Connections {
         target: cryptoProSession
         onChanged: {
+            // Список режимов приходит с проходом, а он мог завершиться уже после
+            // открытия формы; если выбранного режима в нём нет — переходим на
+            // умолчание, иначе кнопка создавала бы контейнер не туда.
+            var rows = page.modeOptions()
+            var stillThere = false
+            for (var i = 0; i < rows.length; ++i) {
+                if (rows[i].mode === page.modeKey && page.modeAvailable(rows[i]))
+                    stillThere = true
+            }
+            if (!stillThere)
+                page.modeKey = page.defaultModeKey()
             if (page.status !== PageStatus.Active || !page.attempted)
                 return
             if (!cryptoProSession.createBusy && cryptoProSession.createOutcome === 1) {
@@ -201,42 +224,17 @@ Page {
                 EnterKey.onClicked: focus = false
             }
 
-            // Порядок как в диалоге КриптоПро: считыватель, затем режим работы.
-            // Пункты — только то, что провайдер перечислил на этом устройстве.
-            // Списки, а не выпадающие меню: число пунктов заранее неизвестно, а
-            // Silica ComboBox сопоставляет выбор с детьми меню по порядку.
-            SectionHeader { text: qsTr("Reader") }
-
-            Repeater {
-                model: page.readerOptions()
-
-                BackgroundItem {
-                    width: parent.width
-                    height: readerLabel.height + 2 * Theme.paddingMedium
-                    onClicked: page.readerNick = modelData.nick
-
-                    Label {
-                        id: readerLabel
-                        x: Theme.horizontalPageMargin
-                        width: parent.width - 2 * Theme.horizontalPageMargin
-                        anchors.verticalCenter: parent.verticalCenter
-                        wrapMode: Text.Wrap
-                        textFormat: Text.PlainText
-                        text: (page.readerNick === modelData.nick ? "\u25cf " : "\u25cb ") + modelData.title
-                        color: page.readerNick === modelData.nick
-                               ? Theme.highlightColor : Theme.primaryColor
-                        font.pixelSize: Theme.fontSizeSmall
-                    }
-                }
-            }
-
+            // Ровно три режима и ничего кроме них. Список, а не выпадающее
+            // меню: под каждым пунктом показано имя, которым провайдер назвал
+            // этот режим на устройстве, — по нему видно, куда пойдёт контейнер,
+            // и с чем сверять режим в карточке созданного объекта.
             SectionHeader { text: qsTr("Operating mode") }
 
             Label {
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 wrapMode: Text.Wrap
-                text: qsTr("The mode is the medium: CSP, PKCS#11 or FKN. Leave it unset to let the provider choose — the mode it picked is then shown on the object card.")
+                text: qsTr("The container is created on the connected token. Modes the device did not offer are shown but cannot be selected.")
                 color: Theme.secondaryColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }
@@ -246,22 +244,53 @@ Page {
 
                 BackgroundItem {
                     width: parent.width
-                    height: modeLabel.height + 2 * Theme.paddingMedium
-                    onClicked: page.mediaNick = modelData.nick
+                    height: modeColumn.height + 2 * Theme.paddingMedium
+                    enabled: page.modeAvailable(modelData)
+                    opacity: enabled ? 1.0 : 0.4
+                    onClicked: page.modeKey = modelData.mode
 
-                    Label {
-                        id: modeLabel
+                    Column {
+                        id: modeColumn
                         x: Theme.horizontalPageMargin
                         width: parent.width - 2 * Theme.horizontalPageMargin
                         anchors.verticalCenter: parent.verticalCenter
-                        wrapMode: Text.Wrap
-                        textFormat: Text.PlainText
-                        text: (page.mediaNick === modelData.nick ? "\u25cf " : "\u25cb ") + modelData.title
-                        color: page.mediaNick === modelData.nick
-                               ? Theme.highlightColor : Theme.primaryColor
-                        font.pixelSize: Theme.fontSizeSmall
+
+                        Label {
+                            width: parent.width
+                            wrapMode: Text.Wrap
+                            textFormat: Text.PlainText
+                            text: (page.modeKey === modelData.mode ? "\u25cf " : "\u25cb ")
+                                  + modelData.title
+                            color: page.modeKey === modelData.mode
+                                   ? Theme.highlightColor : Theme.primaryColor
+                            font.pixelSize: Theme.fontSizeSmall
+                        }
+
+                        Label {
+                            width: parent.width
+                            wrapMode: Text.Wrap
+                            textFormat: Text.PlainText
+                            text: "      " + (page.modeAvailable(modelData)
+                                              ? modelData.target
+                                              : page.modeUnavailableHint(modelData))
+                            color: Theme.secondaryColor
+                            font.pixelSize: Theme.fontSizeExtraSmall
+                        }
                     }
                 }
+            }
+
+            // Устройство не назвало ни одного режима: создавать всё равно есть
+            // где — на подключённом токене, — но режим выберет провайдер, и
+            // обещать конкретный здесь нельзя.
+            Label {
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                wrapMode: Text.Wrap
+                visible: !page.anyModeAvailable()
+                text: qsTr("The device did not report any mode. The container will be created on the connected token and the provider picks the mode — it is then shown on the object card.")
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
             }
 
             ComboBox {

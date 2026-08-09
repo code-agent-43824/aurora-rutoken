@@ -1288,20 +1288,24 @@
         <translation>Providers switched off in the settings are shown but cannot be selected</translation>
     </message>
     <message>
-        <source>Reader</source>
-        <translation>Reader</translation>
-    </message>
-    <message>
         <source>Operating mode</source>
         <translation>Operating mode</translation>
     </message>
     <message>
-        <source>The mode is the medium: CSP, PKCS#11 or FKN. Leave it unset to let the provider choose — the mode it picked is then shown on the object card.</source>
-        <translation>The mode is the medium: CSP, PKCS#11 or FKN. Leave it unset to let the provider choose — the mode it picked is then shown on the object card.</translation>
+        <source>The container is created on the connected token. Modes the device did not offer are shown but cannot be selected.</source>
+        <translation>The container is created on the connected token. Modes the device did not offer are shown but cannot be selected.</translation>
     </message>
     <message>
-        <source>chosen by the provider</source>
-        <translation>chosen by the provider</translation>
+        <source>The device did not report any mode. The container will be created on the connected token and the provider picks the mode — it is then shown on the object card.</source>
+        <translation>The device did not report any mode. The container will be created on the connected token and the provider picks the mode — it is then shown on the object card.</translation>
+    </message>
+    <message>
+        <source>not available over NFC</source>
+        <translation>not available over NFC</translation>
+    </message>
+    <message>
+        <source>not offered by the device</source>
+        <translation>not offered by the device</translation>
     </message>
 </context>
 <context>

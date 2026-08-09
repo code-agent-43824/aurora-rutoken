@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    16
+Release:    17
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,17 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sun Aug 09 2026 Claude <noreply@anthropic.com> - 1.3.0-17
+- Offer exactly three operating modes when creating a container - CSP, PKCS#11
+  and FKN - and nothing else. The carrier list is gone: software key stores and
+  foreign readers were never wanted, and the container is always created on the
+  token that is connected right now. Each mode is resolved from the device
+  enumeration by the marker its name carries, and the resolved name is shown
+  under the mode so the choice can be checked against the created object. A mode
+  the device did not offer stays visible but greyed out, as switched-off
+  providers already do; CSP is greyed out over NFC, where passive containers are
+  invisible by design.
+
 * Sat Aug 08 2026 Claude <noreply@anthropic.com> - 1.3.0-16
 - Rebuild the creation form on the provider's own model, which has two levels
   rather than one: a reader is chosen first, then an operating mode, and the mode
