@@ -1288,6 +1288,10 @@
         <translation>Providers switched off in the settings are shown but cannot be selected</translation>
     </message>
     <message>
+        <source> — mode chosen by the provider</source>
+        <translation> — mode chosen by the provider</translation>
+    </message>
+    <message>
         <source>What the device returned</source>
         <translation>What the device returned</translation>
     </message>

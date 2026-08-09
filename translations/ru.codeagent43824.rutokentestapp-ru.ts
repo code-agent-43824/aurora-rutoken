@@ -1288,6 +1288,10 @@
         <translation>Выключенные в настройках провайдеры показаны, но недоступны для выбора</translation>
     </message>
     <message>
+        <source> — mode chosen by the provider</source>
+        <translation> — режим выберет провайдер</translation>
+    </message>
+    <message>
         <source>What the device returned</source>
         <translation>Что вернуло устройство</translation>
     </message>

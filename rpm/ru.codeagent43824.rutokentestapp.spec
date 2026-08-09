@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    18
+Release:    19
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,19 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sun Aug 09 2026 Claude <noreply@anthropic.com> - 1.3.0-19
+- Address a mode by the only thing that distinguishes it. On the device all
+  three modes of one token report the same reader, so neither the reader list
+  nor the visible medium names can tell them apart, and addressing by a visible
+  name was rejected outright. The unique medium name is the sole discriminator -
+  the same component that already appears inside a container unique name - so it
+  is read with a third enumeration pass, CRYPT_MEDIA together with CRYPT_UNIQUE,
+  and used to build the container path.
+- Try the documented path forms in order and report which one worked, since the
+  exact syntax is still unmeasured; a failed attempt creates nothing. When the
+  medium is known there is deliberately no fallback to the reader name: it would
+  silently create the container in another mode, which is the original complaint.
+
 * Sun Aug 09 2026 Claude <noreply@anthropic.com> - 1.3.0-18
 - Report the reason a write failed instead of guessing at it. The provider knows
   the code and CapiLite exposes GetLastError, so every failure now carries the

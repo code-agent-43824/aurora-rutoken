@@ -84,16 +84,26 @@ Page {
         return false
     }
 
-    // Куда именно создавать. Выбран режим — на его носителе; устройство не
-    // назвало ни одного режима — на подключённом токене, и тогда режим выберет
-    // провайдер (он будет виден в карточке созданного объекта).
-    function targetNick() {
+    function selectedMode() {
         var rows = page.modeOptions()
         for (var i = 0; i < rows.length; ++i) {
             if (rows[i].mode === page.modeKey && page.modeAvailable(rows[i]))
-                return rows[i].target
+                return rows[i]
         }
-        return page.readerName
+        return null
+    }
+
+    // Считыватель у всех режимов один и тот же — это установлено замером.
+    function targetNick() {
+        var row = page.selectedMode()
+        return row && row.reader.length > 0 ? row.reader : page.readerName
+    }
+
+    // Уникальное имя носителя: только оно отличает режимы друг от друга. Пусто
+    // — режим не различим, и его выберет провайдер.
+    function targetMedium() {
+        var row = page.selectedMode()
+        return row ? row.unique : ""
     }
 
     // Открываемся на активном токене: именно этот режим документация Рутокена
@@ -148,6 +158,7 @@ Page {
             var wiz = pageStack.push(Qt.resolvedUrl("NfcConnectPage.qml"), {
                 operation: "cpcontainer",
                 cpReaderName: page.targetNick(),
+                cpMediumName: page.targetMedium(),
                 cpContainerName: name,
                 cpProviderType: page.providerType
             })
@@ -161,7 +172,8 @@ Page {
         })
         pad.entered.connect(function(pin) {
             page.attempted = true
-            cryptoProSession.createContainer(page.targetNick(), name, page.providerType, pin)
+            cryptoProSession.createContainer(page.targetNick(), page.targetMedium(),
+                                             name, page.providerType, pin)
         })
     }
 
@@ -277,18 +289,19 @@ Page {
                             font.pixelSize: Theme.fontSizeExtraSmall
                         }
 
-                        // Вторая строка элемента перечисления показывается
-                        // отдельно, когда отличается: именно она должна нести
-                        // уникальное имя носителя (`rutoken_fkc_…`), а есть ли
-                        // оно на устройстве — пока не проверено.
+                        // Считыватель показывается отдельно: он у всех режимов
+                        // один и тот же, а режим задаёт уникальное имя выше.
+                        // Если уникального имени нет, режим выберет провайдер —
+                        // об этом сказано прямо, а не умолчанием.
                         Label {
                             width: parent.width
                             wrapMode: Text.Wrap
                             textFormat: Text.PlainText
                             visible: page.modeAvailable(modelData)
-                                     && modelData.name.length > 0
-                                     && modelData.name !== modelData.target
-                            text: "      " + modelData.name
+                                     && modelData.reader !== modelData.target
+                            text: "      " + modelData.reader
+                                  + (modelData.unique.length > 0
+                                     ? "" : qsTr(" — mode chosen by the provider"))
                             color: Theme.secondaryColor
                             font.pixelSize: Theme.fontSizeExtraSmall
                         }

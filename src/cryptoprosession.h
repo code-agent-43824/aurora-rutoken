@@ -62,8 +62,11 @@ public:
     QString lastRequest() const { return m_lastRequest; }
 
     // Создаёт контейнер и неэкспортируемую ключевую пару ГОСТ-2012 на выбранном
-    // считывателе. Выполняется в отдельном helper-процессе.
-    Q_INVOKABLE void createContainer(const QString &reader, const QString &container,
+    // считывателе. `medium` — уникальное имя носителя выбранного режима; оно и
+    // только оно отличает режимы друг от друга, считыватель у них общий. Пусто
+    // — режим выберет провайдер. Выполняется в отдельном helper-процессе.
+    Q_INVOKABLE void createContainer(const QString &reader, const QString &medium,
+                                     const QString &container,
                                      int providerType, const QString &pin);
     // Формирует PKCS#10 для существующего контейнера средствами провайдера.
     Q_INVOKABLE void createCertificateRequest(const QString &container, int providerType,

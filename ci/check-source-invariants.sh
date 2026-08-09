@@ -257,14 +257,21 @@ fi
 # не нужны, контейнер создаётся только на подключённом токене. Имена, которыми
 # режимы адресуются, читаются с устройства через PP_ENUMREADERS, а не зашиваются
 # в код: выдуманное имя создало бы контейнер не там, где ожидает пользователь.
-grep -Fq 'QVariantList enumerateReaders(const Api &api, capi::CryptProv provider, bool media)' "$CRYPTOPRO_SOURCE"
+grep -Fq 'QVariantList enumerateReaders(const Api &api, capi::CryptProv provider, capi::Dword extraFlags)' "$CRYPTOPRO_SOURCE"
+# Режим различим ТОЛЬКО уникальным именем носителя: считыватель у всех режимов
+# одного токена общий (замер 2026-08-09). Поэтому третий проход с CRYPT_UNIQUE.
+grep -Fq 'capi::CryptMedia | capi::CryptUnique);' "$CRYPTOPRO_SOURCE"
+grep -Fq 'request.insert(QStringLiteral("medium"), medium);' "$CRYPTOPRO_SOURCE"
+# Отката на имя считывателя при известном носителе быть не должно: он создал бы
+# контейнер в чужом режиме молча.
+grep -Fq 'candidates.append(QStringLiteral("\\\\.\\%1\\%2\\%3").arg(reader, medium, name));' "$CRYPTOPRO_SOURCE"
 grep -Fq 'capi::PpEnumReaders' "$CRYPTOPRO_SOURCE"
 grep -Fq 'static const Dword PpEnumReaders = 114;' "$CRYPTOPRO_HEADER"
 grep -Fq 'capi::CryptMedia' "$CRYPTOPRO_SOURCE"
-grep -Fq 'QVariantList resolveMediaModes(const QVariantList &mediaRows, const QVariantList &readerRows)' "$CRYPTOPRO_SOURCE"
-grep -Fq 'result.insert(QStringLiteral("mediaModes"), resolveMediaModes(mediaRows, readerRows));' "$CRYPTOPRO_SOURCE"
+grep -Fq 'QVariantList resolveMediaModes(const QVariantList &uniqueRows, const QVariantList &mediaRows,' "$CRYPTOPRO_SOURCE"
+grep -Fq 'resolveMediaModes(uniqueRows, mediaRows, readerRows));' "$CRYPTOPRO_SOURCE"
 grep -Fq 'model: page.modeOptions()' "$CRYPTOPRO_CONTAINER_PAGE"
-grep -Fq 'cryptoProSession.createContainer(page.targetNick(),' "$CRYPTOPRO_CONTAINER_PAGE"
+grep -Fq 'cryptoProSession.createContainer(page.targetNick(), page.targetMedium(),' "$CRYPTOPRO_CONTAINER_PAGE"
 # Ровно три пункта и постоянный порядок задаёт backend, а не экран.
 grep -Fq 'QStringLiteral("csp"), QStringLiteral("active"), QStringLiteral("fkc")' "$CRYPTOPRO_SOURCE"
 # Недоступный режим остаётся видимым и приглушённым — как выключенный провайдер.
