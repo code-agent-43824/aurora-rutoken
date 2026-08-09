@@ -1288,12 +1288,20 @@
         <translation>Выключенные в настройках провайдеры показаны, но недоступны для выбора</translation>
     </message>
     <message>
-        <source>Medium (container mode)</source>
-        <translation>Носитель (режим контейнера)</translation>
+        <source>Reader</source>
+        <translation>Считыватель</translation>
     </message>
     <message>
-        <source>The mode — CSP, PKCS#11 or FKN — is chosen by the medium, not by a separate setting. Only media the provider reports on this device are listed.</source>
-        <translation>Режим — CSP, PKCS#11 или ФКН — задаётся носителем, а не отдельной настройкой. В списке только те носители, о которых сообщил провайдер на этом устройстве.</translation>
+        <source>Operating mode</source>
+        <translation>Режим работы</translation>
+    </message>
+    <message>
+        <source>The mode is the medium: CSP, PKCS#11 or FKN. Leave it unset to let the provider choose — the mode it picked is then shown on the object card.</source>
+        <translation>Режим — это носитель: CSP, PKCS#11 или ФКН. Оставьте невыбранным, чтобы провайдер выбрал сам — выбранный им режим будет виден в карточке объекта.</translation>
+    </message>
+    <message>
+        <source>chosen by the provider</source>
+        <translation>выберет провайдер</translation>
     </message>
 </context>
 <context>

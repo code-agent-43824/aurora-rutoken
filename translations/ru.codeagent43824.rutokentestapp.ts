@@ -1288,12 +1288,20 @@
         <translation>Providers switched off in the settings are shown but cannot be selected</translation>
     </message>
     <message>
-        <source>Medium (container mode)</source>
-        <translation>Medium (container mode)</translation>
+        <source>Reader</source>
+        <translation>Reader</translation>
     </message>
     <message>
-        <source>The mode — CSP, PKCS#11 or FKN — is chosen by the medium, not by a separate setting. Only media the provider reports on this device are listed.</source>
-        <translation>The mode — CSP, PKCS#11 or FKN — is chosen by the medium, not by a separate setting. Only media the provider reports on this device are listed.</translation>
+        <source>Operating mode</source>
+        <translation>Operating mode</translation>
+    </message>
+    <message>
+        <source>The mode is the medium: CSP, PKCS#11 or FKN. Leave it unset to let the provider choose — the mode it picked is then shown on the object card.</source>
+        <translation>The mode is the medium: CSP, PKCS#11 or FKN. Leave it unset to let the provider choose — the mode it picked is then shown on the object card.</translation>
+    </message>
+    <message>
+        <source>chosen by the provider</source>
+        <translation>chosen by the provider</translation>
     </message>
 </context>
 <context>

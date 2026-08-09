@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    15
+Release:    16
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,16 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sat Aug 08 2026 Claude <noreply@anthropic.com> - 1.3.0-16
+- Rebuild the creation form on the provider's own model, which has two levels
+  rather than one: a reader is chosen first, then an operating mode, and the mode
+  is a medium inside that reader - FKN, CSP or the active token. Both lists come
+  from the device through PP_ENUMREADERS, the second one with CRYPT_MEDIA, which
+  the vendor header defines as the flag that returns a medium name rather than a
+  reader name. Enumeration placeholders such as NO_MEDIA and NO_UNIQUE are
+  messages, not media, and are filtered out. The mode defaults to letting the
+  provider choose, since how a chosen medium is addressed at creation has not
+  been verified on a device yet.
 * Sat Aug 08 2026 Claude <noreply@anthropic.com> - 1.3.0-15
 - Let the user pick the medium when creating a container, which is how the mode -
   CSP, PKCS#11 or FKN - is actually chosen: the mode follows the reader named in

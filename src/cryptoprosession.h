@@ -31,6 +31,9 @@ class CryptoProSession : public QObject
     // Считыватели КриптоПро: режим контейнера задаётся выбором считывателя,
     // поэтому форма создания предлагает то, что есть на устройстве.
     Q_PROPERTY(QVariantList readers READ readers NOTIFY changed)
+    // Носители того же провайдера: в интерфейсе КриптоПро это отдельный
+    // список «Режим работы» — CSP, активный токен, ФКН.
+    Q_PROPERTY(QVariantList media READ media NOTIFY changed)
     Q_PROPERTY(QVariantList containers READ containers NOTIFY changed)
     Q_PROPERTY(QVariantList certificates READ certificates NOTIFY changed)
 
@@ -66,6 +69,7 @@ public:
     QStringList loadedLibraries() const { return m_loadedLibraries; }
     QVariantList providers() const { return m_providers; }
     QVariantList readers() const { return m_readers; }
+    QVariantList media() const { return m_media; }
     QVariantList containers() const { return m_containers; }
     QVariantList certificates() const { return m_certificates; }
 
@@ -115,6 +119,7 @@ private:
     QStringList m_loadedLibraries;
     QVariantList m_providers;
     QVariantList m_readers;
+    QVariantList m_media;
     QVariantList m_containers;
     QVariantList m_certificates;
 };

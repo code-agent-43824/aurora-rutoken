@@ -255,11 +255,13 @@ fi
 # Режим контейнера задаётся ВЫБОРОМ СЧИТЫВАТЕЛЯ, поэтому список считывателей
 # читается с устройства через PP_ENUMREADERS, а не зашивается в код: выдуманное
 # имя создало бы контейнер не там, где ожидает пользователь.
-grep -Fq 'QVariantList enumerateReaders(const Api &api, capi::CryptProv provider)' "$CRYPTOPRO_SOURCE"
+grep -Fq 'QVariantList enumerateReaders(const Api &api, capi::CryptProv provider, bool media)' "$CRYPTOPRO_SOURCE"
 grep -Fq 'capi::PpEnumReaders' "$CRYPTOPRO_SOURCE"
 grep -Fq 'static const Dword PpEnumReaders = 114;' "$CRYPTOPRO_HEADER"
-grep -Fq 'model: page.mediaOptions()' "$CRYPTOPRO_CONTAINER_PAGE"
-grep -Fq 'cryptoProSession.createContainer(page.mediaNick,' "$CRYPTOPRO_CONTAINER_PAGE"
+grep -Fq 'capi::CryptMedia' "$CRYPTOPRO_SOURCE"
+grep -Fq 'model: page.readerOptions()' "$CRYPTOPRO_CONTAINER_PAGE"
+grep -Fq 'model: page.modeOptions()' "$CRYPTOPRO_CONTAINER_PAGE"
+grep -Fq 'cryptoProSession.createContainer(page.targetNick(),' "$CRYPTOPRO_CONTAINER_PAGE"
 if grep -Eq 'QStringLiteral\("Rutoken FKC"\)|QStringLiteral\("HDIMAGE"\)' "$CRYPTOPRO_SOURCE"; then
     echo "Reader names must be read from the device, never hardcoded" >&2
     exit 1

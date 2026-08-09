@@ -746,16 +746,29 @@ QVariantMap buildCertificateRow(const QByteArray &der, const QString &provider,
     return row;
 }
 
-// Считыватели, известные провайдеру. Режим контейнера (CSP / PKCS#11 / ФКН)
-// задаётся ВЫБОРОМ СЧИТЫВАТЕЛЯ в имени `\\.\<считыватель>\<контейнер>`, а не
-// отдельным параметром, поэтому форма создания обязана предлагать то, что на
-// устройстве действительно есть. Элемент перечисления — две NUL-строки подряд
-// (NickName, имя) и поле флагов; флаги нам не нужны, поэтому читаем только
-// строки и не полагаемся на выравнивание структуры.
-QVariantList enumerateReaders(const Api &api, capi::CryptProv provider)
+// Носители и считыватели, известные провайдеру.
+//
+// В интерфейсе КриптоПро это два разных списка (подтверждено скриншотом
+// владельца 2026-08-08): сначала выбирается СЧИТЫВАТЕЛЬ («Реестр»,
+// «Директория», «Rutoken FKC», «Облачный токен»), затем отдельным выпадающим
+// списком — РЕЖИМ РАБОТЫ, и его пункты это имена носителей:
+// `rutoken_ecp_…` (CSP), `pkcs`+`11_rutoken_ecp_…` (активный токен),
+// `rutoken_fkc_…` (ФКН). Оба списка отдаёт один и тот же параметр
+// `PP_ENUMREADERS`: без флага — считыватели, с `CRYPT_MEDIA` — имена носителей.
+//
+// Элемент перечисления — две NUL-строки подряд (NickName, имя) и поле флагов;
+// флаги нам не нужны, поэтому читаем только строки и не полагаемся на
+// выравнивание структуры из чужого заголовка.
+QVariantList enumerateReaders(const Api &api, capi::CryptProv provider, bool media)
 {
+    // Служебные ответы перечисления: не носители, а сообщения о его отсутствии.
+    static const QStringList placeholders = {
+        QStringLiteral("NO_MEDIA"), QStringLiteral("NO_UNIQUE"),
+        QStringLiteral("NO_FKC"), QStringLiteral("IS_FKC")
+    };
+
     QVariantList out;
-    capi::Dword flags = capi::CryptFirst;
+    capi::Dword flags = capi::CryptFirst | (media ? capi::CryptMedia : 0U);
     QByteArray buffer(static_cast<int>(MaxCapiTextBytes), '\0');
     for (int item = 0; item < MaxContainersPerProvider; ++item) {
         buffer.fill('\0');
@@ -776,11 +789,12 @@ QVariantList enumerateReaders(const Api &api, capi::CryptProv provider)
         const QString name = nameOffset < validBytes
                 ? fromCapiText(buffer.constData() + nameOffset, validBytes - nameOffset)
                 : QString();
-        if (nick.trimmed().isEmpty())
+        if (nick.trimmed().isEmpty() || placeholders.contains(nick.trimmed()))
             continue;
 
         Container probe;
         probe.uniqueName = nick + QLatin1Char(' ') + name;
+        const QString haystack = probe.uniqueName.toLower();
         QVariantMap row;
         row.insert(QStringLiteral("nick"), nick);
         row.insert(QStringLiteral("name"), name);
@@ -788,9 +802,9 @@ QVariantList enumerateReaders(const Api &api, capi::CryptProv provider)
         // маркера нет — режим станет известен только по созданному контейнеру,
         // и придумывать его здесь нельзя.
         row.insert(QStringLiteral("mode"),
-                   probe.uniqueName.toLower().contains(QStringLiteral("fkc"))
-                   || probe.uniqueName.toLower().contains(
-                       QStringLiteral("pkcs") + QStringLiteral("11"))
+                   haystack.contains(QStringLiteral("fkc"))
+                   || haystack.contains(QStringLiteral("pkcs") + QStringLiteral("11"))
+                   || haystack.contains(QStringLiteral("rutoken"))
                    ? containerMediaMode(probe) : QString());
         out.append(row);
     }
@@ -807,6 +821,7 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
     QVariantMap result;
     QVariantList providerRows;
     QVariantList readerRows;
+    QVariantList mediaRows;
     QVector<Container> rutokenContainers;
     QString cspVersion;
 
@@ -877,7 +892,9 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
         // Считыватели читаются один раз, у первого же открытого провайдера:
         // список общий для всех, а лишний вызов по NFC стоит времени.
         if (readerRows.isEmpty())
-            readerRows = enumerateReaders(api, provider);
+            readerRows = enumerateReaders(api, provider, false);
+        if (mediaRows.isEmpty())
+            mediaRows = enumerateReaders(api, provider, true);
         const QVector<Container> listed = enumerateContainers(
                     api, provider, reference.name, reference.type);
         api.releaseContext(provider, 0);
@@ -1222,6 +1239,7 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
     result.insert(QStringLiteral("libraryPath"), libraryPath);
     result.insert(QStringLiteral("providers"), providerRows);
     result.insert(QStringLiteral("readers"), readerRows);
+    result.insert(QStringLiteral("media"), mediaRows);
     result.insert(QStringLiteral("containers"), containerRows);
     result.insert(QStringLiteral("certificates"), certificates);
     const qint64 elapsedMs = elapsed.elapsed();
@@ -1654,6 +1672,7 @@ QVariantMap executeScan(const QList<int> &allowedProviderTypes)
                                      "(libcapi20.so не найдена)"));
         result.insert(QStringLiteral("providers"), QVariantList());
         result.insert(QStringLiteral("readers"), QVariantList());
+        result.insert(QStringLiteral("media"), QVariantList());
         result.insert(QStringLiteral("containers"), QVariantList());
         result.insert(QStringLiteral("certificates"), QVariantList());
         return result;
@@ -2121,6 +2140,7 @@ void CryptoProSession::finishHelper(int exitCode, QProcess::ExitStatus exitStatu
     }
     m_providers = result.value(QStringLiteral("providers")).toList();
     m_readers = result.value(QStringLiteral("readers")).toList();
+    m_media = result.value(QStringLiteral("media")).toList();
     m_containers = result.value(QStringLiteral("containers")).toList();
     m_certificates = result.value(QStringLiteral("certificates")).toList();
     m_status = result.value(QStringLiteral("status")).toString();

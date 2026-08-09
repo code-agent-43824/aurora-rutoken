@@ -49,31 +49,53 @@ Page {
         return index < 0 ? 0 : index
     }
 
-    // Носитель, на котором создаём контейнер. Режим (CSP / PKCS#11 / ФКН)
-    // задаётся именно выбором считывателя, а не отдельным параметром, поэтому
-    // список берётся с устройства (`cryptoProSession.readers`), а не выдумывается.
-    property string mediaNick: page.readerName
+    // Два уровня, как в диалоге выбора ключевого носителя КриптоПро: сначала
+    // СЧИТЫВАТЕЛЬ, затем РЕЖИМ РАБОТЫ — и режим это имя носителя
+    // (`rutoken_ecp_…` — CSP, `pkcs11_rutoken_ecp_…` — активный токен,
+    // `rutoken_fkc_…` — ФКН). Оба списка приходят с устройства, ничего не
+    // выдумывается: неверное имя создало бы контейнер не там.
+    property string readerNick: page.readerName
+    property string mediaNick: ""
 
-    function mediaOptions() {
+    function optionsFrom(list, fallback) {
         var out = []
-        var list = cryptoProSession.readers ? cryptoProSession.readers : []
-        for (var i = 0; i < list.length; ++i) {
-            var nick = list[i].nick ? list[i].nick : ""
+        var source = list ? list : []
+        for (var i = 0; i < source.length; ++i) {
+            var nick = source[i].nick ? source[i].nick : ""
             if (nick.length === 0)
                 continue
-            var title = list[i].mode && list[i].mode.length > 0
-                    ? nick + " — " + list[i].mode
-                    : nick
-            out.push({ nick: nick, title: title })
+            out.push({
+                nick: nick,
+                title: source[i].mode && source[i].mode.length > 0
+                       ? source[i].mode + " (" + nick + ")" : nick
+            })
         }
         // Считыватель текущего устройства обязан быть в списке даже если
         // перечисление ничего не вернуло: иначе создавать будет негде.
         var known = false
         for (var j = 0; j < out.length; ++j)
-            known = known || out[j].nick === page.readerName
-        if (!known && page.readerName.length > 0)
-            out.unshift({ nick: page.readerName, title: page.readerName })
+            known = known || out[j].nick === fallback
+        if (!known && fallback.length > 0)
+            out.unshift({ nick: fallback, title: fallback })
         return out
+    }
+
+    function readerOptions() {
+        return page.optionsFrom(cryptoProSession.readers, page.readerName)
+    }
+
+    function modeOptions() {
+        var out = [{ nick: "", title: qsTr("chosen by the provider") }]
+        var media = page.optionsFrom(cryptoProSession.media, "")
+        for (var i = 0; i < media.length; ++i)
+            out.push(media[i])
+        return out
+    }
+
+    // Куда именно создавать: если режим выбран — на его носителе, иначе на
+    // считывателе. Провайдер выберет режим сам, и он будет виден в карточке.
+    function targetNick() {
+        return page.mediaNick.length > 0 ? page.mediaNick : page.readerNick
     }
 
     // Ранее выбранный провайдер мог быть выключен в настройках, поэтому форма
@@ -82,9 +104,9 @@ Page {
         if (!page.providerEnabled(page.providerType))
             page.providerType = appSettings.firstEnabledProviderType()
         algorithmBox.currentIndex = page.indexOfType(page.providerType)
-        if (page.mediaNick.length === 0) {
-            var options = page.mediaOptions()
-            page.mediaNick = options.length > 0 ? options[0].nick : ""
+        if (page.readerNick.length === 0) {
+            var readers = page.readerOptions()
+            page.readerNick = readers.length > 0 ? readers[0].nick : ""
         }
     }
 
@@ -113,7 +135,7 @@ Page {
             // создание). PIN-код спрашивает мастер, поэтому здесь его не просим.
             var wiz = pageStack.push(Qt.resolvedUrl("NfcConnectPage.qml"), {
                 operation: "cpcontainer",
-                cpReaderName: page.mediaNick,
+                cpReaderName: page.targetNick(),
                 cpContainerName: name,
                 cpProviderType: page.providerType
             })
@@ -127,7 +149,7 @@ Page {
         })
         pad.entered.connect(function(pin) {
             page.attempted = true
-            cryptoProSession.createContainer(page.mediaNick, name, page.providerType, pin)
+            cryptoProSession.createContainer(page.targetNick(), name, page.providerType, pin)
         })
     }
 
@@ -179,38 +201,62 @@ Page {
                 EnterKey.onClicked: focus = false
             }
 
-            // Выбор носителя = выбор режима контейнера. Пункты — то, что
-            // провайдер перечислил на этом устройстве; выдуманных имён здесь
-            // быть не должно, иначе контейнер создастся не там. Список, а не
-            // выпадающее меню: число носителей заранее неизвестно, а Silica
-            // ComboBox сопоставляет выбранный пункт с детьми меню по порядку.
-            SectionHeader { text: qsTr("Medium (container mode)") }
-
-            Label {
-                x: Theme.horizontalPageMargin
-                width: parent.width - 2 * Theme.horizontalPageMargin
-                wrapMode: Text.Wrap
-                text: qsTr("The mode — CSP, PKCS#11 or FKN — is chosen by the medium, not by a separate setting. Only media the provider reports on this device are listed.")
-                color: Theme.secondaryColor
-                font.pixelSize: Theme.fontSizeExtraSmall
-            }
+            // Порядок как в диалоге КриптоПро: считыватель, затем режим работы.
+            // Пункты — только то, что провайдер перечислил на этом устройстве.
+            // Списки, а не выпадающие меню: число пунктов заранее неизвестно, а
+            // Silica ComboBox сопоставляет выбор с детьми меню по порядку.
+            SectionHeader { text: qsTr("Reader") }
 
             Repeater {
-                model: page.mediaOptions()
+                model: page.readerOptions()
 
                 BackgroundItem {
                     width: parent.width
-                    height: mediaLabel.height + 2 * Theme.paddingMedium
-                    onClicked: page.mediaNick = modelData.nick
+                    height: readerLabel.height + 2 * Theme.paddingMedium
+                    onClicked: page.readerNick = modelData.nick
 
                     Label {
-                        id: mediaLabel
+                        id: readerLabel
                         x: Theme.horizontalPageMargin
                         width: parent.width - 2 * Theme.horizontalPageMargin
                         anchors.verticalCenter: parent.verticalCenter
                         wrapMode: Text.Wrap
                         textFormat: Text.PlainText
-                        text: (page.mediaNick === modelData.nick ? "● " : "○ ") + modelData.title
+                        text: (page.readerNick === modelData.nick ? "\u25cf " : "\u25cb ") + modelData.title
+                        color: page.readerNick === modelData.nick
+                               ? Theme.highlightColor : Theme.primaryColor
+                        font.pixelSize: Theme.fontSizeSmall
+                    }
+                }
+            }
+
+            SectionHeader { text: qsTr("Operating mode") }
+
+            Label {
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                wrapMode: Text.Wrap
+                text: qsTr("The mode is the medium: CSP, PKCS#11 or FKN. Leave it unset to let the provider choose — the mode it picked is then shown on the object card.")
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+            }
+
+            Repeater {
+                model: page.modeOptions()
+
+                BackgroundItem {
+                    width: parent.width
+                    height: modeLabel.height + 2 * Theme.paddingMedium
+                    onClicked: page.mediaNick = modelData.nick
+
+                    Label {
+                        id: modeLabel
+                        x: Theme.horizontalPageMargin
+                        width: parent.width - 2 * Theme.horizontalPageMargin
+                        anchors.verticalCenter: parent.verticalCenter
+                        wrapMode: Text.Wrap
+                        textFormat: Text.PlainText
+                        text: (page.mediaNick === modelData.nick ? "\u25cf " : "\u25cb ") + modelData.title
                         color: page.mediaNick === modelData.nick
                                ? Theme.highlightColor : Theme.primaryColor
                         font.pixelSize: Theme.fontSizeSmall

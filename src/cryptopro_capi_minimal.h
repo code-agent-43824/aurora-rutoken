@@ -130,6 +130,11 @@ static const Dword PpEnumContainers = 2;
 // выдуманные имена. Значение из официального WinCryptEx.h КриптоПро (сверено по
 // двум копиям заголовка); см. docs/RESEARCH.md.
 static const Dword PpEnumReaders = 114;
+// Тот же параметр с этим флагом отдаёт ИМЯ НОСИТЕЛЯ, а не считывателя: в
+// интерфейсе КриптоПро это отдельный список «Режим работы»
+// (`rutoken_ecp_…` — CSP, `pkcs`+`11_rutoken_ecp_…` — активный токен,
+// `rutoken_fkc_…` — ФКН). Значение из WinCryptEx.h.
+static const Dword CryptMedia = 0x00000020U;
 
 // Спецификации ключа контейнера и параметр чтения привязанного сертификата.
 static const Dword AtKeyExchange = 1;
