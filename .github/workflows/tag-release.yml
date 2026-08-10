@@ -1,0 +1,55 @@
+name: Tag a release
+
+# Зачем этот workflow.
+#
+# Из среды кодинг-агента тег отправить нельзя: прокси среды отвечает HTTP 403
+# и на `git push origin <tag>`, и на запись через REST API
+# (`Write access to this GitHub API path is not permitted through this proxy`).
+# Чтения не затронуты. При этом у самого CI есть `contents: write` — тем же
+# правом публикуется комплект RPM в `ci-latest`, — поэтому тег ставит CI.
+#
+# Запускается ТОЛЬКО вручную (`workflow_dispatch`), то есть участником
+# репозитория. Тег создаётся на текущем коммите ветки по умолчанию.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Имя тега, например v1.3'
+        required: true
+        type: string
+      message:
+        description: 'Аннотация тега'
+        required: true
+        type: string
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create the annotated tag
+        # Значения приходят через env, а не подстановкой в текст скрипта:
+        # подстановка позволила бы вставить в команду что угодно.
+        env:
+          TAG: ${{ inputs.tag }}
+          MESSAGE: ${{ inputs.message }}
+        run: |
+          set -euo pipefail
+          case "$TAG" in
+              v[0-9]*) : ;;
+              *) echo "Имя тега должно начинаться с v и цифры: $TAG" >&2; exit 1 ;;
+          esac
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+              echo "Тег $TAG уже существует — существующий тег не переносится" >&2
+              exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$MESSAGE"
+          git push origin "$TAG"
+          echo "== тег $TAG создан на $(git rev-parse HEAD)"
