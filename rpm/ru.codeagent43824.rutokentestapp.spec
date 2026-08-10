@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    21
+Release:    22
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,16 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sun Aug 09 2026 Claude <noreply@anthropic.com> - 1.3.0-22
+- Drop the operating-mode choice from the container form and always create what
+  the provider creates anyway. Forcing a mode needs PP_CARRIER_TYPES, whose
+  numeric values are not available yet, so offering the choice was offering
+  something the application could not deliver. The form is back to a name, an
+  algorithm and a button.
+- Stop the reader and medium enumerations that only fed that form. They cost
+  three extra provider round trips on every scan, which is time paid on every
+  read and most of all over NFC.
+
 * Sun Aug 09 2026 Claude <noreply@anthropic.com> - 1.3.0-21
 - Select the carrier class through the provider, which is where CryptoPro
   actually places it: the vendor header defines a separate provider name for FKN

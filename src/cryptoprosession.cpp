@@ -774,163 +774,6 @@ QVariantMap buildCertificateRow(const QByteArray &der, const QString &provider,
     return row;
 }
 
-// Носители и считыватели, известные провайдеру. Один и тот же параметр
-// `PP_ENUMREADERS` даёт три разных списка, и различают их только флаги:
-//
-//   без флагов                  — считыватели;
-//   `CRYPT_MEDIA`               — носители (видимые имена);
-//   `CRYPT_MEDIA | CRYPT_UNIQUE`— УНИКАЛЬНЫЕ имена носителей.
-//
-// Третий список — единственное место, где режим вообще различим. Замер
-// владельца 2026-08-09 показал, что в первых двух все три режима одного токена
-// указывают на один и тот же считыватель `Aktiv Rutoken ECP 00 00`, а маркер
-// режима живёт в уникальном имени (`rutoken_ecp_…`, `pkcs`+`11_rutoken_ecp_…`,
-// `rutoken_fkc_…`) — той же форме, что видна в уникальном имени контейнера
-// (`MEDIA\\UNIQUE\\FOLDER`, где `UNIQUE` и есть имя носителя).
-//
-// Элемент перечисления — две NUL-строки подряд (NickName, имя) и поле флагов;
-// флаги нам не нужны, поэтому читаем только строки и не полагаемся на
-// выравнивание структуры из чужого заголовка.
-QVariantList enumerateReaders(const Api &api, capi::CryptProv provider, capi::Dword extraFlags)
-{
-    // Служебные ответы перечисления: не носители, а сообщения о его отсутствии.
-    static const QStringList placeholders = {
-        QStringLiteral("NO_MEDIA"), QStringLiteral("NO_UNIQUE"),
-        QStringLiteral("NO_FKC"), QStringLiteral("IS_FKC")
-    };
-
-    QVariantList out;
-    capi::Dword flags = capi::CryptFirst | extraFlags;
-    QByteArray buffer(static_cast<int>(MaxCapiTextBytes), '\0');
-    for (int item = 0; item < MaxContainersPerProvider; ++item) {
-        buffer.fill('\0');
-        capi::Dword actual = static_cast<capi::Dword>(buffer.size());
-        if (!api.getProvParam(provider, capi::PpEnumReaders,
-                              reinterpret_cast<capi::Byte *>(buffer.data()), &actual, flags))
-            break;
-        if (actual == 0 || actual > static_cast<capi::Dword>(buffer.size()))
-            break;
-        flags &= ~capi::CryptFirst;
-
-        const int validBytes = static_cast<int>(actual);
-        const QString nick = fromCapiText(buffer.constData(), validBytes);
-        int terminator = buffer.indexOf('\0', 0);
-        if (terminator < 0 || terminator >= validBytes)
-            terminator = validBytes;
-        const int nameOffset = terminator + 1;
-        const QString name = nameOffset < validBytes
-                ? fromCapiText(buffer.constData() + nameOffset, validBytes - nameOffset)
-                : QString();
-        if (nick.trimmed().isEmpty() || placeholders.contains(nick.trimmed()))
-            continue;
-
-        // Флаги носителя (`CARRIER_FLAG_*`): по документации КриптоПро они
-        // возвращаются именно этим вызовом — `CryptGetProvParam(PP_ENUMREADERS,
-        // CRYPT_MEDIA)`. Поле идёт в элементе ПОСЛЕДНИМ, поэтому читаем хвост
-        // буфера, а не считаем смещение: так не нужно угадывать выравнивание
-        // структуры из чужого заголовка. Именно эти флаги отличают функциональный
-        // носитель (ФКН) от обычного, а защиту канала — от её отсутствия.
-        capi::Dword carrierFlags = 0;
-        if (validBytes >= nameOffset + static_cast<int>(sizeof(carrierFlags)))
-            memcpy(&carrierFlags, buffer.constData() + validBytes - sizeof(carrierFlags),
-                   sizeof(carrierFlags));
-
-        QVariantMap row;
-        row.insert(QStringLiteral("nick"), nick);
-        row.insert(QStringLiteral("name"), name);
-        row.insert(QStringLiteral("carrierFlags"),
-                   QStringLiteral("0x%1").arg(carrierFlags, 8, 16, QLatin1Char('0')));
-        // Режим определяется тем же маркером имени, что и при чтении. Пусто —
-        // это не носитель Рутокена (программное хранилище или чужой
-        // считыватель), и в форму создания такой пункт не попадёт.
-        row.insert(QStringLiteral("mode"), mediaModeKey(nick + QLatin1Char(' ') + name));
-        out.append(row);
-    }
-    return out;
-}
-
-// Три режима работы носителя — ровно те, между которыми выбирает пользователь:
-// CSP, PKCS#11, ФКН. Больше в форме создания ничего нет: программные хранилища
-// и посторонние считыватели не нужны, контейнер создаётся только на
-// подключённом токене (требование владельца 2026-08-09).
-//
-// Замер владельца 2026-08-09 закрыл вопрос, чем режимы РАЗЛИЧАЮТСЯ. В списке
-// считывателей и в списке видимых имён носителей все три режима одного токена
-// указывают на ОДИН И ТОТ ЖЕ считыватель:
-//
-//   считыватель  PKCS`11_READER          | Aktiv Rutoken ECP 00 00
-//   носитель     Rutoken ECP             | Aktiv Rutoken ECP 00 00
-//   носитель     Rutoken FKC             | Aktiv Rutoken ECP 00 00
-//
-// Различить их этими двумя списками нельзя в принципе, и попытки адресоваться
-// видимым именем провайдер отверг (`NTE_KEYSET_ENTRY_BAD`, 0x8009001A): это
-// псевдонимы, а не имена. Единственное место, где режим различим, — УНИКАЛЬНОЕ
-// имя носителя; оно же стоит в уникальном имени контейнера как компонент
-// `UNIQUE` (снято на устройстве: `SCARD\\pkcs`+`11_rutoken_ecp_4894721a\\ID_…`).
-// Поэтому кандидат берётся из перечисления с `CRYPT_UNIQUE`, и только если
-// такого имени нет — из видимых списков, чтобы пункт всё же был показан.
-QVariantList resolveMediaModes(const QVariantList &uniqueRows, const QVariantList &mediaRows,
-                               const QVariantList &readerRows)
-{
-    QMap<QString, QVariantMap> found;
-    QMap<QString, QString> unique;
-    // Уникальные имена — первыми и отдельно: маркер режима живёт именно в них.
-    for (const QVariant &item : uniqueRows) {
-        const QVariantMap row = item.toMap();
-        const QString key = row.value(QStringLiteral("mode")).toString();
-        if (key.isEmpty() || unique.contains(key))
-            continue;
-        // Какая из двух строк элемента несёт маркер, заранее не известно, и
-        // выдумывать порядок нельзя — берём ту, которая его несёт.
-        const QString nick = row.value(QStringLiteral("nick")).toString();
-        const QString name = row.value(QStringLiteral("name")).toString();
-        unique.insert(key, mediaModeKey(nick) == key ? nick : name);
-        found.insert(key, row);
-    }
-    QVariantList sources;
-    sources.append(QVariant(mediaRows));
-    sources.append(QVariant(readerRows));
-    for (const QVariant &source : sources) {
-        const QVariantList rows = source.toList();
-        for (const QVariant &item : rows) {
-            const QVariantMap row = item.toMap();
-            const QString key = row.value(QStringLiteral("mode")).toString();
-            if (key.isEmpty() || found.contains(key))
-                continue;
-            found.insert(key, row);
-        }
-    }
-
-    // Порядок постоянный и совпадает с тем, как режимы перечисляет владелец:
-    // CSP, PKCS#11, ФКН. Пункт не должен переезжать между проходами.
-    const QString order[3] = {
-        QStringLiteral("csp"), QStringLiteral("active"), QStringLiteral("fkc")
-    };
-    QVariantList out;
-    for (int i = 0; i < 3; ++i) {
-        const QVariantMap source = found.value(order[i]);
-        const QString nick = source.value(QStringLiteral("nick")).toString();
-        const QString name = source.value(QStringLiteral("name")).toString();
-        // Считыватель у всех режимов один и тот же — это вторая строка
-        // элемента; уникальное имя носителя, если провайдер его дал, отдельно.
-        const QString reader = mediaModeKey(name) == order[i] && name != nick
-                ? name : (name.isEmpty() ? nick : name);
-        QVariantMap row;
-        row.insert(QStringLiteral("mode"), order[i]);
-        row.insert(QStringLiteral("title"), mediaModeTitle(order[i]));
-        row.insert(QStringLiteral("nick"), nick);
-        row.insert(QStringLiteral("name"), name);
-        row.insert(QStringLiteral("reader"), reader);
-        row.insert(QStringLiteral("unique"), unique.value(order[i]));
-        // Показываем то, чем режим будет адресоваться: уникальное имя, если оно
-        // есть, иначе считыватель — и тогда режим выберет провайдер.
-        row.insert(QStringLiteral("target"),
-                   unique.contains(order[i]) ? unique.value(order[i]) : reader);
-        out.append(row);
-    }
-    return out;
-}
-
 QVariantMap scan(const Api &api, const QString &libraryPath,
                  const QList<int> &allowedProviderTypes)
 {
@@ -940,9 +783,6 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
     elapsed.start();
     QVariantMap result;
     QVariantList providerRows;
-    QVariantList readerRows;
-    QVariantList mediaRows;
-    QVariantList uniqueRows;
     QVector<Container> rutokenContainers;
     QString cspVersion;
 
@@ -1010,15 +850,6 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
                         .arg((raw >> 8) & 0xffU).arg(raw & 0xffU);
             }
         }
-        // Считыватели читаются один раз, у первого же открытого провайдера:
-        // список общий для всех, а лишний вызов по NFC стоит времени.
-        if (readerRows.isEmpty())
-            readerRows = enumerateReaders(api, provider, 0U);
-        if (mediaRows.isEmpty())
-            mediaRows = enumerateReaders(api, provider, capi::CryptMedia);
-        if (uniqueRows.isEmpty())
-            uniqueRows = enumerateReaders(api, provider,
-                                          capi::CryptMedia | capi::CryptUnique);
         const QVector<Container> listed = enumerateContainers(
                     api, provider, reference.name, reference.type);
         api.releaseContext(provider, 0);
@@ -1362,28 +1193,6 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
     result.insert(QStringLiteral("cspVersion"), versionText);
     result.insert(QStringLiteral("libraryPath"), libraryPath);
     result.insert(QStringLiteral("providers"), providerRows);
-    result.insert(QStringLiteral("mediaModes"),
-                  resolveMediaModes(uniqueRows, mediaRows, readerRows));
-    // Сырой вывод перечисления, включая строки, которые форма отбрасывает.
-    // Дважды подряд правило адресации оказалось догадкой; чтобы третий раз не
-    // гадать, обе строки каждого элемента должны быть видны на устройстве.
-    QVariantList enumRows;
-    for (const QVariant &item : readerRows) {
-        QVariantMap row = item.toMap();
-        row.insert(QStringLiteral("kind"), QStringLiteral("считыватель"));
-        enumRows.append(row);
-    }
-    for (const QVariant &item : mediaRows) {
-        QVariantMap row = item.toMap();
-        row.insert(QStringLiteral("kind"), QStringLiteral("носитель"));
-        enumRows.append(row);
-    }
-    for (const QVariant &item : uniqueRows) {
-        QVariantMap row = item.toMap();
-        row.insert(QStringLiteral("kind"), QStringLiteral("уникальное"));
-        enumRows.append(row);
-    }
-    result.insert(QStringLiteral("enumeration"), enumRows);
     result.insert(QStringLiteral("containers"), containerRows);
     result.insert(QStringLiteral("certificates"), certificates);
     const qint64 elapsedMs = elapsed.elapsed();
@@ -1574,8 +1383,6 @@ QVariantMap executeCreate(const QVariantMap &request)
     result.insert(QStringLiteral("rolledBack"), false);
 
     const QString reader = request.value(QStringLiteral("reader")).toString().trimmed();
-    // Уникальное имя носителя выбранного режима; пусто — режим не различим.
-    const QString medium = request.value(QStringLiteral("medium")).toString().trimmed();
     const QString name = request.value(QStringLiteral("container")).toString().trimmed();
     const capi::Dword type = static_cast<capi::Dword>(
                 request.value(QStringLiteral("providerType")).toUInt());
@@ -1614,69 +1421,31 @@ QVariantMap executeCreate(const QVariantMap &request)
         return result;
     }
 
-    // Имя провайдера может прийти в запросе: у КриптоПро КЛАСС НОСИТЕЛЯ задаётся
-    // выбором провайдера, а не именем контейнера (в заголовке вендора для ФКН
-    // определено отдельное имя — `…FKC CSP`). Пусто — берём первый провайдер
-    // нужного типа, как раньше.
-    const QString requestedProvider = request.value(QStringLiteral("provider")).toString().trimmed();
-    const QString providerName = requestedProvider.isEmpty()
-            ? providerNameForType(api, type) : requestedProvider;
+    const QString providerName = providerNameForType(api, type);
     if (providerName.isEmpty()) {
         result.insert(QStringLiteral("message"),
                       QStringLiteral("не найден провайдер %1").arg(providerAlgorithm(type)));
         return result;
     }
 
-    // Как именно адресуется НОСИТЕЛЬ (а с ним и режим), на устройстве ещё не
-    // установлено: известно лишь, что имя считывателя принимается, но режим при
-    // этом выбирает провайдер, а видимые имена носителей отвергаются
-    // (`NTE_KEYSET_ENTRY_BAD`). Поэтому формы имени пробуются по порядку, и
-    // сработавшая возвращается наверх — это замер, а не догадка: неудачная
-    // попытка ничего не создаёт, а все коды попадают в сообщение.
-    //
-    // Порядок обоснован уникальным именем контейнера, снятым на устройстве
-    // (`MEDIA\\UNIQUE\\FOLDER` = `SCARD\\pkcs`+`11_rutoken_ecp_4894721a\\ID_…`):
-    // сначала одно уникальное имя носителя, затем оно же после считывателя.
-    // Отката на имя считывателя здесь НЕТ намеренно: он создал бы контейнер в
-    // чужом режиме молча — ровно то, на что владелец и пожаловался.
-    QStringList candidates;
-    if (!medium.isEmpty() && medium != reader) {
-        candidates.append(QStringLiteral("\\\\.\\%1\\%2").arg(medium, name));
-        candidates.append(QStringLiteral("\\\\.\\%1\\%2\\%3").arg(reader, medium, name));
-    } else {
-        // Уникального имени у режима нет — адресуемся считывателем. Режим при
-        // этом выберет провайдер, и форма об этом честно предупреждает.
-        candidates.append(QStringLiteral("\\\\.\\%1\\%2").arg(reader, name));
-    }
-
+    // Режим носителя провайдер выбирает сам: принудительный выбор задаётся
+    // параметром `PP_CARRIER_TYPES`, числовых значений которого пока нет
+    // (docs/OBJECT_MODEL.md). Поэтому адресуемся считывателем — эта форма имени
+    // на устройстве принимается, — а полученный режим читаем ниже по факту.
+    const QString fqcn = QStringLiteral("\\\\.\\%1\\%2").arg(reader, name);
+    const QByteArray fqcnBytes = toCapiText(fqcn);
     const QByteArray providerBytes = toCapiText(providerName);
+    result.insert(QStringLiteral("container"), fqcn);
+
     capi::CryptProv provider = 0;
-    QString fqcn;
-    // Байты именно той формы, которая сработала: откат обязан удалять контейнер
-    // тем же именем, каким он создан, иначе удаление промахнётся.
-    QByteArray fqcnBytes;
-    QStringList attempts;
-    for (const QString &candidate : candidates) {
-        const QByteArray candidateBytes = toCapiText(candidate);
-        if (api.acquireContext(&provider, candidateBytes.constData(),
-                               providerBytes.constData(), type,
-                               capi::CryptNewKeyset | capi::CryptSilent)) {
-            fqcn = candidate;
-            fqcnBytes = candidateBytes;
-            break;
-        }
-        attempts.append(QStringLiteral("«%1»%2").arg(candidate, capiErrorSuffix(api)));
-    }
-    if (fqcn.isEmpty()) {
-        // Все формы и все коды — иначе следующий шаг снова стал бы догадкой.
+    if (!api.acquireContext(&provider, fqcnBytes.constData(), providerBytes.constData(),
+                            type, capi::CryptNewKeyset | capi::CryptSilent)) {
+        // Причина берётся у провайдера, а не выдумывается.
         result.insert(QStringLiteral("message"),
-                      QStringLiteral("не удалось создать контейнер: %1")
-                      .arg(attempts.join(QStringLiteral("; "))));
+                      QStringLiteral("не удалось создать контейнер на «%1»%2")
+                      .arg(reader, capiErrorSuffix(api)));
         return result;
     }
-    result.insert(QStringLiteral("container"), fqcn);
-    // Сработавшая форма — сам по себе результат замера, и она должна быть видна.
-    result.insert(QStringLiteral("addressing"), fqcn);
 
     // Куда контейнер лёг НА САМОМ ДЕЛЕ. Читается с уже открытого дескриптора,
     // поэтому лишних обращений к носителю нет. Без этой проверки приложение
@@ -1735,15 +1504,8 @@ QVariantMap executeCreate(const QVariantMap &request)
     QString outcome = QStringLiteral("Контейнер %1 создан, ключевая пара %2 сгенерирована "
                                      "провайдером «%3»")
             .arg(name, providerAlgorithm(type), providerName);
-    const QString createdMode = mediaModeKey(createdUnique);
-    const QString wantedMode = mediaModeKey(medium);
     if (!createdUnique.isEmpty())
-        outcome += QStringLiteral(", %1").arg(mediaModeTitle(createdMode));
-    if (!wantedMode.isEmpty() && !createdMode.isEmpty() && createdMode != wantedMode) {
-        outcome += QStringLiteral(". Провайдер выбрал режим сам: запрошен был %1, "
-                                  "а контейнер получился «%2»")
-                .arg(mediaModeTitle(wantedMode), createdUnique);
-    }
+        outcome += QStringLiteral(", %1").arg(mediaModeTitle(mediaModeKey(createdUnique)));
     result.insert(QStringLiteral("message"), outcome);
     return result;
 }
@@ -1930,8 +1692,6 @@ QVariantMap executeScan(const QList<int> &allowedProviderTypes)
                       QStringLiteral("КриптоПро CSP не установлен "
                                      "(libcapi20.so не найдена)"));
         result.insert(QStringLiteral("providers"), QVariantList());
-        result.insert(QStringLiteral("mediaModes"), QVariantList());
-        result.insert(QStringLiteral("enumeration"), QVariantList());
         result.insert(QStringLiteral("containers"), QVariantList());
         result.insert(QStringLiteral("certificates"), QVariantList());
         return result;
@@ -2072,8 +1832,7 @@ int CryptoProSession::runScanHelper()
 }
 
 
-void CryptoProSession::createContainer(const QString &reader, const QString &medium,
-                                       const QString &provider, const QString &container,
+void CryptoProSession::createContainer(const QString &reader, const QString &container,
                                        int providerType, const QString &pin)
 {
     if (m_createBusy)
@@ -2100,8 +1859,6 @@ void CryptoProSession::createContainer(const QString &reader, const QString &med
     QVariantMap request;
     request.insert(QStringLiteral("operation"), QStringLiteral("createContainer"));
     request.insert(QStringLiteral("reader"), reader);
-    request.insert(QStringLiteral("medium"), medium);
-    request.insert(QStringLiteral("provider"), provider);
     request.insert(QStringLiteral("container"), container);
     request.insert(QStringLiteral("providerType"), providerType);
     request.insert(QStringLiteral("pin"), pin);
@@ -2401,8 +2158,6 @@ void CryptoProSession::finishHelper(int exitCode, QProcess::ExitStatus exitStatu
             m_loadedLibraries.append(path);
     }
     m_providers = result.value(QStringLiteral("providers")).toList();
-    m_mediaModes = result.value(QStringLiteral("mediaModes")).toList();
-    m_enumeration = result.value(QStringLiteral("enumeration")).toList();
     m_containers = result.value(QStringLiteral("containers")).toList();
     m_certificates = result.value(QStringLiteral("certificates")).toList();
     m_status = result.value(QStringLiteral("status")).toString();

@@ -28,15 +28,6 @@ class CryptoProSession : public QObject
     Q_PROPERTY(QString lastRequest READ lastRequest NOTIFY changed) // PEM PKCS#10
     Q_PROPERTY(QStringList loadedLibraries READ loadedLibraries NOTIFY changed)
     Q_PROPERTY(QVariantList providers READ providers NOTIFY changed)
-    // Ровно три режима работы носителя — CSP, PKCS#11, ФКН, — сведённые из
-    // перечисления носителей и считывателей КриптоПро. Больше форме создания
-    // ничего не нужно: контейнер создаётся только на подключённом токене.
-    Q_PROPERTY(QVariantList mediaModes READ mediaModes NOTIFY changed)
-    // Сырой вывод перечисления считывателей и носителей, как его вернул
-    // провайдер, включая отброшенные формой строки: правило адресации ещё не
-    // подтверждено на устройстве, и обе строки каждого элемента должны быть
-    // видны, а не выведены по догадке.
-    Q_PROPERTY(QVariantList enumeration READ enumeration NOTIFY changed)
     Q_PROPERTY(QVariantList containers READ containers NOTIFY changed)
     Q_PROPERTY(QVariantList certificates READ certificates NOTIFY changed)
 
@@ -62,14 +53,10 @@ public:
     QString lastRequest() const { return m_lastRequest; }
 
     // Создаёт контейнер и неэкспортируемую ключевую пару ГОСТ-2012 на выбранном
-    // считывателе. `medium` — уникальное имя носителя выбранного режима; оно и
-    // только оно отличает режимы друг от друга, считыватель у них общий. Пусто
-    // — режим выберет провайдер. Выполняется в отдельном helper-процессе.
-    // `provider` — имя провайдера КриптоПро: у него КЛАСС НОСИТЕЛЯ задаётся
-    // выбором провайдера (для ФКН вендор определяет отдельное имя `…FKC CSP`).
-    // Пусто — берётся первый провайдер нужного типа.
-    Q_INVOKABLE void createContainer(const QString &reader, const QString &medium,
-                                     const QString &provider, const QString &container,
+    // считывателе. Режим носителя провайдер выбирает сам: принудительный выбор
+    // задаётся `PP_CARRIER_TYPES`, числовых значений которого пока нет
+    // (docs/OBJECT_MODEL.md). Выполняется в отдельном helper-процессе.
+    Q_INVOKABLE void createContainer(const QString &reader, const QString &container,
                                      int providerType, const QString &pin);
     // Формирует PKCS#10 для существующего контейнера средствами провайдера.
     Q_INVOKABLE void createCertificateRequest(const QString &container, int providerType,
@@ -77,8 +64,6 @@ public:
     Q_INVOKABLE bool saveRequestToFile(const QString &name);
     QStringList loadedLibraries() const { return m_loadedLibraries; }
     QVariantList providers() const { return m_providers; }
-    QVariantList mediaModes() const { return m_mediaModes; }
-    QVariantList enumeration() const { return m_enumeration; }
     QVariantList containers() const { return m_containers; }
     QVariantList certificates() const { return m_certificates; }
 
@@ -127,8 +112,6 @@ private:
     QString m_lastRequest;
     QStringList m_loadedLibraries;
     QVariantList m_providers;
-    QVariantList m_mediaModes;
-    QVariantList m_enumeration;
     QVariantList m_containers;
     QVariantList m_certificates;
 };

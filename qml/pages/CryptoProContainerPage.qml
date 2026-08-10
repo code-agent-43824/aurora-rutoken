@@ -5,6 +5,12 @@ import Sailfish.Silica 1.0
 // Пользователь задаёт имя и алгоритм, вводит PIN-код, после чего в отдельном
 // helper-процессе создаётся контейнер и генерируется НЕЭКСПОРТИРУЕМАЯ ключевая
 // пара. При сбое после создания контейнера backend откатывает только его.
+//
+// Выбора режима носителя на экране НЕТ намеренно. Принудительный выбор режима
+// у КриптоПро задаётся параметром `PP_CARRIER_TYPES`, числовых значений
+// которого пока нет (см. docs/OBJECT_MODEL.md), а без него выбор был бы
+// имитацией: провайдер всё равно создаёт контейнер в режиме PKCS#11. Пока
+// решение владельца — всегда создавать его и лишнего на экране не показывать.
 Page {
     id: page
     objectName: "cryptoProContainerPage"
@@ -49,108 +55,12 @@ Page {
         return index < 0 ? 0 : index
     }
 
-    // Выбирается ОДИН из трёх режимов работы носителя — CSP, PKCS#11, ФКН.
-    // Другого носителя выбрать нельзя: контейнер создаётся только на
-    // подключённом сейчас токене. Списка считывателей на экране нет намеренно —
-    // программные хранилища (реестр, каталог, облако) приложению не нужны.
-    property string modeKey: ""
-
-    function modeOptions() {
-        var list = cryptoProSession.mediaModes
-        return list ? list : []
-    }
-
-    // Режим можно ВЫБРАТЬ только если устройство дало ему собственное уникальное
-    // имя: считыватель у всех режимов один и тот же, и без такого имени выбор
-    // ни на что не влияет — провайдер всё равно решит сам. Показывать такой
-    // пункт нажимаемым значило бы обещать несуществующий выбор.
-    // Отдельно закрыт CSP по NFC: пассивные контейнеры по этому интерфейсу не
-    // видны — так устроен сам носитель, это не выбор приложения.
-    function modeAvailable(row) {
-        if (!row.unique || row.unique.length === 0)
-            return false
-        return !(page.connection === "NFC" && row.mode === "csp")
-    }
-
-    function modeUnavailableHint(row) {
-        if (page.connection === "NFC" && row.mode === "csp")
-            return qsTr("not available over NFC")
-        if (!row.unique || row.unique.length === 0)
-            return qsTr("the device does not distinguish this mode")
-        return qsTr("not offered by the device")
-    }
-
-    function anyModeAvailable() {
-        var rows = page.modeOptions()
-        for (var i = 0; i < rows.length; ++i) {
-            if (page.modeAvailable(rows[i]))
-                return true
-        }
-        return false
-    }
-
-    function selectedMode() {
-        var rows = page.modeOptions()
-        for (var i = 0; i < rows.length; ++i) {
-            if (rows[i].mode === page.modeKey && page.modeAvailable(rows[i]))
-                return rows[i]
-        }
-        return null
-    }
-
-    // Считыватель у всех режимов один и тот же — это установлено замером.
-    function targetNick() {
-        var row = page.selectedMode()
-        return row && row.reader.length > 0 ? row.reader : page.readerName
-    }
-
-    // Уникальное имя носителя: только оно отличает режимы друг от друга. Пусто
-    // — режим не различим, и его выберет провайдер.
-    function targetMedium() {
-        var row = page.selectedMode()
-        return row ? row.unique : ""
-    }
-
-    // Провайдер под выбранный режим. У КриптоПро КЛАСС НОСИТЕЛЯ задаётся именно
-    // выбором провайдера: в заголовке вендора для ФКН определено отдельное имя
-    // («…FKC CSP»), поэтому режим ФКН ищет провайдер с маркером FKC своего типа.
-    // Не нашли — пусто, и backend возьмёт первый провайдер нужного типа.
-    function targetProvider() {
-        if (page.modeKey !== "fkc")
-            return ""
-        var list = cryptoProSession.providers
-        for (var i = 0; list && i < list.length; ++i) {
-            if (list[i].type === page.providerType
-                    && list[i].name.toLowerCase().indexOf("fkc") >= 0)
-                return list[i].name
-        }
-        return ""
-    }
-
-    // Открываемся на активном токене: именно этот режим документация Рутокена
-    // предписывает выбирать при генерации ключей (dev.rutoken.ru, «Неизвлекаемые
-    // ключи на Рутокенах в КриптоПро CSP 5.0 R2»). Нет его — первый доступный.
-    function defaultModeKey() {
-        var rows = page.modeOptions()
-        var first = ""
-        for (var i = 0; i < rows.length; ++i) {
-            if (!page.modeAvailable(rows[i]))
-                continue
-            if (rows[i].mode === "active")
-                return "active"
-            if (first.length === 0)
-                first = rows[i].mode
-        }
-        return first
-    }
-
     // Ранее выбранный провайдер мог быть выключен в настройках, поэтому форма
     // открывается на первом разрешённом варианте.
     Component.onCompleted: {
         if (!page.providerEnabled(page.providerType))
             page.providerType = appSettings.firstEnabledProviderType()
         algorithmBox.currentIndex = page.indexOfType(page.providerType)
-        page.modeKey = page.defaultModeKey()
     }
 
     function suggestedName() {
@@ -178,9 +88,7 @@ Page {
             // создание). PIN-код спрашивает мастер, поэтому здесь его не просим.
             var wiz = pageStack.push(Qt.resolvedUrl("NfcConnectPage.qml"), {
                 operation: "cpcontainer",
-                cpReaderName: page.targetNick(),
-                cpMediumName: page.targetMedium(),
-                cpProviderName: page.targetProvider(),
+                cpReaderName: page.readerName,
                 cpContainerName: name,
                 cpProviderType: page.providerType
             })
@@ -194,8 +102,7 @@ Page {
         })
         pad.entered.connect(function(pin) {
             page.attempted = true
-            cryptoProSession.createContainer(page.targetNick(), page.targetMedium(),
-                                             page.targetProvider(), name,
+            cryptoProSession.createContainer(page.readerName, name,
                                              page.providerType, pin)
         })
     }
@@ -204,17 +111,6 @@ Page {
     Connections {
         target: cryptoProSession
         onChanged: {
-            // Список режимов приходит с проходом, а он мог завершиться уже после
-            // открытия формы; если выбранного режима в нём нет — переходим на
-            // умолчание, иначе кнопка создавала бы контейнер не туда.
-            var rows = page.modeOptions()
-            var stillThere = false
-            for (var i = 0; i < rows.length; ++i) {
-                if (rows[i].mode === page.modeKey && page.modeAvailable(rows[i]))
-                    stillThere = true
-            }
-            if (!stillThere)
-                page.modeKey = page.defaultModeKey()
             if (page.status !== PageStatus.Active || !page.attempted)
                 return
             if (!cryptoProSession.createBusy && cryptoProSession.createOutcome === 1) {
@@ -257,129 +153,6 @@ Page {
                 inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
                 EnterKey.iconSource: "image://theme/icon-m-enter-close"
                 EnterKey.onClicked: focus = false
-            }
-
-            // Ровно три режима и ничего кроме них. Список, а не выпадающее
-            // меню: под каждым пунктом показано имя, которым провайдер назвал
-            // этот режим на устройстве, — по нему видно, куда пойдёт контейнер,
-            // и с чем сверять режим в карточке созданного объекта.
-            SectionHeader { text: qsTr("Operating mode") }
-
-            Label {
-                x: Theme.horizontalPageMargin
-                width: parent.width - 2 * Theme.horizontalPageMargin
-                wrapMode: Text.Wrap
-                text: qsTr("The container is created on the connected token. Modes the device did not offer are shown but cannot be selected.")
-                color: Theme.secondaryColor
-                font.pixelSize: Theme.fontSizeExtraSmall
-            }
-
-            Repeater {
-                model: page.modeOptions()
-
-                BackgroundItem {
-                    width: parent.width
-                    height: modeColumn.height + 2 * Theme.paddingMedium
-                    enabled: page.modeAvailable(modelData)
-                    opacity: enabled ? 1.0 : 0.4
-                    onClicked: page.modeKey = modelData.mode
-
-                    Column {
-                        id: modeColumn
-                        x: Theme.horizontalPageMargin
-                        width: parent.width - 2 * Theme.horizontalPageMargin
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        Label {
-                            width: parent.width
-                            wrapMode: Text.Wrap
-                            textFormat: Text.PlainText
-                            text: (page.modeKey === modelData.mode ? "\u25cf " : "\u25cb ")
-                                  + modelData.title
-                            color: page.modeKey === modelData.mode
-                                   ? Theme.highlightColor : Theme.primaryColor
-                            font.pixelSize: Theme.fontSizeSmall
-                        }
-
-                        Label {
-                            width: parent.width
-                            wrapMode: Text.Wrap
-                            textFormat: Text.PlainText
-                            text: "      " + (page.modeAvailable(modelData)
-                                              ? modelData.target
-                                              : page.modeUnavailableHint(modelData))
-                            color: Theme.secondaryColor
-                            font.pixelSize: Theme.fontSizeExtraSmall
-                        }
-
-                        // Считыватель показывается отдельно: он у всех режимов
-                        // один и тот же, режим задаёт уникальное имя выше.
-                        Label {
-                            width: parent.width
-                            wrapMode: Text.Wrap
-                            textFormat: Text.PlainText
-                            visible: page.modeAvailable(modelData)
-                                     && modelData.reader !== modelData.target
-                            text: "      " + modelData.reader
-                            color: Theme.secondaryColor
-                            font.pixelSize: Theme.fontSizeExtraSmall
-                        }
-                    }
-                }
-            }
-
-            // Сырой вывод перечисления. Правило адресации дважды оказалось
-            // догадкой, поэтому то, что вернуло устройство, должно быть видно
-            // целиком — включая строки, которые форма отбрасывает.
-            SectionHeader {
-                text: qsTr("What the device returned")
-                visible: cryptoProSession.enumeration.length > 0
-            }
-
-            Repeater {
-                model: cryptoProSession.enumeration
-
-                Label {
-                    x: Theme.horizontalPageMargin
-                    width: parent.width - 2 * Theme.horizontalPageMargin
-                    wrapMode: Text.Wrap
-                    textFormat: Text.PlainText
-                    text: modelData.kind + ": " + modelData.nick
-                          + (modelData.name.length > 0 ? "  |  " + modelData.name : "")
-                          + (modelData.carrierFlags ? "  |  " + modelData.carrierFlags : "")
-                    color: Theme.secondaryColor
-                    font.pixelSize: Theme.fontSizeExtraSmall
-                }
-            }
-
-            // Провайдеры, найденные на устройстве. У КриптоПро класс носителя
-            // задаётся выбором провайдера, поэтому их список — часть того же
-            // вопроса, что и режим, и должен быть виден рядом.
-            Repeater {
-                model: cryptoProSession.providers
-
-                Label {
-                    x: Theme.horizontalPageMargin
-                    width: parent.width - 2 * Theme.horizontalPageMargin
-                    wrapMode: Text.Wrap
-                    textFormat: Text.PlainText
-                    text: qsTr("provider") + " " + modelData.type + ": " + modelData.name
-                    color: Theme.secondaryColor
-                    font.pixelSize: Theme.fontSizeExtraSmall
-                }
-            }
-
-            // Устройство не различает режимы: создавать всё равно есть где — на
-            // подключённом токене, — но режим выберет провайдер, и обещать
-            // конкретный здесь нельзя.
-            Label {
-                x: Theme.horizontalPageMargin
-                width: parent.width - 2 * Theme.horizontalPageMargin
-                wrapMode: Text.Wrap
-                visible: !page.anyModeAvailable()
-                text: qsTr("This device does not distinguish the modes: it reports the same medium for all of them. The container will be created on the connected token and the provider picks the mode — the mode it picked is shown on the object card and in the result.")
-                color: Theme.secondaryColor
-                font.pixelSize: Theme.fontSizeExtraSmall
             }
 
             ComboBox {

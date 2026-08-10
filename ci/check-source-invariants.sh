@@ -252,47 +252,18 @@ if [ ! -f docs/OBJECT_MODEL.md ]; then
     exit 1
 fi
 
-# Форма создания предлагает РОВНО ТРИ режима носителя — CSP, PKCS#11, ФКН — и
-# ничего кроме них: программные хранилища и посторонние считыватели пользователю
-# не нужны, контейнер создаётся только на подключённом токене. Имена, которыми
-# режимы адресуются, читаются с устройства через PP_ENUMREADERS, а не зашиваются
-# в код: выдуманное имя создало бы контейнер не там, где ожидает пользователь.
-grep -Fq 'QVariantList enumerateReaders(const Api &api, capi::CryptProv provider, capi::Dword extraFlags)' "$CRYPTOPRO_SOURCE"
-# Режим различим ТОЛЬКО уникальным именем носителя: считыватель у всех режимов
-# одного токена общий (замер 2026-08-09). Поэтому третий проход с CRYPT_UNIQUE.
-grep -Fq 'capi::CryptMedia | capi::CryptUnique);' "$CRYPTOPRO_SOURCE"
-grep -Fq 'request.insert(QStringLiteral("medium"), medium);' "$CRYPTOPRO_SOURCE"
-# Отката на имя считывателя при известном носителе быть не должно: он создал бы
-# контейнер в чужом режиме молча.
-grep -Fq 'candidates.append(QStringLiteral("\\\\.\\%1\\%2\\%3").arg(reader, medium, name));' "$CRYPTOPRO_SOURCE"
-grep -Fq 'capi::PpEnumReaders' "$CRYPTOPRO_SOURCE"
-grep -Fq 'static const Dword PpEnumReaders = 114;' "$CRYPTOPRO_HEADER"
-grep -Fq 'capi::CryptMedia' "$CRYPTOPRO_SOURCE"
-grep -Fq 'QVariantList resolveMediaModes(const QVariantList &uniqueRows, const QVariantList &mediaRows,' "$CRYPTOPRO_SOURCE"
-grep -Fq 'resolveMediaModes(uniqueRows, mediaRows, readerRows));' "$CRYPTOPRO_SOURCE"
-grep -Fq 'model: page.modeOptions()' "$CRYPTOPRO_CONTAINER_PAGE"
-grep -Fq 'cryptoProSession.createContainer(page.targetNick(), page.targetMedium(),' "$CRYPTOPRO_CONTAINER_PAGE"
-# Класс носителя у КриптоПро задаётся ВЫБОРОМ ПРОВАЙДЕРА (для ФКН вендор
-# определяет отдельное имя `…FKC CSP`), поэтому имя провайдера доходит до записи.
-grep -Fq 'function targetProvider()' "$CRYPTOPRO_CONTAINER_PAGE"
-grep -Fq 'request.insert(QStringLiteral("provider"), provider);' "$CRYPTOPRO_SOURCE"
-# Флаги носителя (CARRIER_FLAG_*) читаются, а не игнорируются: только они
-# отличают функциональный носитель от обычного.
-grep -Fq 'row.insert(QStringLiteral("carrierFlags"),' "$CRYPTOPRO_SOURCE"
-# Ровно три пункта и постоянный порядок задаёт backend, а не экран.
-grep -Fq 'QStringLiteral("csp"), QStringLiteral("active"), QStringLiteral("fkc")' "$CRYPTOPRO_SOURCE"
-# Недоступный режим остаётся видимым и приглушённым — как выключенный провайдер.
-grep -Fq 'enabled: page.modeAvailable(modelData)' "$CRYPTOPRO_CONTAINER_PAGE"
-# Выбрать можно только режим, которому устройство дало СОБСТВЕННОЕ уникальное
-# имя: считыватель у режимов общий, и без такого имени выбор ничего не меняет.
-grep -Fq 'if (!row.unique || row.unique.length === 0)' "$CRYPTOPRO_CONTAINER_PAGE"
-# Полученный режим читается с созданного контейнера и называется по факту, а не
-# по выбранному пункту формы: молчаливая подмена была исходной жалобой.
+# Режим носителя провайдер выбирает сам: принудительный выбор задаётся
+# `PP_CARRIER_TYPES`, числовых значений которого пока нет (docs/OBJECT_MODEL.md).
+# Поэтому на экране создания НЕТ выбора режима — имитировать выбор нельзя.
+grep -Fq 'cryptoProSession.createContainer(page.readerName, name,' "$CRYPTOPRO_CONTAINER_PAGE"
+if grep -Eq 'modeOptions|modeAvailable|targetMedium|targetProvider' "$CRYPTOPRO_CONTAINER_PAGE"; then
+    echo "The creation form must not offer a mode choice while it cannot be enforced" >&2
+    exit 1
+fi
+# Полученный режим читается с созданного контейнера и называется по факту.
 grep -Fq 'capi::PpUniqueContainer' "$CRYPTOPRO_SOURCE"
 grep -Fq 'static const Dword PpUniqueContainer = 36;' "$CRYPTOPRO_HEADER"
-grep -Fq 'const QString createdMode = mediaModeKey(createdUnique);' "$CRYPTOPRO_SOURCE"
-# Причина неудачи берётся у провайдера, а не выдумывается: код последней ошибки
-# показывается всегда, известные значения дополняются словами.
+# Причина неудачи берётся у провайдера, а не выдумывается.
 grep -Fq 'QString capiErrorSuffix(const Api &api)' "$CRYPTOPRO_SOURCE"
 grep -Fq 'api.getLastError = reinterpret_cast<capi::GetLastErrorFn>(' "$CRYPTOPRO_SOURCE"
 grep -Fq 'typedef Dword (*GetLastErrorFn)();' "$CRYPTOPRO_HEADER"
@@ -300,14 +271,7 @@ if grep -Fq 'возможно, имя занято' "$CRYPTOPRO_SOURCE"; then
     echo "The failure reason must come from the provider, not from a guess" >&2
     exit 1
 fi
-# Сырой вывод перечисления виден на устройстве целиком, включая отброшенное.
-grep -Fq 'result.insert(QStringLiteral("enumeration"), enumRows);' "$CRYPTOPRO_SOURCE"
-grep -Fq 'model: cryptoProSession.enumeration' "$CRYPTOPRO_CONTAINER_PAGE"
-# Выбора носителя на экране быть не должно: он только сбивал с толку.
-if grep -Fq 'page.readerOptions()' "$CRYPTOPRO_CONTAINER_PAGE"; then
-    echo "The creation form must offer the three modes only, not a list of carriers" >&2
-    exit 1
-fi
+# Имена считывателей читаются с устройства, а не зашиваются в код.
 if grep -Eq 'QStringLiteral\("Rutoken FKC"\)|QStringLiteral\("HDIMAGE"\)' "$CRYPTOPRO_SOURCE"; then
     echo "Reader names must be read from the device, never hardcoded" >&2
     exit 1

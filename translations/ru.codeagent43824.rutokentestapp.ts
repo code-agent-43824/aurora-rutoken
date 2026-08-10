@@ -1287,38 +1287,6 @@
         <source>Providers switched off in the settings are shown but cannot be selected</source>
         <translation>Providers switched off in the settings are shown but cannot be selected</translation>
     </message>
-    <message>
-        <source>the device does not distinguish this mode</source>
-        <translation>the device does not distinguish this mode</translation>
-    </message>
-    <message>
-        <source>provider</source>
-        <translation>provider</translation>
-    </message>
-    <message>
-        <source>What the device returned</source>
-        <translation>What the device returned</translation>
-    </message>
-    <message>
-        <source>Operating mode</source>
-        <translation>Operating mode</translation>
-    </message>
-    <message>
-        <source>The container is created on the connected token. Modes the device did not offer are shown but cannot be selected.</source>
-        <translation>The container is created on the connected token. Modes the device did not offer are shown but cannot be selected.</translation>
-    </message>
-    <message>
-        <source>This device does not distinguish the modes: it reports the same medium for all of them. The container will be created on the connected token and the provider picks the mode — the mode it picked is shown on the object card and in the result.</source>
-        <translation>This device does not distinguish the modes: it reports the same medium for all of them. The container will be created on the connected token and the provider picks the mode — the mode it picked is shown on the object card and in the result.</translation>
-    </message>
-    <message>
-        <source>not available over NFC</source>
-        <translation>not available over NFC</translation>
-    </message>
-    <message>
-        <source>not offered by the device</source>
-        <translation>not offered by the device</translation>
-    </message>
 </context>
 <context>
     <name>CryptoProCsrPage</name>
