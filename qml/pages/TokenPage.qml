@@ -183,12 +183,18 @@ Page {
     }
 
     // Объект, найденный обоими интерфейсами, должен честно об этом сообщать.
-    function relabelDualSource(list, bothDer, bothKey) {
+    function relabelDualSource(list, bothDer, bothKey, bothId) {
         var out = []
         for (var i = 0; i < list.length; ++i) {
             var o = list[i]
+            // Третий признак — совпадение `CKA_ID` с контейнером режима PKCS#11.
+            // Такой контейнер приложение НЕ открывает (это самая дорогая
+            // операция прохода), поэтому его сертификат приходит только по
+            // PKCS#11; двойной источник устанавливается тем же дешёвым
+            // сравнением строк, что и для ключевой пары.
             var both = (o.derB64 && bothDer[o.derB64])
                     || (o.publicKeyHex && bothKey[o.publicKeyHex])
+                    || (o.idHex && bothId[page.normalizedKeyId(o.idHex)])
             if (!both || o.cryptoPro) {
                 out.push(o)
                 continue
@@ -238,6 +244,7 @@ Page {
         // Объекты, найденные и через PKCS#11, и через КриптоПро.
         var bothDer = {}
         var bothKey = {}
+        var bothId = {}
         var i
         pkcs11Objects = pkcs11Objects || []
         cryptoProCertificates = cryptoProCertificates || []
@@ -306,6 +313,12 @@ Page {
                             && representedContainers[container.containerKey]))
                     continue
                 var boundId = page.normalizedKeyId(container.keyIdHex)
+                // Объект с этим `CKA_ID` виден и через КриптоПро — контейнером.
+                // Отмечаем до проверки ключей: закрытый ключ виден только после
+                // ввода PIN-кода, а сертификат виден и до него, и подпись
+                // источника не должна зависеть от того, вошли мы уже или нет.
+                if (boundId.length > 0)
+                    bothId[boundId] = true
                 if (boundId.length > 0 && keysById[boundId]) {
                     var bound = keysById[boundId]
                     for (var b = 0; b < bound.length; ++b)
@@ -327,8 +340,8 @@ Page {
                 keys.push(page.cryptoProContainerObject(container))
             }
         }
-        active = page.relabelDualSource(active, bothDer, bothKey)
-        expired = page.relabelDualSource(expired, bothDer, bothKey)
+        active = page.relabelDualSource(active, bothDer, bothKey, bothId)
+        expired = page.relabelDualSource(expired, bothDer, bothKey, bothId)
         return active.concat(keys).concat(expired)
     }
 
@@ -702,16 +715,12 @@ Page {
                                     slotId: page.slotId,
                                     connection: page.connection
                                 })
-                            else if (modelData.kind === "key" && modelData.cryptoPro
-                                     && modelData.idText && modelData.idText.length > 0)
-                                // Контейнер КриптоПро: запрос формирует провайдер.
-                                pageStack.push(Qt.resolvedUrl("CryptoProCsrPage.qml"), {
-                                    container: modelData.idText,
-                                    providerType: modelData.providerType
-                                                  ? modelData.providerType : 80,
-                                    deviceLabel: page.curLabel,
-                                    connection: page.connection
-                                })
+                            // Запрос через КриптоПро выключен: контейнеры, которые
+                            // создаёт приложение, получаются в режиме PKCS#11 и
+                            // видны через PKCS#11 — запрос для них делает тот же
+                            // backend, что и для обычных ключей, ниже. Объектам
+                            // форматов CSP и ФКН, созданным вне приложения, мы
+                            // операций не предлагаем вовсе: они read-only.
                             else if (modelData.kind === "key"
                                      && modelData.idHex && modelData.idHex.length > 0)
                                 pageStack.push(Qt.resolvedUrl("CsrPage.qml"), {

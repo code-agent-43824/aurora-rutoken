@@ -247,6 +247,20 @@ grep -Fq 'QString containerKeyIdHex(const Container &container)' "$CRYPTOPRO_SOU
 grep -Fq 'row.insert(QStringLiteral("keyIdHex"),' "$CRYPTOPRO_SOURCE"
 grep -Fq 'function normalizedKeyId(hex)' "$TOKEN_PAGE"
 grep -Fq 'keys[bound[b]] = page.keyWithContainer(keys[bound[b]], container)' "$TOKEN_PAGE"
+# Контейнер режима PKCS#11 НЕ открывается: пара и её сертификат видны через
+# PKCS#11 дешевле, а сопоставление идёт по CKA_ID из имени. Открытие контейнера
+# — самая дорогая операция прохода, по NFC особенно.
+grep -Fq 'if (containerMediaMode(container) == QStringLiteral("режим PKCS#11")) {' "$CRYPTOPRO_SOURCE"
+grep -Fq 'bothId[boundId] = true' "$TOKEN_PAGE"
+grep -Fq 'function relabelDualSource(list, bothDer, bothKey, bothId)' "$TOKEN_PAGE"
+# Запрос на сертификат через КриптоПро выключен: объекты, которые создаёт
+# приложение, видны через PKCS#11, и запрос для них делает тот же backend.
+# Объектам форматов CSP и ФКН, созданным вне приложения, операций не предлагаем.
+if grep -Fq 'CryptoProCsrPage.qml' "$TOKEN_PAGE"; then
+    echo "The CryptoPro certificate request is switched off for now" >&2
+    exit 1
+fi
+grep -Fq 'if (!modelData.cryptoPro)' "$TOKEN_PAGE"
 if [ ! -f docs/OBJECT_MODEL.md ]; then
     echo "The object matching algorithm must stay documented in docs/OBJECT_MODEL.md" >&2
     exit 1

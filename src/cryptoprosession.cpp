@@ -1015,6 +1015,16 @@ QVariantMap scan(const Api &api, const QString &libraryPath,
                 || logicalContainerScanned.at(logicalIndex))
             continue;
         const Container &container = rutokenContainers.at(rawIndex);
+        // Контейнер режима PKCS#11 открывать незачем: и ключевая пара, и её
+        // сертификат видны через PKCS#11 — дешевле и без PIN-кода, — а сам
+        // контейнер сопоставляется с ними по `CKA_ID`, выведенному ИЗ ИМЕНИ,
+        // без обращения к носителю (docs/OBJECT_MODEL.md). Открытие контейнера
+        // — самая дорогая операция прохода, по NFC особенно, и на таких
+        // контейнерах она не добавляет ни одного объекта.
+        if (containerMediaMode(container) == QStringLiteral("режим PKCS#11")) {
+            logicalContainerScanned[logicalIndex] = true;
+            continue;
+        }
         const ContainerScan embedded = readContainerCertificates(api, container);
         if (embedded.isEmpty())
             continue;

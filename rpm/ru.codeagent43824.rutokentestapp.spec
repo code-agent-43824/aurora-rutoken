@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    22
+Release:    23
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,22 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Mon Aug 10 2026 Claude <noreply@anthropic.com> - 1.3.0-23
+- Stop opening containers in PKCS#11 mode during a scan. Opening a container is
+  by far the most expensive operation of the pass, and on such a container it
+  adds nothing: both the key pair and its certificate are visible through PKCS#11
+  more cheaply and without a PIN, and the container is matched to them by the
+  CKA_ID derived from its name, with no traffic to the device at all.
+- Keep the dual-source label without that read: a certificate whose CKA_ID
+  matches a container is marked as seen by both interfaces by the same string
+  comparison already used for the key pair, and marked whether or not a PIN has
+  been entered, so the label does not depend on the login state.
+- Switch off the certificate request through CryptoPro. Containers this
+  application creates come out in PKCS#11 mode and are visible through PKCS#11,
+  so the request for them is built by the same backend as for any other key.
+  Objects in CSP or FKN format created outside the application stay read-only:
+  no request, no signing, no deletion.
+
 * Sun Aug 09 2026 Claude <noreply@anthropic.com> - 1.3.0-22
 - Drop the operating-mode choice from the container form and always create what
   the provider creates anyway. Forcing a mode needs PP_CARRIER_TYPES, whose
