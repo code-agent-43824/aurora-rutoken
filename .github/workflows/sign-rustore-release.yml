@@ -45,8 +45,6 @@ jobs:
       fail-fast: false
       matrix:
         arch: [armv7hl, aarch64]
-    env:
-      KEY_PASSPHRASE: ${{ secrets.RUSTORE_SIGNING_KEY_PASSPHRASE }}
     steps:
       # Workflow tooling comes from the manually selected branch (normally
       # main); the immutable release tag is used only as the RPM source.
@@ -81,15 +79,18 @@ jobs:
       - name: Materialize encrypted signing key
         env:
           RUSTORE_SIGNING_KEY_PEM: ${{ secrets.RUSTORE_SIGNING_KEY_PEM }}
+          RUSTORE_SIGNING_KEY_PASSPHRASE: ${{ secrets.RUSTORE_SIGNING_KEY_PASSPHRASE }}
         shell: bash
         run: |
           set -euo pipefail
           [[ -n "$RUSTORE_SIGNING_KEY_PEM" ]]
-          [[ -n "$KEY_PASSPHRASE" ]]
+          [[ -n "$RUSTORE_SIGNING_KEY_PASSPHRASE" ]]
           umask 077
           mkdir .ci-secrets
           printf '%s\n' "$RUSTORE_SIGNING_KEY_PEM" \
             > .ci-secrets/rustore-signing-key.pem
+          printf '%s\n' "$RUSTORE_SIGNING_KEY_PASSPHRASE" \
+            > .ci-secrets/rustore-signing-key.pass
 
       - name: Replace test signature and verify
         env:
@@ -97,7 +98,8 @@ jobs:
         run: |
           ./ci/sign-rustore-rpm.sh "$TARGET_ARCH" "$RPM_PATH" \
             .ci-secrets/rustore-signing-key.pem \
-            ci/keys/rustore_developer_cert.pem
+            ci/keys/rustore_developer_cert.pem \
+            .ci-secrets/rustore-signing-key.pass
 
       - name: Write provenance manifest
         env:
@@ -126,4 +128,4 @@ jobs:
       - name: Remove materialized key
         if: always()
         shell: bash
-        run: rm -f .ci-secrets/rustore-signing-key.pem
+        run: rm -f .ci-secrets/rustore-signing-key.pem .ci-secrets/rustore-signing-key.pass

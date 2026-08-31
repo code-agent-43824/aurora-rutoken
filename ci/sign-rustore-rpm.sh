@@ -7,6 +7,7 @@ TARGET_ARCH="${1:?target architecture is required}"
 RPM_PATH="${2:?RPM path is required}"
 KEY_PATH="${3:?private key path is required}"
 CERT_PATH="${4:?certificate path is required}"
+PASS_PATH="${5:?passphrase file path is required}"
 PSDK_DIR="$HOME/AuroraPlatformSDK/sdks/aurora_psdk"
 APP_ID="ru.codeagent43824.rutokentestapp"
 EXPECTED_CERT_SHA256="1989e9224759048af5c4efc70fb65bbc121443413634582e6a7bfbfc7614f6ac"
@@ -19,8 +20,8 @@ esac
 test -s "$RPM_PATH"
 test -s "$KEY_PATH"
 test -s "$CERT_PATH"
+test -s "$PASS_PATH"
 test -x "$PSDK_DIR/sdk-chroot"
-: "${KEY_PASSPHRASE:?KEY_PASSPHRASE is not set}"
 
 CERT_SHA256=$(openssl x509 -in "$CERT_PATH" -outform DER | sha256sum | awk '{print $1}')
 if [ "$CERT_SHA256" != "$EXPECTED_CERT_SHA256" ]; then
@@ -40,7 +41,7 @@ chmod 600 "$KEY_PATH"
 # Сравниваем canonical SubjectPublicKeyInfo. Несоответствующая пара никогда не
 # доходит до подписи, даже если rpmsign-external изменит своё поведение.
 "$PSDK_DIR/sdk-chroot" openssl pkey -engine gost \
-    -in "$KEY_PATH" -passin env:KEY_PASSPHRASE -pubout -outform DER \
+    -in "$KEY_PATH" -passin "file:$PASS_PATH" -pubout -outform DER \
     > "$TMP_DIR/key-public.der"
 "$PSDK_DIR/sdk-chroot" openssl x509 -engine gost \
     -in "$CERT_PATH" -pubkey -noout \
@@ -65,8 +66,8 @@ printf '%s\n' "$BEFORE_DUMP" | grep -Fq \
     'Subject: Noname developer (for testing only, do not use for production)'
 
 echo "== replacing test signature with the pinned RuStore developer certificate"
-"$PSDK_DIR/sdk-chroot" rpmsign-external sign --force \
-    --key "$KEY_PATH" --cert "$CERT_PATH" "$RPM_PATH"
+"$PSDK_DIR/sdk-chroot" ./ci/rpmsign-with-passphrase.sh "$PASS_PATH" \
+    sign --force --key "$KEY_PATH" --cert "$CERT_PATH" "$RPM_PATH"
 
 echo "== resulting signature"
 AFTER_DUMP=$("$PSDK_DIR/sdk-chroot" rpmsign-external dump "$RPM_PATH")
