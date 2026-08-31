@@ -1,0 +1,129 @@
+name: Sign latest stable release for RuStore
+
+# Ручной workflow: не запускается ни на push, ни по расписанию.
+on:
+  workflow_dispatch:
+
+env:
+  PSDK_RELEASE: "5.2.1"
+  PSDK_BUILD: "5.2.1.200"
+
+jobs:
+  resolve-release:
+    name: Resolve latest stable release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Resolve immutable stable tag
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          release=$(gh api "repos/$GH_REPO/releases/latest")
+          tag=$(jq -r '.tag_name' <<<"$release")
+          draft=$(jq -r '.draft' <<<"$release")
+          prerelease=$(jq -r '.prerelease' <<<"$release")
+          [[ -n "$tag" && "$tag" != null ]]
+          [[ "$draft" == false && "$prerelease" == false ]]
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Resolved latest stable release: $tag"
+
+  sign-rpm:
+    name: Sign ${{ matrix.arch }} for RuStore
+    needs: [resolve-release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [armv7hl, aarch64]
+    env:
+      KEY_PASSPHRASE: ${{ secrets.RUSTORE_SIGNING_KEY_PASSPHRASE }}
+    steps:
+      - name: Checkout the resolved release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-release.outputs.tag }}
+
+      - name: Cache Platform SDK chroot
+        uses: actions/cache@v4
+        with:
+          path: ~/AuroraPlatformSDK/tarballs
+          key: psdk-signing-${{ env.PSDK_BUILD }}
+
+      - name: Install Aurora signing tooling
+        run: ./ci/install-psdk-signing.sh
+
+      - name: Download the single application RPM
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.resolve-release.outputs.tag }}
+          TARGET_ARCH: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir input-rpm
+          gh release download "$RELEASE_TAG" --dir input-rpm \
+            --pattern "ru.codeagent43824.rutokentestapp-*.$TARGET_ARCH.rpm"
+          mapfile -t rpms < <(find input-rpm -maxdepth 1 -type f -name '*.rpm' -print)
+          [[ "${#rpms[@]}" -eq 1 ]]
+          echo "RPM_PATH=${rpms[0]}" >> "$GITHUB_ENV"
+
+      - name: Materialize encrypted signing key
+        env:
+          RUSTORE_SIGNING_KEY_PEM: ${{ secrets.RUSTORE_SIGNING_KEY_PEM }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "$RUSTORE_SIGNING_KEY_PEM" ]]
+          [[ -n "$KEY_PASSPHRASE" ]]
+          umask 077
+          mkdir .ci-secrets
+          printf '%s\n' "$RUSTORE_SIGNING_KEY_PEM" \
+            > .ci-secrets/rustore-signing-key.pem
+
+      - name: Replace test signature and verify
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          ./ci/sign-rustore-rpm.sh "$TARGET_ARCH" "$RPM_PATH" \
+            .ci-secrets/rustore-signing-key.pem \
+            ci/keys/rustore_developer_cert.pem
+
+      - name: Write provenance manifest
+        env:
+          RELEASE_TAG: ${{ needs.resolve-release.outputs.tag }}
+          TARGET_ARCH: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "release_tag=$RELEASE_TAG"
+            echo "architecture=$TARGET_ARCH"
+            echo "certificate_sha256=1989e9224759048af5c4efc70fb65bbc121443413634582e6a7bfbfc7614f6ac"
+            sha256sum "$RPM_PATH"
+          } > input-rpm/SHA256SUMS.txt
+
+      - name: Upload RuStore-signed RPM
+        uses: actions/upload-artifact@v4
+        with:
+          name: rutokentestapp-${{ needs.resolve-release.outputs.tag }}-${{ matrix.arch }}-rustore-signed
+          path: |
+            ${{ env.RPM_PATH }}
+            input-rpm/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove materialized key
+        if: always()
+        shell: bash
+        run: rm -f .ci-secrets/rustore-signing-key.pem

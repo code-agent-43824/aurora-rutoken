@@ -3,6 +3,7 @@
 /RPMS/
 /RPMS-out/
 /installroot/
+/.ci-secrets/
 /moc_*.cpp
 /*.o
 /ru.codeagent43824.rutokentestapp
