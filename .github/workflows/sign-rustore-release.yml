@@ -48,10 +48,10 @@ jobs:
     env:
       KEY_PASSPHRASE: ${{ secrets.RUSTORE_SIGNING_KEY_PASSPHRASE }}
     steps:
-      - name: Checkout the resolved release tag
+      # Workflow tooling comes from the manually selected branch (normally
+      # main); the immutable release tag is used only as the RPM source.
+      - name: Checkout signing tooling
         uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.resolve-release.outputs.tag }}
 
       - name: Cache Platform SDK chroot
         uses: actions/cache@v4

@@ -14,7 +14,9 @@ Workflow формирует подпись **разработчика**. По о
 
 - единственный trigger — `workflow_dispatch`; push, tag и расписание отсутствуют;
 - workflow сам определяет последний опубликованный стабильный GitHub Release
-  (`releases/latest`), фиксирует его tag и checkout выполняет именно по tag;
+  (`releases/latest`) и фиксирует его tag как неизменяемый источник RPM;
+- инструменты подписания берутся из вручную выбранной ветки workflow (штатно
+  `main`), поэтому старый release tag не обязан содержать новый CI-код;
 - отдельные matrix jobs подписывают `armv7hl` и `aarch64`;
 - выбирается только RPM `ru.codeagent43824.rutokentestapp`; официальный RPM
   библиотеки Рутокен не изменяется;
