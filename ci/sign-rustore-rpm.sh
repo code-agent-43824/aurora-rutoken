@@ -54,8 +54,10 @@ if ! cmp -s "$TMP_DIR/key-public.txt" "$TMP_DIR/cert-public.txt"; then
     exit 1
 fi
 
-RPM_NAME=$("$PSDK_DIR/sdk-chroot" rpm -qp --qf '%{NAME}' "$RPM_PATH")
-RPM_ARCH=$("$PSDK_DIR/sdk-chroot" rpm -qp --qf '%{ARCH}' "$RPM_PATH")
+# sdk-chroot при первом входе может писать сообщения о mount в stdout; значение
+# rpm query всегда последняя строка.
+RPM_NAME=$("$PSDK_DIR/sdk-chroot" rpm -qp --qf '%{NAME}\n' "$RPM_PATH" | tail -n 1)
+RPM_ARCH=$("$PSDK_DIR/sdk-chroot" rpm -qp --qf '%{ARCH}\n' "$RPM_PATH" | tail -n 1)
 if [ "$RPM_NAME" != "$APP_ID" ] || [ "$RPM_ARCH" != "$TARGET_ARCH" ]; then
     echo "Unexpected RPM identity: name=$RPM_NAME arch=$RPM_ARCH" >&2
     exit 1
