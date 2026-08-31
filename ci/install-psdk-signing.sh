@@ -25,11 +25,13 @@ fi
 echo "== extracting Platform SDK chroot"
 sudo tar --numeric-owner -p -xjf "$TARBALLS/$CHROOT_TB" -C "$PSDK_DIR"
 
-if ! "$PSDK_DIR/sdk-chroot" which rpmsign-external >/dev/null 2>&1; then
-    echo "== installing rpmsign-external-tool"
+if ! "$PSDK_DIR/sdk-chroot" which rpmsign-external >/dev/null 2>&1 \
+        || ! "$PSDK_DIR/sdk-chroot" which openssl >/dev/null 2>&1; then
+    echo "== installing rpmsign-external-tool and OpenSSL"
     "$PSDK_DIR/sdk-chroot" sudo zypper --non-interactive install \
-        rpmsign-external-tool
+        rpmsign-external-tool openssl
 fi
 
 "$PSDK_DIR/sdk-chroot" rpmsign-external --help >/dev/null
+"$PSDK_DIR/sdk-chroot" openssl version
 echo "== signing tooling is ready"
