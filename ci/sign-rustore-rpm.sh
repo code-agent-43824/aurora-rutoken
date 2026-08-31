@@ -38,16 +38,18 @@ TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT HUP INT TERM
 chmod 600 "$KEY_PATH"
 
-# Сравниваем canonical SubjectPublicKeyInfo. Несоответствующая пара никогда не
-# доходит до подписи, даже если rpmsign-external изменит своё поведение.
+# Сравниваем разобранные координаты и набор параметров открытого ключа.
+# Полный DER SubjectPublicKeyInfo не сравниваем: старый OpenSSL в PSDK может
+# сериализовать эквивалентные OID параметров иначе для PEM-ключа и сертификата.
 "$PSDK_DIR/sdk-chroot" openssl pkey -engine gost \
-    -in "$KEY_PATH" -passin "file:$PASS_PATH" -pubout -outform DER \
-    > "$TMP_DIR/key-public.der"
+    -in "$KEY_PATH" -passin "file:$PASS_PATH" -pubout \
+    | "$PSDK_DIR/sdk-chroot" openssl pkey -engine gost -pubin -text -noout \
+        > "$TMP_DIR/key-public.txt"
 "$PSDK_DIR/sdk-chroot" openssl x509 -engine gost \
     -in "$CERT_PATH" -pubkey -noout \
-    | "$PSDK_DIR/sdk-chroot" openssl pkey -engine gost -pubin -outform DER \
-        > "$TMP_DIR/cert-public.der"
-if ! cmp -s "$TMP_DIR/key-public.der" "$TMP_DIR/cert-public.der"; then
+    | "$PSDK_DIR/sdk-chroot" openssl pkey -engine gost -pubin -text -noout \
+        > "$TMP_DIR/cert-public.txt"
+if ! cmp -s "$TMP_DIR/key-public.txt" "$TMP_DIR/cert-public.txt"; then
     echo "Private key does not match the pinned RuStore certificate" >&2
     exit 1
 fi
