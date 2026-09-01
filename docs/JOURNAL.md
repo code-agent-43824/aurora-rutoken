@@ -2,6 +2,47 @@
 
 Хронология действий. Новые записи добавляются **сверху**. Формат записи: дата — автор — что сделано — почему — коммиты.
 
+## 2026-09-01 — Watson: ручное подписание стабильных RPM для RuStore готово
+
+**Секреты и сертификат.** Присланный PEM подтверждён как публичный сертификат,
+а не закрытый ключ. Он сохранён рядом с правильной ранее созданной парой
+`rustore-developer-certificate-kirill-meshcheryakov` в локальном закрытом
+хранилище с правами `0600` и публичной копией закреплён в
+`ci/keys/rustore_developer_cert.pem`. Криптографически проверено совпадение
+открытого ключа сертификата и закрытого ключа. Fingerprint SHA-256:
+`1989e9224759048af5c4efc70fb65bbc121443413634582e6a7bfbfc7614f6ac`.
+В GitHub repository secrets без вывода значений настроены
+`RUSTORE_SIGNING_KEY_PEM` и `RUSTORE_SIGNING_KEY_PASSPHRASE`.
+
+**Ручной workflow.** Добавлен `Sign latest stable release for RuStore`
+(`.github/workflows/sign-rustore-release.yml`) только с `workflow_dispatch`.
+Он фиксирует последний стабильный Release через `releases/latest`, отдельно
+обрабатывает `armv7hl` и `aarch64`, скачивает только RPM приложения, проверяет
+имя/архитектуру/исходную тестовую подпись, pinned-сертификат и соответствие
+ключа, затем выполняет `rpmsign-external sign --force`, официальный
+`rpm-validator`, повторный `dump` и создаёт два 30-дневных Actions artifact.
+Стабильный Release, `ci-latest` и официальный RPM библиотеки Рутокен не
+изменяются. Полная инструкция и правила ротации — `docs/RUSTORE_SIGNING.md`.
+
+**Live-проверка.** Ручной run
+`https://github.com/code-agent-43824/aurora-rutoken/actions/runs/33473833471`
+полностью зелёный. Он взял стабильный `v1.3` / `1.3.0-23`; в обоих RPM
+исходный subject тестовой подписи `Noname developer` заменён на
+`Мещеряков Кирилл`, subgroup остаётся `regular`, сертификат и пакет прошли
+проверки. Созданы artifacts `rutokentestapp-v1.3-armv7hl-rustore-signed` и
+`rutokentestapp-v1.3-aarch64-rustore-signed`. Повторное скачивание подтвердило
+SHA-256: armv7hl
+`9d04e1015ee977660a9e98cd4a2373d985ca412a91192d3a2ba1e723cb9f7f53`,
+aarch64
+`544de9af2eb1b7e6f441336e3c6250d9665630d2c01661a0c834acff016e6607`.
+
+**Корректировки по фактическим прогонам.** Checkout оставлен на выбранной
+ветке, потому что старый release tag ещё не содержит нового workflow-кода;
+в минимальный PSDK chroot добавлен OpenSSL; кодовая фраза передаётся
+`rpmsign-external` через закрытый временный файл и короткий chroot-wrapper;
+служебный stdout `sdk-chroot` отфильтрован при сравнении RPM-метаданных и
+нормализованных координат ГОСТ-ключа. Финальный прогон подтвердил эти решения.
+
 ## 2026-08-31 — Watson: план ручного подписания стабильных RPM для RuStore
 
 **Поручение владельца.** Сохранить выданный сертификат разработчика RuStore и
