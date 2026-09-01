@@ -44,11 +44,17 @@ chmod 600 "$KEY_PATH"
 "$PSDK_DIR/sdk-chroot" openssl pkey -engine gost \
     -in "$KEY_PATH" -passin "file:$PASS_PATH" -pubout \
     | "$PSDK_DIR/sdk-chroot" openssl pkey -engine gost -pubin -text -noout \
+    | sed -n '/^Public key:/,/^Parameter set:/p' \
         > "$TMP_DIR/key-public.txt"
 "$PSDK_DIR/sdk-chroot" openssl x509 -engine gost \
     -in "$CERT_PATH" -pubkey -noout \
     | "$PSDK_DIR/sdk-chroot" openssl pkey -engine gost -pubin -text -noout \
+    | sed -n '/^Public key:/,/^Parameter set:/p' \
         > "$TMP_DIR/cert-public.txt"
+if [ ! -s "$TMP_DIR/key-public.txt" ] || [ ! -s "$TMP_DIR/cert-public.txt" ]; then
+    echo "Could not extract normalized GOST public keys" >&2
+    exit 1
+fi
 if ! cmp -s "$TMP_DIR/key-public.txt" "$TMP_DIR/cert-public.txt"; then
     echo "Private key does not match the pinned RuStore certificate" >&2
     exit 1
