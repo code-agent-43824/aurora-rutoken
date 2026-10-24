@@ -786,6 +786,10 @@
         <translation>Удаление ключей необратимо — закрытый ключ восстановить нельзя.</translation>
     </message>
     <message>
+        <source>Other certificates of this key pair stay on the device without a key: %1</source>
+        <translation>Другие сертификаты этой пары останутся на устройстве без ключа: %1</translation>
+    </message>
+    <message>
         <source>Checking…</source>
         <translation>Проверка…</translation>
     </message>
@@ -859,6 +863,10 @@
     <message>
         <source>Deleting the keys is irreversible — the private key cannot be recovered.</source>
         <translation>Удаление ключей необратимо — закрытый ключ восстановить нельзя.</translation>
+    </message>
+    <message>
+        <source>Other certificates of this key pair stay on the device without a key: %1</source>
+        <translation>Другие сертификаты этой пары останутся на устройстве без ключа: %1</translation>
     </message>
     <message>
         <source>If the certificate has a private key, entering the PIN will reveal and remove it too.</source>

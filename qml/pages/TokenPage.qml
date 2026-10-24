@@ -384,13 +384,18 @@ Page {
     // Удаление записи долгим нажатием. Сертификат — всегда спрашиваем область.
     // USB — DeleteCertPage; NFC — NfcDeletePage (сбор + одно поднесение). Ключ по
     // USB — сразу, с отсрочкой RemorsePopup.
+    // Сертификат адресуется своим DER: другие сертификаты той же пары (тот же
+    // CKA_ID) удаление не трогает (docs/OBJECT_MODEL.md, раздел 2).
     function confirmDelete(m) {
         if (!m.idHex || m.idHex.length === 0)
+            return
+        if (m.kind === "certificate" && (!m.derB64 || m.derB64.length === 0))
             return
         if (page.connection === "NFC") {
             pageStack.push(Qt.resolvedUrl("NfcDeletePage.qml"), {
                 kind: m.kind,
                 idHex: m.idHex,
+                derB64: m.kind === "certificate" ? m.derB64 : "",
                 certName: page.certTitle(m),
                 hasKey: m.hasKey ? true : false,
                 keysKnown: m.keysKnown ? true : false,
@@ -400,22 +405,24 @@ Page {
         }
         if (m.kind === "certificate") {
             var id = m.idHex
+            var der = m.derB64
             var dlg = pageStack.push(Qt.resolvedUrl("DeleteCertPage.qml"), {
                 certName: page.certTitle(m),
                 idHex: id,
+                derB64: der,
                 slotId: page.slotId
             })
             dlg.chosen.connect(function(keysToo, noLogin) {
                 page.deleteAttempted = true
                 if (noLogin)
-                    tokenSession.deleteCertPublic(page.slotId, id)
+                    tokenSession.deleteCertPublic(page.slotId, id, der)
                 else
-                    tokenSession.deleteObjectsCached(page.slotId, id, keysToo)
+                    tokenSession.deleteObjectsCached(page.slotId, id, der, keysToo)
             })
         } else {
             remorse.execute(qsTr("Deleting the key"), function() {
                 page.deleteAttempted = true
-                tokenSession.deleteObjectsCached(page.slotId, m.idHex, true)
+                tokenSession.deleteObjectsCached(page.slotId, m.idHex, "", true)
             })
         }
     }

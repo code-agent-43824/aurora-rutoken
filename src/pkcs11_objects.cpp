@@ -5,6 +5,7 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QDateTime>
 #include <QtCore/QHash>
+#include <QtCore/QSet>
 #include <QtCore/QVariantMap>
 #include <QtCore/QVector>
 #include <QtNetwork/QSslCertificate>
@@ -243,24 +244,37 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
 
     // Сертификаты — верхний уровень. Описание берём из разобранного тела X.509
     // (Common Name / Issuer / срок истечения), fallback — CKA_LABEL.
+    QSet<QString> shownCertificates;
     const QVector<CK_OBJECT_HANDLE> certs = findByClass(fns, session, CKO_CERTIFICATE);
     for (int i = 0; i < certs.size(); ++i) {
         const CK_OBJECT_HANDLE obj = certs.at(i);
         const QString idHex = idHexOf(fns, session, obj);
+        const QByteArray der = readByteAttr(fns, session, obj, CKA_VALUE);
+
+        // Точные копии одного сертификата (тот же DER под тем же CKA_ID) — один
+        // объект и одна строка; удаление уберёт все копии. docs/OBJECT_MODEL.md,
+        // раздел 2.
+        const QString copyKey = idHex + QLatin1Char('|') + QString::fromLatin1(der.toBase64());
+        if (shownCertificates.contains(copyKey))
+            continue;
+        shownCertificates.insert(copyKey);
+
         const QString idText = idDisplayOf(fns, session, obj);
         const QString label = labelOf(fns, session, obj);
-
-        const QByteArray der = readByteAttr(fns, session, obj, CKA_VALUE);
         QString commonName, issuer, expiry;
         qint64 notAfterMs = 0;
         bool expired = false;
         const bool parsed = parseCertificate(
             der, commonName, issuer, expiry, notAfterMs, expired, nowUtc);
 
+        // Ключи пары — дочерние объекты КАЖДОГО её сертификата: на одной паре
+        // может лежать несколько сертификатов (например, перевыпущенный), и
+        // подписывать можно любым из них. Отдельной карточкой пара тогда не
+        // показывается.
         QVariantList certKeys;
         if (loggedIn && !idHex.isEmpty()) {
             for (int j = 0; j < keys.size(); ++j) {
-                if (!keys[j].consumed && keys[j].idHex == idHex) {
+                if (keys[j].idHex == idHex) {
                     keys[j].consumed = true;
                     certKeys.append(keys[j].map);
                 }
@@ -352,15 +366,36 @@ QVariantList listTokenObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long sessio
     return out;
 }
 
-int destroyByCkaId(CK_FUNCTION_LIST_PREFIX *fns, unsigned long session,
-                   const QByteArray &idBytes, bool onlyCertificate)
+int destroyObjects(CK_FUNCTION_LIST_PREFIX *fns, unsigned long session,
+                   const QByteArray &idBytes, const QByteArray &certificateDer, bool withKeys)
 {
-    if (!fns || !fns->C_DestroyObject || !fns->C_FindObjectsInit || idBytes.isEmpty())
+    if (!fns || !fns->C_DestroyObject || !fns->C_FindObjectsInit || !fns->C_GetAttributeValue
+            || idBytes.isEmpty() || (certificateDer.isEmpty() && !withKeys))
         return 0;
-    const QVector<CK_OBJECT_HANDLE> objs = findByCkaId(fns, session, idBytes, onlyCertificate);
+
+    // Сначала собираем дескрипторы, потом удаляем: поиск и удаление не
+    // перемешиваются.
+    QVector<CK_OBJECT_HANDLE> targets;
+    const QVector<CK_OBJECT_HANDLE> certificates = findByCkaId(fns, session, idBytes, true);
+    if (!certificateDer.isEmpty()) {
+        for (int i = 0; i < certificates.size(); ++i) {
+            if (readByteAttr(fns, session, certificates.at(i), CKA_VALUE) == certificateDer)
+                targets.append(certificates.at(i));
+        }
+    }
+    // Ключи — все объекты этого CKA_ID, кроме сертификатов: что ещё может лежать
+    // под тем же CKA_ID, не измерено, поэтому набор не сужается по догадке.
+    if (withKeys) {
+        const QVector<CK_OBJECT_HANDLE> all = findByCkaId(fns, session, idBytes, false);
+        for (int i = 0; i < all.size(); ++i) {
+            if (!certificates.contains(all.at(i)))
+                targets.append(all.at(i));
+        }
+    }
+
     int destroyed = 0;
-    for (int i = 0; i < objs.size(); ++i) {
-        if (fns->C_DestroyObject(session, objs[i]) == CKR_OK)
+    for (int i = 0; i < targets.size(); ++i) {
+        if (fns->C_DestroyObject(session, targets.at(i)) == CKR_OK)
             ++destroyed;
     }
     return destroyed;

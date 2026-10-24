@@ -5,11 +5,12 @@ import Sailfish.Silica 1.0
 // (PinChangePage): сначала собираем ВСЕ данные без токена — область удаления
 // (для сертификата: только сертификат / сертификат+ключи) и PIN-код, — затем в
 // ОДНОМ коротком поднесении выполняем удаление за одну сессию
-// (deleteObjects: вход по PIN-коду → C_DestroyObject по CKA_ID → перечитывание).
+// (deleteObjects: вход по PIN-коду → C_DestroyObject выбранного сертификата
+// по его DER и, если выбрано, ключей пары по CKA_ID → перечитывание).
 // По успеху обновляем снимок объектов NFC-токена (updateNfcObjects), чтобы
 // список сразу отражал удаление. При ошибке — «Начать заново» (сбор с нуля).
 //
-// Удаление ключа: область не спрашиваем (удаляем всё по CKA_ID, keysToo=true),
+// Удаление ключа: область не спрашиваем (ключи пары по CKA_ID, keysToo=true),
 // сразу переходим к вводу PIN-кода.
 Page {
     id: page
@@ -19,6 +20,7 @@ Page {
     property var slotId: 0            // слот на момент подключения (для справки)
     property string kind: "certificate"  // "certificate" | "key"
     property string idHex: ""
+    property string derB64: ""       // сертификат адресуется своим DER, а не всем CKA_ID
     property string certName: ""
     property bool hasKey: false      // из снимка: точно есть ключ (если вход был по PIN-коду)
     property bool keysKnown: false   // снимок читался после входа по PIN-коду (наличие ключа честно)
@@ -45,6 +47,19 @@ Page {
     // вход по PIN-коду, и ключ, если он есть, будет найден и удалён.
     function canDeleteKeys() {
         return page.kind === "certificate" && (page.hasKey || !page.keysKnown)
+    }
+
+    // Другие сертификаты той же пары в снимке: удаление ключей оставит их без
+    // ключа. Сертификаты видны и без входа, поэтому снимок их содержит всегда.
+    property int otherCertificates: {
+        var objs = tokenSession.nfcObjects
+        var n = 0
+        for (var i = 0; i < objs.length; ++i) {
+            if (objs[i].kind === "certificate" && objs[i].idHex === page.idHex
+                    && objs[i].derB64 !== page.derB64)
+                ++n
+        }
+        return n
     }
 
     // Ввод PIN-кода одним экраном (PinPadPage сам закрывается). По вводу —
@@ -85,7 +100,9 @@ Page {
         if (!tok)
             return
         page.nfcStarted = true
-        tokenSession.deleteObjects(tok.slotId, page.pin, page.idHex, page.keysToo)
+        tokenSession.deleteObjects(tok.slotId, page.pin, page.idHex,
+                                   page.kind === "certificate" ? page.derB64 : "",
+                                   page.keysToo)
     }
 
     // Перезапуск после ошибки: сброс и повторный сбор с нуля.
@@ -199,6 +216,19 @@ Page {
                       ? qsTr("Deleting the keys is irreversible — the private key cannot be recovered.")
                       : qsTr("If the certificate has a private key, entering the PIN will reveal and remove it too.")
                 color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+            }
+
+            Label {
+                visible: page.kind === "certificate" && !page.attempted && page.canDeleteKeys()
+                         && page.otherCertificates > 0
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                text: qsTr("Other certificates of this key pair stay on the device without a key: %1")
+                      .arg(page.otherCertificates)
+                color: Theme.highlightColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }
 

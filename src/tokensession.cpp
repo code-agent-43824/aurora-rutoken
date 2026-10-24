@@ -320,7 +320,8 @@ void TokenSession::importCertificateCached(qulonglong slotId, const QString &fil
 }
 
 void TokenSession::deleteObjects(qulonglong slotId, const QString &pin,
-                                 const QString &idHex, bool keysToo)
+                                 const QString &idHex, const QString &certificateDerB64,
+                                 bool keysToo)
 {
     if (m_busy)
         return;
@@ -328,6 +329,13 @@ void TokenSession::deleteObjects(qulonglong slotId, const QString &pin,
     if (!m_getFunctionList) {
         m_outcome = -1;
         m_result = kLibraryMissing;
+        emit changed();
+        return;
+    }
+    const QByteArray certificateDer = QByteArray::fromBase64(certificateDerB64.toLatin1());
+    if (certificateDer.isEmpty() && !keysToo) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Не выбран объект для удаления");
         emit changed();
         return;
     }
@@ -341,14 +349,14 @@ void TokenSession::deleteObjects(qulonglong slotId, const QString &pin,
     const QFunctionPointer exTok = m_exGetTokenInfoExtended;
     QByteArray pinBytes = pin.toUtf8();
     const QByteArray idBytes = QByteArray::fromHex(idHex.toLatin1());
-    const bool onlyCertificate = !keysToo;
 
-    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, exTok, idBytes, onlyCertificate]() mutable {
+    QtConcurrent::run([this, slotId, pinBytes, getFunctionList, exTok, idBytes, certificateDer,
+                       keysToo]() mutable {
         const WriteOutcome wo = runTokenWrite(getFunctionList, slotId, pinBytes, exTok,
-            [&idBytes, onlyCertificate](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session) {
+            [&idBytes, &certificateDer, keysToo](CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE session) {
                 if (idBytes.isEmpty())
                     return qMakePair(false, QStringLiteral("У объекта нет CKA_ID — удаление недоступно"));
-                const int n = pkcs11::destroyByCkaId(fns, session, idBytes, onlyCertificate);
+                const int n = pkcs11::destroyObjects(fns, session, idBytes, certificateDer, keysToo);
                 if (n > 0)
                     return qMakePair(true, QStringLiteral("Удалено объектов: %1").arg(n));
                 return qMakePair(false, QStringLiteral("Объекты не найдены (уже удалены?)"));
@@ -358,7 +366,8 @@ void TokenSession::deleteObjects(qulonglong slotId, const QString &pin,
     });
 }
 
-void TokenSession::deleteObjectsCached(qulonglong slotId, const QString &idHex, bool keysToo)
+void TokenSession::deleteObjectsCached(qulonglong slotId, const QString &idHex,
+                                       const QString &certificateDerB64, bool keysToo)
 {
     if (!m_loggedIn || m_cachedSlot != slotId || m_cachedPin.isEmpty()) {
         m_outcome = -1;
@@ -366,10 +375,12 @@ void TokenSession::deleteObjectsCached(qulonglong slotId, const QString &idHex, 
         emit changed();
         return;
     }
-    deleteObjects(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()), idHex, keysToo);
+    deleteObjects(slotId, QString::fromUtf8(m_cachedPin.constData(), m_cachedPin.size()), idHex,
+                  certificateDerB64, keysToo);
 }
 
-void TokenSession::deleteCertPublic(qulonglong slotId, const QString &idHex)
+void TokenSession::deleteCertPublic(qulonglong slotId, const QString &idHex,
+                                    const QString &certificateDerB64)
 {
     if (m_busy)
         return;
@@ -377,6 +388,13 @@ void TokenSession::deleteCertPublic(qulonglong slotId, const QString &idHex)
     if (!m_getFunctionList) {
         m_outcome = -1;
         m_result = kLibraryMissing;
+        emit changed();
+        return;
+    }
+    const QByteArray certificateDer = QByteArray::fromBase64(certificateDerB64.toLatin1());
+    if (certificateDer.isEmpty()) {
+        m_outcome = -1;
+        m_result = QStringLiteral("Не выбран сертификат для удаления");
         emit changed();
         return;
     }
@@ -390,7 +408,7 @@ void TokenSession::deleteCertPublic(qulonglong slotId, const QString &idHex)
     const QByteArray idBytes = QByteArray::fromHex(idHex.toLatin1());
     const QVariantList keepObjects = m_objects;
 
-    QtConcurrent::run([this, slotId, getFunctionList, idBytes, keepObjects]() {
+    QtConcurrent::run([this, slotId, getFunctionList, idBytes, certificateDer, keepObjects]() {
         QMutexLocker locker(&pkcs11::globalMutex());
 
         typedef CK_RV (*GetListFn)(CK_FUNCTION_LIST_PREFIX **);
@@ -420,7 +438,7 @@ void TokenSession::deleteCertPublic(qulonglong slotId, const QString &idHex)
             return;
         }
 
-        const int n = pkcs11::destroyByCkaId(fns, session, idBytes, /*onlyCertificate*/ true);
+        const int n = pkcs11::destroyObjects(fns, session, idBytes, certificateDer, /*withKeys*/ false);
         // Без входа читаем только публичные объекты.
         const QVariantList objs = pkcs11::listTokenObjects(fns, session, /*loggedIn*/ false);
 

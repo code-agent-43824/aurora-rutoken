@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    24
+Release:    25
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,17 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sat Oct 24 2026 Claude <noreply@anthropic.com> - 1.3.0-25
+- Show the keys of a pair under every certificate of that pair. Only the first
+  certificate with a given CKA_ID used to get them, so a second certificate on
+  the same pair was marked as having no key and could not sign.
+- Show exact copies of a certificate (same DER under the same CKA_ID) as one
+  row, and refuse to import a certificate whose DER is already on the device.
+- Delete the selected certificate by its DER instead of everything under its
+  CKA_ID: other certificates of the same pair now stay. Deleting with keys
+  still removes every non-certificate object of that CKA_ID, and the screen
+  names the other certificates of the pair that will be left without a key.
+
 * Sat Oct 24 2026 Claude <noreply@anthropic.com> - 1.3.0-24
 - Take the process-wide PKCS#11 mutex in the diagnostics pass. Cryptoki state
   is shared by the whole process, and the pass ran C_Initialize/C_Finalize on a

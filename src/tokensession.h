@@ -86,17 +86,22 @@ public:
     // То же с запомненным PIN (USB, после login на этом же слоте).
     Q_INVOKABLE void importCertificateCached(qulonglong slotId, const QString &filePath,
                                              const QString &label);
-    // Удаление объектов по CKA_ID: вход по PIN, R/W-сессия, C_DestroyObject; затем
-    // перечитывание объектов. keysToo=true — сертификат и его ключи (всё по id);
-    // false — только объект-сертификат (ключи остаются).
+    // Удаление объектов пары по CKA_ID: вход по PIN, R/W-сессия, C_DestroyObject;
+    // затем перечитывание объектов. certificateDerB64 — выбранный сертификат:
+    // удаляются только его копии, другие сертификаты пары остаются; пусто —
+    // сертификат не удаляется (карточка ключевой пары). keysToo — также ключи
+    // пары (все объекты этого CKA_ID, кроме сертификатов).
     Q_INVOKABLE void deleteObjects(qulonglong slotId, const QString &pin,
-                                   const QString &idHex, bool keysToo);
+                                   const QString &idHex, const QString &certificateDerB64,
+                                   bool keysToo);
     // То же с запомненным PIN (USB, после login на этом же слоте).
-    Q_INVOKABLE void deleteObjectsCached(qulonglong slotId, const QString &idHex, bool keysToo);
-    // Удаление ТОЛЬКО объекта-сертификата (публичный) БЕЗ входа: R/W-сессия без
-    // C_Login → C_DestroyObject(CKO_CERTIFICATE по CKA_ID) → перечитывание
+    Q_INVOKABLE void deleteObjectsCached(qulonglong slotId, const QString &idHex,
+                                         const QString &certificateDerB64, bool keysToo);
+    // Удаление ТОЛЬКО выбранного сертификата (публичный объект) БЕЗ входа:
+    // R/W-сессия без C_Login → C_DestroyObject его копий → перечитывание
     // публичных объектов. Если токен требует входа для удаления — вернёт ошибку.
-    Q_INVOKABLE void deleteCertPublic(qulonglong slotId, const QString &idHex);
+    Q_INVOKABLE void deleteCertPublic(qulonglong slotId, const QString &idHex,
+                                      const QString &certificateDerB64);
     // Формирование запроса на сертификат (PKCS#10) для пары по CKA_ID: вход по PIN,
     // построение и подпись CertificationRequestInfo закрытым ключом на токене
     // (механизм по типу ключа). PEM кладётся в property lastCsr. Поля DN — Subject.

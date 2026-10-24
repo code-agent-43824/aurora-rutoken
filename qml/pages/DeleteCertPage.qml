@@ -15,6 +15,7 @@ Page {
 
     property var slotId: 0
     property string idHex: ""
+    property string derB64: ""
     property string certName: ""
     property bool attempted: false   // пробовали войти → показать результат
 
@@ -26,6 +27,18 @@ Page {
                 return objs[i].hasKey ? true : false
         }
         return false
+    }
+
+    // Другие сертификаты той же пары: удаление ключей оставит их без ключа.
+    property int otherCertificates: {
+        var objs = tokenSession.objects
+        var n = 0
+        for (var i = 0; i < objs.length; ++i) {
+            if (objs[i].kind === "certificate" && objs[i].idHex === page.idHex
+                    && objs[i].derB64 !== page.derB64)
+                ++n
+        }
+        return n
     }
 
     // noLogin=true — удалить только публичный сертификат без входа (deleteCertPublic).
@@ -94,6 +107,18 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
                 text: qsTr("Deleting the keys is irreversible — the private key cannot be recovered.")
                 color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+            }
+
+            Label {
+                visible: tokenSession.loggedIn && page.hasKey && page.otherCertificates > 0
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                text: qsTr("Other certificates of this key pair stay on the device without a key: %1")
+                      .arg(page.otherCertificates)
+                color: Theme.highlightColor
                 font.pixelSize: Theme.fontSizeExtraSmall
             }
 

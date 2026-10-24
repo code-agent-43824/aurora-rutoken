@@ -49,6 +49,7 @@ Page {
             pageStack.push(Qt.resolvedUrl("NfcDeletePage.qml"), {
                 kind: "certificate",
                 idHex: page.idHex,
+                derB64: page.derB64,
                 certName: page.title(),
                 hasKey: page.hasKey,
                 keysKnown: page.keysKnown,
@@ -59,13 +60,14 @@ Page {
         var dlg = pageStack.push(Qt.resolvedUrl("DeleteCertPage.qml"), {
             certName: page.title(),
             idHex: page.idHex,
+            derB64: page.derB64,
             slotId: page.slotId
         })
         dlg.chosen.connect(function(keysToo, noLogin) {
             if (noLogin)
-                tokenSession.deleteCertPublic(page.slotId, page.idHex)
+                tokenSession.deleteCertPublic(page.slotId, page.idHex, page.derB64)
             else
-                tokenSession.deleteObjectsCached(page.slotId, page.idHex, keysToo)
+                tokenSession.deleteObjectsCached(page.slotId, page.idHex, page.derB64, keysToo)
             pageStack.pop()
         })
     }
@@ -98,9 +100,10 @@ Page {
                     connection: page.connection
                 })
             }
-            // Удаление сертификата (USB и NFC).
+            // Удаление сертификата (USB и NFC). Адресуется DER: без тела
+            // сертификат не отличить от других сертификатов той же пары.
             MenuItem {
-                visible: page.idHex.length > 0
+                visible: page.idHex.length > 0 && page.derB64.length > 0
                 text: qsTr("Delete certificate")
                 onClicked: page.doDelete()
             }

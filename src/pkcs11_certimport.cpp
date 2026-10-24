@@ -185,10 +185,10 @@ QByteArray readByteAttr(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s,
     return buf;
 }
 
-QVector<CK_OBJECT_HANDLE> findPublicKeys(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s)
+QVector<CK_OBJECT_HANDLE> findByClass(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s,
+                                      CK_OBJECT_CLASS cls)
 {
     QVector<CK_OBJECT_HANDLE> r;
-    CK_OBJECT_CLASS cls = CKO_PUBLIC_KEY;
     CK_ATTRIBUTE tmpl;
     tmpl.type = CKA_CLASS;
     tmpl.pValue = &cls;
@@ -217,7 +217,7 @@ QByteArray matchKeyId(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s, const C
     const QByteArray certGostRev = reversedBytes(certGost);
     const QByteArray certRsaMod = rsaModulusFromSpk(cf.spkiPublicKey);
 
-    const QVector<CK_OBJECT_HANDLE> pubs = findPublicKeys(fns, s);
+    const QVector<CK_OBJECT_HANDLE> pubs = findByClass(fns, s, CKO_PUBLIC_KEY);
     for (int i = 0; i < pubs.size(); ++i) {
         const CK_OBJECT_HANDLE o = pubs.at(i);
         CK_ULONG kt = 0;
@@ -240,6 +240,18 @@ QByteArray matchKeyId(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s, const C
         }
     }
     return QByteArray();
+}
+
+// Лежит ли на токене сертификат с точно такими байтами. Два одинаковых объекта —
+// это один сертификат (docs/OBJECT_MODEL.md, раздел 2), поэтому копию не создаём.
+bool certificateExists(CK_FUNCTION_LIST_PREFIX *fns, CK_SESSION_HANDLE s, const QByteArray &der)
+{
+    const QVector<CK_OBJECT_HANDLE> certs = findByClass(fns, s, CKO_CERTIFICATE);
+    for (int i = 0; i < certs.size(); ++i) {
+        if (readByteAttr(fns, s, certs.at(i), CKA_VALUE) == der)
+            return true;
+    }
+    return false;
 }
 
 // Прочитать файл и вернуть DER: PEM декодируется из base64, сырой DER — как есть.
@@ -313,6 +325,11 @@ ImportResult importCertificateFromFile(CK_FUNCTION_LIST_PREFIX *fns, unsigned lo
     CertFields cf;
     if (!parseCertFields(der, cf) || cf.subject.isEmpty()) {
         res.message = QStringLiteral("Файл не похож на X.509-сертификат");
+        return res;
+    }
+
+    if (certificateExists(fns, session, der)) {
+        res.message = QStringLiteral("Этот сертификат уже есть на Рутокене — копия не создана");
         return res;
     }
 
