@@ -1,9 +1,11 @@
 #include "diagnostics.h"
+#include "pkcs11_guard.h"
 #include "pkcs11_minimal.h"
 
 #include <QtConcurrent/QtConcurrent>
 #include <QtCore/QLibrary>
 #include <QtCore/QFileInfo>
+#include <QtCore/QMutex>
 #include <QtCore/QVector>
 #include <QtDBus/QDBusConnection>
 #include <QtDBus/QDBusConnectionInterface>
@@ -365,6 +367,11 @@ QVariantList Diagnostics::probePkcs11() const
                             QStringLiteral("C_GetFunctionList: ") + pkcs11Rv(rv)));
         return rows;
     }
+
+    // Состояние Cryptoki общее на процесс: без общего мьютекса этот проход
+    // финализировал бы модуль под операцией TokenSession или снимком
+    // TokenWatcher (см. pkcs11_guard.h). Мьютекс держится до конца цикла.
+    QMutexLocker locker(&pkcs11::globalMutex());
 
     rv = functions->C_Initialize(nullptr);
     const bool ownsInitialization = rv == CKR_OK;

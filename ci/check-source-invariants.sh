@@ -101,6 +101,15 @@ fi
 grep -Fq 'if (!m_enabled)' "$CRYPTOPRO_SOURCE"
 grep -Fq 'probeCryptoProLibraries' "$DIAGNOSTICS_SOURCE"
 grep -Fq 'if (includeCryptoPro)' "$DIAGNOSTICS_SOURCE"
+
+# Состояние Cryptoki общее на процесс: каждый файл, выполняющий цикл
+# C_Initialize…C_Finalize, обязан брать общий мьютекс (src/pkcs11_guard.h).
+for source in $(grep -l 'C_Initialize(nullptr)' src/*.cpp); do
+    if ! grep -Fq 'pkcs11::globalMutex()' "$source"; then
+        echo "$source runs C_Initialize without pkcs11::globalMutex()" >&2
+        exit 1
+    fi
+done
 grep -Fq 'page.mergeObjects(' "$TOKEN_PAGE"
 grep -Fq 'visibleDer[object.derB64] = true' "$TOKEN_PAGE"
 grep -Fq '!page.sameReader(certificate.readerName, wantedReader)' "$TOKEN_PAGE"

@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    23
+Release:    24
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -50,6 +50,13 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sat Oct 24 2026 Claude <noreply@anthropic.com> - 1.3.0-24
+- Take the process-wide PKCS#11 mutex in the diagnostics pass. Cryptoki state
+  is shared by the whole process, and the pass ran C_Initialize/C_Finalize on a
+  worker thread without it, so opening Diagnostics during a login, a key
+  generation or a device snapshot could finalize the module under that
+  operation, or the other way round.
+
 * Mon Aug 10 2026 Claude <noreply@anthropic.com> - 1.3.0-23
 - Stop opening containers in PKCS#11 mode during a scan. Opening a container is
   by far the most expensive operation of the pass, and on such a container it
