@@ -37,9 +37,11 @@ if [ ! -f "$APP_BINARY" ]; then
     exit 1
 fi
 # Показанная версия обязана совпадать с версией этого пакета: APP_VERSION
-# приходит из spec (см. .pro). Ищется точная строка, а не подстрока.
+# приходит из spec (см. .pro). Ищется точная строка, а не подстрока; grep -c
+# читает поток целиком — с grep -q tr получал SIGPIPE (run 40167930635).
 RPM_VERSION_RELEASE=$(rpm -qp --qf '%{VERSION}-%{RELEASE}' "$RPM_PATH")
-if ! tr '\000' '\n' < "$APP_BINARY" | grep -Fxq -- "$RPM_VERSION_RELEASE"; then
+VERSION_HITS=$(tr '\000' '\n' < "$APP_BINARY" | grep -Fxc -- "$RPM_VERSION_RELEASE" || true)
+if [ "$VERSION_HITS" -eq 0 ]; then
     echo "Application binary does not carry the package version $RPM_VERSION_RELEASE" >&2
     exit 1
 fi
