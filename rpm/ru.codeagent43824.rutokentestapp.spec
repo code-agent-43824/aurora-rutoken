@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
 Version:    1.3.0
-Release:    25
+Release:    26
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -35,7 +35,9 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %autosetup
 
 %build
-%qmake5
+# Единственный источник версии приложения — этот spec: qmake получает её здесь,
+# и приложение показывает ровно ту версию, с которой собран пакет.
+%qmake5 APP_VERSION=%{version}-%{release}
 %make_build
 
 %install
@@ -50,6 +52,15 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sun Oct 25 2026 Claude <noreply@anthropic.com> - 1.3.0-26
+- Take the application version from this spec only. %build passes
+  APP_VERSION=%{version}-%{release} to qmake and the .pro turns it into a
+  define, so the version the application shows is always the version of the
+  package; the separate literal in main.cpp, kept in sync by hand, is gone.
+- Check the built package: verify-rpm.sh requires the binary to carry exactly
+  the VERSION-RELEASE from the RPM header, and the source invariants reject a
+  version literal in the code.
+
 * Sat Oct 24 2026 Claude <noreply@anthropic.com> - 1.3.0-25
 - Show the keys of a pair under every certificate of that pair. Only the first
   certificate with a given CKA_ID used to get them, so a second certificate on

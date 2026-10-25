@@ -5,6 +5,11 @@ CONFIG += \
 
 QT += dbus concurrent network multimedia
 
+# Версия приложения приходит из rpm/*.spec (%build: APP_VERSION=%{version}-%{release}),
+# поэтому показанная версия всегда равна версии пакета. Вне rpmbuild — "dev".
+isEmpty(APP_VERSION): APP_VERSION = dev
+DEFINES += APP_VERSION=\\\"$$APP_VERSION\\\"
+
 PKGCONFIG += \
 
 SOURCES += \

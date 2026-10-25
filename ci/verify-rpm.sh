@@ -36,6 +36,13 @@ if [ ! -f "$APP_BINARY" ]; then
     echo "Application binary is missing from RPM: /usr/bin/$APP_ID" >&2
     exit 1
 fi
+# Показанная версия обязана совпадать с версией этого пакета: APP_VERSION
+# приходит из spec (см. .pro). Ищется точная строка, а не подстрока.
+RPM_VERSION_RELEASE=$(rpm -qp --qf '%{VERSION}-%{RELEASE}' "$RPM_PATH")
+if ! tr '\000' '\n' < "$APP_BINARY" | grep -Fxq -- "$RPM_VERSION_RELEASE"; then
+    echo "Application binary does not carry the package version $RPM_VERSION_RELEASE" >&2
+    exit 1
+fi
 if ! grep -aFq -- '--cryptopro-scan-helper' "$APP_BINARY" \
         || ! grep -aFq 'RUTOKEN_CRYPTOPRO_JSON:' "$APP_BINARY"; then
     echo "Bounded CryptoPro scan helper mode is missing from the application" >&2
@@ -104,4 +111,4 @@ printf '%s\n' "$SIGNATURE_INFO" | grep -Fq 'Subject: Noname developer (for testi
 printf '%s\n' "$SIGNATURE_INFO" | grep -Fq 'Subgroup: regular'
 printf '%s\n' "$SIGNATURE_INFO" | grep -Eq '^Signature: .+'
 
-echo "Verified: rpm_arch=$RPM_ARCH; elf_machine=$MACHINE; loader=$INTERPRETER; cms_and_capi_qml=present; cryptopro_helper=present; cryptopro_permission=present; icon=$APP_ID; signature=OMP regular test"
+echo "Verified: rpm_arch=$RPM_ARCH; app_version=$RPM_VERSION_RELEASE; elf_machine=$MACHINE; loader=$INTERPRETER; cms_and_capi_qml=present; cryptopro_helper=present; cryptopro_permission=present; icon=$APP_ID; signature=OMP regular test"

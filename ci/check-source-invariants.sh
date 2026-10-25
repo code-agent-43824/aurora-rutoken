@@ -340,4 +340,14 @@ grep -Fq 'model: cryptoProSession.certificates' "$CRYPTOPRO_PAGE"
 grep -Fq 'certificate.sha256' "$CRYPTOPRO_CERT_PAGE"
 grep -Fq 'This screen does not change certificates or containers' "$CRYPTOPRO_CERT_PAGE"
 
+# Версия приложения — только из spec (APP_VERSION через qmake): литерал в коде
+# разошёлся бы с пакетом, как только кто-нибудь поменяет Release.
+grep -Fxq '%qmake5 APP_VERSION=%{version}-%{release}' "$SPEC"
+grep -Fq 'DEFINES += APP_VERSION=' *.pro
+grep -Fq 'QString::fromLatin1(APP_VERSION)' src/main.cpp
+if grep -Eq '"[0-9]+\.[0-9]+\.[0-9]+-[0-9]+"' src/*.cpp src/*.h; then
+    echo "The application version must come from the spec, not a literal in the code" >&2
+    exit 1
+fi
+
 echo "Source invariants verified: v1.1 CMS/expiry and v1.2 optional read-only CapiLite"

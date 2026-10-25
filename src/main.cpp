@@ -8,9 +8,12 @@
 #include "tokensession.h"
 #include "tokenwatcher.h"
 
-// Версия приложения (для показа в диагностике). Держать синхронной с
-// rpm/*.spec (Version-Release).
-static const char *const kAppVersion = "1.3.0-25";
+// Версия приложения (для показа в диагностике) приходит из rpm/*.spec через
+// qmake: APP_VERSION задаёт .pro. Литерала версии в коде нет — его нечем было бы
+// сверять с пакетом.
+#ifndef APP_VERSION
+#error "APP_VERSION is defined by the .pro file from rpm/*.spec"
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -76,7 +79,7 @@ int main(int argc, char *argv[])
     view->rootContext()->setContextProperty(QStringLiteral("cryptoProSession"), &cryptoProSession);
     view->rootContext()->setContextProperty(QStringLiteral("diag"), &diagnostics);
     view->rootContext()->setContextProperty(QStringLiteral("appSettings"), &appSettings);
-    view->rootContext()->setContextProperty(QStringLiteral("appVersion"), QString::fromLatin1(kAppVersion));
+    view->rootContext()->setContextProperty(QStringLiteral("appVersion"), QString::fromLatin1(APP_VERSION));
     view->setSource(Aurora::Application::pathTo(QStringLiteral("qml/rutokentestapp.qml")));
     view->show();
 
