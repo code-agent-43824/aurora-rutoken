@@ -53,10 +53,10 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 
 %changelog
 * Sun Oct 25 2026 Claude <noreply@anthropic.com> - 1.3.0-26
-- Take the application version from this spec only. %build passes
-  APP_VERSION=%{version}-%{release} to qmake and the .pro turns it into a
-  define, so the version the application shows is always the version of the
-  package; the separate literal in main.cpp, kept in sync by hand, is gone.
+- Take the application version from this spec only. The build section passes
+  APP_VERSION as VERSION-RELEASE to qmake and the .pro turns it into a define,
+  so the version the application shows is always the version of the package;
+  the separate literal in main.cpp, kept in sync by hand, is gone.
 - Check the built package: verify-rpm.sh requires the binary to carry exactly
   the VERSION-RELEASE from the RPM header, and the source invariants reject a
   version literal in the code.

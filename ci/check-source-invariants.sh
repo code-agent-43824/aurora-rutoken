@@ -350,4 +350,12 @@ if grep -Eq '"[0-9]+\.[0-9]+\.[0-9]+-[0-9]+"' src/*.cpp src/*.h; then
     exit 1
 fi
 
+# rpm в Aurora PSDK принимает «%build» и другие ключевые слова в тексте
+# %changelog за начало раздела (run 40167570302: «second %build»), а хостовый
+# rpmspec этого не ловит. Знак процента в записях журнала spec запрещён.
+if sed -n '/^%changelog$/,$p' "$SPEC" | tail -n +2 | grep -q '%'; then
+    echo "The spec %changelog must not contain a percent sign" >&2
+    exit 1
+fi
+
 echo "Source invariants verified: v1.1 CMS/expiry and v1.2 optional read-only CapiLite"
