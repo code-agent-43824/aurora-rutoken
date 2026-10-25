@@ -1,7 +1,7 @@
 Name:       ru.codeagent43824.rutokentestapp
 Summary:    Rutoken ECP 3.0 test application
-Version:    1.3.0
-Release:    26
+Version:    1.3.1
+Release:    1
 Group:      Qt/Qt
 License:    MIT
 URL:        https://github.com/code-agent-43824/aurora-rutoken
@@ -52,6 +52,12 @@ exact duplicates. CryptoPro CSP is not bundled or required.
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 
 %changelog
+* Sun Oct 25 2026 Claude <noreply@anthropic.com> - 1.3.1-1
+- Stable release v1.3.1. It collects the fixes of builds 1.3.0-24 to 1.3.0-26:
+  diagnostics under the process-wide PKCS#11 mutex, several certificates on
+  one key pair, and the application version taken only from this spec. No
+  code changes since 1.3.0-26.
+
 * Sun Oct 25 2026 Claude <noreply@anthropic.com> - 1.3.0-26
 - Take the application version from this spec only. The build section passes
   APP_VERSION as VERSION-RELEASE to qmake and the .pro turns it into a define,
